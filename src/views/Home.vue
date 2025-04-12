@@ -1,130 +1,133 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { plantService } from '../services/plant.service';
+import type { Plant } from '../models/Plant';
 
-// Slider data
+// Hero Slider
 const currentSlide = ref(0);
 const slides = ref([
   {
-    image: '/images/y-hoc-co-truyen-2-16632834151061539475774-0-79-438-780-crop-1663283429390379746055.webp',
-    title: 'Cây Thuốc Mới',
-    description: 'Kho tàng tri thức y học dân tộc'
+    title: 'Khám Phá Thế Giới Cây Thuốc Việt Nam',
+    description: 'Tìm hiểu về các loại cây thuốc quý hiếm và công dụng của chúng',
+    image: '/images/slide/1.webp'
   },
   {
-    image: '/images/cay-thuoc-nam-quy-phan-loai-dieu-che-va-cach-su-dung-tri-benh-cho-hieu-qua-cao-15-.4824.jpg', 
-    title: 'Cây Thuốc Quý',
-    description: 'Khám phá các loại dược liệu quý hiếm'
+    title: 'Cây Thuốc Quý Hiếm',
+    description: 'Những loại cây thuốc có giá trị dược liệu cao và đang có nguy cơ tuyệt chủng',
+    image: '/images/slide/2.webp'
   },
   {
-    image: '/images/cham-soc-suc-khoe-ban-dau-2.jpg.webp',
-    title: 'Cây thuốc có nhiều công dụng',
-    description: 'Phương pháp điều trị từ thiên nhiên'
+    title: 'Y Học Cổ Truyền',
+    description: 'Khám phá tri thức y học cổ truyền Việt Nam qua các bài thuốc dân gian',
+    image: '/images/slide/3.webp'
+  },
+  {
+    title: 'Nghiên Cứu Khoa Học',
+    description: 'Những phát hiện mới về công dụng của cây thuốc trong y học hiện đại',
+    image: '/images/slide/4.jpg'
+  },
+  {
+    title: 'Bảo Tồn Đa Dạng Sinh Học',
+    description: 'Góp phần bảo vệ và phát triển nguồn gen cây thuốc quý hiếm',
+    image: '/images/slide/5.jpg'
+  },
+  {
+    title: 'Phát Triển Bền Vững',
+    description: 'Kết hợp giữa bảo tồn và phát triển nguồn dược liệu',
+    image: '/images/slide/6.jpg'
   }
 ]);
 
-// Featured plants data
-const featuredPlants = ref([
-  {
-    id: 1,
-    name: 'Sâm Ngọc Linh',
-    image: '/images/sam-ngoc-linh.jpg',
-    description: 'Loại sâm quý hiếm của Việt Nam, có tác dụng bồi bổ sức khỏe',
-    uses: ['Tăng cường sức đề kháng', 'Chống mệt mỏi', 'Bồi bổ cơ thể']
-  },
-  {
-    id: 2,
-    name: 'Đinh Lăng',
-    image: '/images/dinh-lang.webp',
-    description: 'Thảo dược quý giúp tăng cường trí nhớ và sức khỏe',
-    uses: ['Tăng cường trí nhớ', 'Giảm stress', 'Bổ não']
-  },
-  {
-    id: 3,
-    name: 'Đương Quy',
-    image: '/images/duong-quy.jpg',
-    description: 'Thảo dược bổ huyết hàng đầu trong y học cổ truyền',
-    uses: ['Bổ huyết', 'Điều hòa kinh nguyệt', 'Chống lão hóa']
-  },
-  {
-    id: 4,
-    name: 'Đương Quy',
-    image: '/images/duong-quy.jpg',
-    description: 'Thảo dược bổ huyết hàng đầu trong y học cổ truyền',
-    uses: ['Bổ huyết', 'Điều hòa kinh nguyệt', 'Chống lão hóa']
-  }
-]);
+// Tự động chuyển slide
+let slideInterval: number | null = null;
 
-// Slider controls
+const startSlideInterval = () => {
+  slideInterval = window.setInterval(() => {
+    nextSlide();
+  }, 5000); // Chuyển slide sau mỗi 5 giây
+};
+
+const stopSlideInterval = () => {
+  if (slideInterval) {
+    clearInterval(slideInterval);
+    slideInterval = null;
+  }
+};
+
 const nextSlide = () => {
+  console.log('Next slide clicked');
   currentSlide.value = (currentSlide.value + 1) % slides.value.length;
 };
 
 const prevSlide = () => {
+  console.log('Prev slide clicked');
   currentSlide.value = (currentSlide.value - 1 + slides.value.length) % slides.value.length;
 };
 
-// Auto slide
+// Cây thuốc mới phát hiện
+const newPlants = ref<Plant[]>([]);
+const loadingNewPlants = ref(true);
+const errorNewPlants = ref<string | null>(null);
+
+// Cây có nhiều công dụng
+const multiUsePlants = ref<Plant[]>([]);
+const loadingMultiUsePlants = ref(true);
+const errorMultiUsePlants = ref<string | null>(null);
+
+// Lấy danh sách cây thuốc mới nhất
+const fetchNewestPlants = async () => {
+  console.log('Fetching newest plants for home page...');
+  try {
+    loadingNewPlants.value = true;
+    errorNewPlants.value = null;
+    newPlants.value = await plantService.getNewestPlants(10);
+    console.log('Newest plants fetched successfully:', newPlants.value);
+  } catch (err) {
+    console.error('Error fetching newest plants:', err);
+    errorNewPlants.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách cây thuốc mới';
+  } finally {
+    loadingNewPlants.value = false;
+    console.log('Fetch newest plants completed, loading:', loadingNewPlants.value);
+  }
+};
+
+// Lấy danh sách cây có nhiều công dụng
+const fetchMultiUsePlants = async () => {
+  console.log('Fetching multi-use plants for home page...');
+  try {
+    loadingMultiUsePlants.value = true;
+    errorMultiUsePlants.value = null;
+    multiUsePlants.value = await plantService.getPlantsWithMostBenefits(10);
+    console.log('Multi-use plants fetched successfully:', multiUsePlants.value);
+  } catch (err) {
+    console.error('Error fetching multi-use plants:', err);
+    errorMultiUsePlants.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách cây có nhiều công dụng';
+  } finally {
+    loadingMultiUsePlants.value = false;
+    console.log('Fetch multi-use plants completed, loading:', loadingMultiUsePlants.value);
+  }
+};
+
+// Format ngày tháng
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
 onMounted(() => {
-  setInterval(nextSlide, 5000);
+  console.log('Home component mounted');
+  fetchNewestPlants();
+  fetchMultiUsePlants();
+  startSlideInterval();
 });
 
-// Thêm các thành phần mới
-const multiUsePlants = ref([
-  {
-    id: 1,
-    name: 'Nghệ Vàng',
-    image: '/images/nghe-vang-11-16321238202351748496060.jpg',
-    description: 'Thảo dược đa công dụng, từ chống viêm đến làm đẹp',
-    uses: ['Chống viêm', 'Hỗ trợ tiêu hóa', 'Làm đẹp da', 'Giảm đau nhức']
-  },
-  {
-    id: 2,
-    name: 'Gừng',
-    image: '/images/gung.jpg',
-    description: 'Thảo dược quen thuộc với nhiều công dụng đa dạng',
-    uses: ['Chống cảm lạnh', 'Giảm đau bụng', 'Tăng cường miễn dịch', 'Chống say xe']
-  },
-  {
-    id: 3,
-    name: 'Tía Tô',
-    image: '/images/anh-duoc-tao-boi-tranmaihuongskds-luc-4722141608379-1699971368392200271762.webp',
-    description: 'Thảo dược dân gian với nhiều ứng dụng trong y học',
-    uses: ['Trị cảm', 'Giải độc', 'Làm đẹp', 'Hỗ trợ tiêu hóa']
-  }
-]);
-
-const newPlants = ref([
-  {
-    id: 1,
-    name: 'Nấm Linh Chi Đỏ',
-    image: '/images/nam-linh-chi-do.jpg',
-    description: 'Loại nấm quý mới được phát hiện tại Việt Nam',
-    discoveryDate: '2023'
-  },
-  {
-    id: 2,
-    name: 'Sâm Đất',
-    image: '/images/sam-dat.png',
-    description: 'Loại sâm mới được phát hiện tại vùng núi Tây Bắc',
-    discoveryDate: '2023'
-  }
-]);
-
-const experts = ref([
-  {
-    id: 1,
-    name: 'GS.TS Nguyễn Văn A',
-    image: '/images/7-1418377501810.webp',
-    contributions: ['Nghiên cứu phát triển Đông trùng hạ thảo', 'Tác giả 50 công trình nghiên cứu'],
-    specialization: 'Dược liệu học'
-  },
-  {
-    id: 2,
-    name: 'PGS.TS Trần Thị B',
-    image: '/images/7-1418377501810.webp',
-    contributions: ['Nghiên cứu về cây thuốc quý hiếm', 'Phát triển phương pháp bảo tồn gen'],
-    specialization: 'Thực vật học'
-  }
-]);
+onBeforeUnmount(() => {
+  stopSlideInterval();
+});
 </script>
 
 <template>
@@ -146,101 +149,81 @@ const experts = ref([
       </div>
     </section>
 
-    <!-- Featured Plants -->
-    <section class="featured-plants">
-      <div class="section-header">
-        <h2>Cây Thuốc Tiêu Biểu</h2>
-        <router-link to="/medicinal-plants" class="view-all">Xem tất cả ❯</router-link>
-      </div>
-      <div class="plants-grid">
-        <div v-for="plant in featuredPlants" :key="plant.id" class="plant-card">
-          <div class="card-image">
-            <img :src="plant.image" :alt="plant.name">
-          </div>
-          <div class="card-content">
-            <h3>{{ plant.name }}</h3>
-            <p>{{ plant.description }}</p>
-            <div class="uses-list">
-              <h4>Công dụng chính:</h4>
-              <ul>
-                <li v-for="use in plant.uses" :key="use">{{ use }}</li>
-              </ul>
+    <div class="content-container">
+      <!-- Cây thuốc mới phát hiện -->
+      <section class="new-plants">
+        <div class="section-header">
+          <h2>Cây Thuốc Mới Phát Hiện</h2>
+          <router-link to="/medicinal-plants" class="view-all">Xem tất cả</router-link>
+        </div>
+        
+        <div v-if="loadingNewPlants" class="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Đang tải danh sách cây thuốc mới...</p>
+        </div>
+        
+        <div v-else-if="errorNewPlants" class="error">
+          <i class="fas fa-exclamation-circle"></i>
+          <p>{{ errorNewPlants }}</p>
+          <button @click="fetchNewestPlants" class="retry-btn">
+            <i class="fas fa-redo"></i> Thử lại
+          </button>
+        </div>
+        
+        <div v-else class="plants-grid">
+          <div v-for="plant in newPlants" :key="plant.plant_id" class="plant-card">
+            <div class="card-content">
+              <h3>{{ plant.name }}</h3>
+              <p class="english-name">{{ plant.english_name }}</p>
+              <p class="description">{{ plant.description }}</p>
+              <div class="discovery-date">
+                <p>Phát hiện: {{ formatDate(plant.created_at) }}</p>
+              </div>
+              <router-link :to="`/plant/${plant.plant_id}`" class="view-details">
+                Xem chi tiết
+              </router-link>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Cây thuốc đa công dụng -->
-    <section class="multi-use-plants">
-      <div class="section-header">
-        <h2>Cây Thuốc Đa Công Dụng</h2>
-      </div>
-      <div class="plants-grid">
-        <div v-for="plant in multiUsePlants" :key="plant.id" class="plant-card">
-          <div class="card-image">
-            <img :src="plant.image" :alt="plant.name">
-          </div>
-          <div class="card-content">
-            <h3>{{ plant.name }}</h3>
-            <p>{{ plant.description }}</p>
-            <div class="uses-list">
-              <h4>Công dụng đa dạng:</h4>
-              <ul>
-                <li v-for="use in plant.uses" :key="use">{{ use }}</li>
-              </ul>
+      <!-- Cây có nhiều công dụng -->
+      <section class="multi-use-plants">
+        <div class="section-header">
+          <h2>Cây Thuốc Đa Công Dụng</h2>
+          <router-link to="/medicinal-plants" class="view-all">Xem tất cả</router-link>
+        </div>
+        
+        <div v-if="loadingMultiUsePlants" class="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Đang tải danh sách cây đa công dụng...</p>
+        </div>
+        
+        <div v-else-if="errorMultiUsePlants" class="error">
+          <i class="fas fa-exclamation-circle"></i>
+          <p>{{ errorMultiUsePlants }}</p>
+          <button @click="fetchMultiUsePlants" class="retry-btn">
+            <i class="fas fa-redo"></i> Thử lại
+          </button>
+        </div>
+        
+        <div v-else class="plants-grid">
+          <div v-for="plant in multiUsePlants" :key="plant.plant_id" class="plant-card">
+            <div class="card-content">
+              <h3>{{ plant.name }}</h3>
+              <p class="english-name">{{ plant.english_name }}</p>
+              <p class="description">{{ plant.description }}</p>
+              <div class="benefits-count">
+                <p>Số công dụng: {{ plant.benefits.split(',').length }}</p>
+              </div>
+              <router-link :to="`/plant/${plant.plant_id}`" class="view-details">
+                Xem chi tiết
+              </router-link>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Cây thuốc mới phát hiện -->
-    <section class="new-plants">
-      <div class="section-header">
-        <h2>Cây Thuốc Mới Phát Hiện</h2>
-      </div>
-      <div class="plants-grid">
-        <div v-for="plant in newPlants" :key="plant.id" class="plant-card">
-          <div class="card-image">
-            <img :src="plant.image" :alt="plant.name">
-          </div>
-          <div class="card-content">
-            <h3>{{ plant.name }}</h3>
-            <p>{{ plant.description }}</p>
-            <div class="discovery-date">
-              <p>Phát hiện: {{ plant.discoveryDate }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Chuyên gia đóng góp -->
-    <section class="experts">
-      <div class="section-header">
-        <h2>Chuyên Gia Tiêu Biểu</h2>
-      </div>
-      <div class="experts-grid">
-        <div v-for="expert in experts" :key="expert.id" class="expert-card">
-          <div class="expert-image">
-            <img :src="expert.image" :alt="expert.name">
-          </div>
-          <div class="expert-content">
-            <h3>{{ expert.name }}</h3>
-            <p>{{ expert.specialization }}</p>
-            <div class="contributions-list">
-              <h4>Đóng góp nổi bật:</h4>
-              <ul>
-                <li v-for="contribution in expert.contributions" :key="contribution">
-                  {{ contribution }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -254,6 +237,7 @@ const experts = ref([
   position: relative;
   height: 600px;
   overflow: hidden;
+  margin-bottom: 2rem;
 }
 
 .slider-container {
@@ -284,11 +268,18 @@ const experts = ref([
   left: 10%;
   color: white;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  max-width: 600px;
 }
 
 .slide-content h2 {
   font-size: 3rem;
   margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.slide-content p {
+  font-size: 1.2rem;
+  line-height: 1.5;
 }
 
 .slider-btn {
@@ -308,6 +299,7 @@ const experts = ref([
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  z-index: 10;
 }
 
 .slider-btn:hover {
@@ -323,11 +315,16 @@ const experts = ref([
   right: 1rem;
 }
 
-/* Section Styles */
-section {
-  padding: 4rem 2rem;
+/* Content Container */
+.content-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Section Styles */
+section {
+  margin-bottom: 4rem;
 }
 
 .section-header {
@@ -338,8 +335,8 @@ section {
 }
 
 .section-header h2 {
+  color: #008053;
   font-size: 2rem;
-  color: #2c3e50;
   position: relative;
   padding-bottom: 0.5rem;
 }
@@ -351,152 +348,148 @@ section {
   left: 0;
   width: 60px;
   height: 3px;
-  background: #008053;
-  border-radius: 2px;
+  background-color: #008053;
 }
 
 .view-all {
   color: #008053;
   text-decoration: none;
   font-weight: 500;
-  padding: 0.5rem 1rem;
-  border: 2px solid #008053;
-  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   transition: all 0.3s ease;
 }
 
 .view-all:hover {
-  background: #008053;
-  color: white;
-}
-
-/* Grid Layouts */
-.plants-grid,
-.diseases-grid,
-.news-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-/* Card Styles */
-.plant-card,
-.disease-card,
-.news-card {
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.plant-card:hover,
-.disease-card:hover,
-.news-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-}
-
-.card-image {
-  height: 250px;
-  overflow: hidden;
-  position: relative;
-}
-
-.card-image::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5));
-}
-
-.card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
-
-.plant-card:hover .card-image img,
-.disease-card:hover .card-image img,
-.news-card:hover .card-image img {
-  transform: scale(1.1);
-}
-
-.card-content {
-  padding: 2rem;
-}
-
-.card-content h3 {
-  color: #2c3e50;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-}
-
-.card-content p {
-  color: #666;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
-}
-
-/* Lists */
-.uses-list,
-.symptoms,
-.treatments {
-  margin-top: 1.5rem;
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 10px;
-}
-
-.uses-list h4,
-.symptoms h4,
-.treatments h4 {
-  color: #008053;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-}
-
-ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-ul li {
-  padding: 0.5rem 0;
-  color: #666;
-  position: relative;
-  padding-left: 1.8rem;
-  transition: all 0.3s ease;
-}
-
-ul li:hover {
-  color: #008053;
+  color: #006040;
   transform: translateX(5px);
 }
 
-ul li::before {
-  content: "•";
-  color: #008053;
-  position: absolute;
-  left: 0;
-  font-size: 1.5rem;
-  line-height: 1;
+.loading, .error {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+  background-color: #f8f9fa;
+  border-radius: 8px;
 }
 
-/* News Specific */
-.date {
+.loading i, .error i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.retry-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+.plants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.plant-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.plant-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-content h3 {
   color: #008053;
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: block;
   margin-bottom: 0.5rem;
+  font-size: 1.25rem;
 }
 
-/* Responsive Design */
+.english-name {
+  color: #666;
+  font-style: italic;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.description {
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.discovery-date, .benefits-count {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.benefits-count {
+  color: #008053;
+  font-weight: 500;
+}
+
+.view-details {
+  display: inline-block;
+  background-color: #f8f9fa;
+  color: #008053;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-align: center;
+  margin-top: auto;
+}
+
+.view-details:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.multi-use-plants {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 2rem;
+}
+
 @media (max-width: 768px) {
   .hero-slider {
     height: 400px;
@@ -506,141 +499,20 @@ ul li::before {
     font-size: 2rem;
   }
 
-  section {
-    padding: 2rem 1rem;
+  .slide-content p {
+    font-size: 1rem;
   }
 
-  .plants-grid,
-  .diseases-grid,
-  .news-grid {
+  .content-container {
+    padding: 0 1rem;
+  }
+
+  .plants-grid {
     grid-template-columns: 1fr;
   }
 
-  .card-image {
-    height: 200px;
-  }
-
-  .card-content {
-    padding: 1.5rem;
-  }
-}
-
-/* Experts Section */
-.experts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.expert-card {
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.expert-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-}
-
-.expert-image {
-  height: 200px;
-  overflow: hidden;
-}
-
-.expert-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
-
-.expert-card:hover .expert-image img {
-  transform: scale(1.1);
-}
-
-.expert-content {
-  padding: 2rem;
-}
-
-.expert-content h3 {
-  color: #2c3e50;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.expert-content p {
-  color: #008053;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-.contributions-list {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 10px;
-}
-
-.contributions-list h4 {
-  color: #008053;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-}
-
-/* Discovery Date */
-.discovery-date {
-  background: #e8f5e9;
-  padding: 0.8rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-}
-
-.discovery-date p {
-  color: #008053;
-  font-weight: 500;
-  margin: 0;
-}
-
-/* Enhanced Section Headers */
-.section-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.section-header h2 {
-  font-size: 2.5rem;
-  color: #2c3e50;
-  margin-bottom: 1rem;
-  position: relative;
-  display: inline-block;
-}
-
-.section-header h2::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 4px;
-  background: #008053;
-  border-radius: 2px;
-}
-
-/* Responsive Enhancements */
-@media (max-width: 768px) {
   .section-header h2 {
-    font-size: 2rem;
-  }
-
-  .expert-content {
-    padding: 1.5rem;
-  }
-
-  .expert-image {
-    height: 180px;
+    font-size: 1.5rem;
   }
 }
 </style>

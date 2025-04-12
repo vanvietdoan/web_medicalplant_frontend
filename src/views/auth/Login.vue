@@ -9,6 +9,7 @@ const password = ref('');
 const error = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
+const isLoggedIn = ref(false);
 
 const handleSubmit = async () => {
   error.value = '';
@@ -20,14 +21,19 @@ const handleSubmit = async () => {
   loading.value = true;
   try {
     console.log('Login attempt:', { email: email.value, password: password.value });
-    // @ts-ignore - Ignoring type error for now
     const response = await authService.login({
       email: email.value,
-      password: password.value
+      password: password.value,
+      id: 0,
+      role: '',
+      fullName: ''
     });
     console.log('Login successful:', response);
     
-    // Redirect to test page after successful login
+    // Cập nhật trạng thái đăng nhập trước khi chuyển trang
+    isLoggedIn.value = true;
+    
+    // Chuyển hướng sau khi cập nhật trạng thái
     router.push('/profile');
   } catch (err) {
     console.error('Login error:', err);

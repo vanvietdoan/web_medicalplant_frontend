@@ -14,9 +14,30 @@ class AuthService extends BaseService {
     return response;
   }
 
-  logout(): void {
-    this.removeToken();
-    localStorage.removeItem('user');
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return await this.post<{ message: string }>('/auth/forgot-password', { email });
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return await this.post<{ message: string }>('/auth/change-password', {
+      oldPassword: currentPassword,
+      newPassword: newPassword
+    });
+  }
+
+  async logout(): Promise<void> {
+    try {
+      const currentUser = this.getCurrentUser();
+      if (currentUser?.email) {
+        await this.get('/auth/logout', { params: { email: currentUser.email } });
+      }
+    } finally {
+      // Luôn xóa token và thông tin user ngay cả khi API call thất bại
+      this.removeToken();
+      localStorage.removeItem('user');
+      // Emit event để thông báo thay đổi trạng thái đăng nhập
+      window.dispatchEvent(new Event('auth-state-changed'));
+    }
   }
 
   getCurrentUser(): User | null {

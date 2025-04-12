@@ -33,11 +33,13 @@ const fetchUserDetails = async () => {
   }
 };
 
-const handleLogout = () => {
-  authService.logout();
-  router.push('/login');
+const handleLogout = async () => {
+  try {
+    await authService.logout();
+  } finally {
+    router.push('/login');
+  }
 };
-
 onMounted(fetchUserDetails);
 </script>
 
@@ -123,6 +125,14 @@ onMounted(fetchUserDetails);
       </div>
 
       <div class="profile-actions">
+        <button @click="router.push('/profile/edit')" class="edit-btn">
+          <i class="fas fa-edit"></i>
+          Chỉnh sửa
+        </button>
+        <button @click="router.push('/change-password')" class="password-btn">
+          <i class="fas fa-key"></i>
+          Đổi mật khẩu
+        </button>
         <button @click="handleLogout" class="logout-btn">
           <i class="fas fa-sign-out-alt"></i>
           Đăng xuất
@@ -280,6 +290,42 @@ onMounted(fetchUserDetails);
   border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: flex-end;
+}
+
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #42b883;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-right: 1rem;
+}
+
+.edit-btn:hover {
+  background-color: #3aa876;
+}
+
+.password-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #008053;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-right: 1rem;
+}
+
+.password-btn:hover {
+  background-color: #006c46;
 }
 
 .logout-btn {

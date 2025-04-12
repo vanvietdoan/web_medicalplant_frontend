@@ -8,8 +8,9 @@ import DiseaseDetail from '../views/disease/DiseaseDetail.vue'
 import Login from '../views/auth/Login.vue'
 import Register from '../views/auth/Register.vue'
 import ForgotPassword from '../views/auth/ForgotPassword.vue'
-import ResetPassword from '../views/auth/ResetPassword.vue'
+import ChangePassword from '../views/auth/ChangePassword.vue'
 import Profile from '../views/profile/Profile.vue'
+import EditProfile from '../views/profile/EditProfile.vue'
 
 console.log('Router configuration loaded')
 
@@ -57,14 +58,20 @@ const router = createRouter({
       component: ForgotPassword
     },  
     {
-      path: '/reset-password',
-      name: 'reset-password',
-      component: ResetPassword
+      path: '/change-password',
+      name: 'change-password',
+      component: ChangePassword
     },
     {
       path: '/profile',
       name: 'profile',
       component: Profile,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/profile/edit',
+      name: 'profile-edit',
+      component: EditProfile,
       meta: { requiresAuth: true }
     }
   ]

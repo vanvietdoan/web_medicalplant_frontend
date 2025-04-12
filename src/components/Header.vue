@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Login, User } from '../models/User';
 import { authService } from '../services/auth.service';
@@ -10,31 +10,52 @@ const isLoggedIn = ref(authService.isAuthenticated());
 const currentUser = ref<Login | null>(null);
 const userDetails = ref<User | null>(null);
 
+// Hàm để cập nhật thông tin người dùng
+const updateUserInfo = async () => {
+  try {
+    if (isLoggedIn.value) {
+      const user = authService.getCurrentUser() as Login | null;
+      if (user) {
+        currentUser.value = user;
+        if (user.id) {
+          userDetails.value = await userService.getUserById(user.id);
+        }
+      } else {
+        handleLogout();
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    handleLogout();
+  }
+};
+
 // Đăng xuất
-const handleLogout = () => {
-  authService.logout();
-  isLoggedIn.value = false;
-  currentUser.value = null;
-  userDetails.value = null;
-  router.push('/login');
+const handleLogout = async () => {
+  try {
+    await authService.logout();
+  } finally {
+    isLoggedIn.value = false;
+    currentUser.value = null;
+    userDetails.value = null;
+    router.push('/login');
+  }
 };
 
 const handleProfile = () => {
   router.push('/profile');
 };
 
+// Theo dõi thay đổi trạng thái đăng nhập
+watch(isLoggedIn, async (newValue) => {
+  if (newValue) {
+    await updateUserInfo();
+  }
+});
+
 // Khi component được mount, kiểm tra nếu đã đăng nhập thì lấy thông tin người dùng
 onMounted(async () => {
-  if (isLoggedIn.value) {
-    currentUser.value = authService.getCurrentUser() as Login | null;
-    if (currentUser.value?.id) {
-      try {
-        userDetails.value = await userService.getUserById(currentUser.value.id);
-      } catch (error) {
-        console.error('Error fetching user details:', error);
-      }
-    }
-  }
+  await updateUserInfo();
 });
 </script>
 
@@ -48,8 +69,8 @@ onMounted(async () => {
       </div>
       <nav class="nav-menu">
         <router-link to="/" class="nav-item">Trang chủ</router-link>
-        <router-link to="/medicinal-plants" class="nav-item">Cây thuốc</router-link>
-        <router-link to="/common-diseases" class="nav-item">Bệnh thường gặp</router-link>
+        <router-link to="/plant" class="nav-item">Cây thuốc</router-link>
+        <router-link to="/disease" class="nav-item">Bệnh thường gặp</router-link>
       </nav>
 
       <div class="auth-buttons">

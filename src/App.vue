@@ -11,6 +11,7 @@ onBeforeMount(() => {
 
 onMounted(() => {
   console.log('App component mounted')
+  
 })
 </script>
 

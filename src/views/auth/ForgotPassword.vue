@@ -1,47 +1,41 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { authService } from '../../services/auth.service';
 
 const router = useRouter();
 const email = ref('');
 const isLoading = ref(false);
-const message = ref({ type: '', content: '' });
+const message = ref('');
+const error = ref('');
 
 const validateEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
 const handleSubmit = async () => {
-  message.value = { type: '', content: '' };
+  console.log('Starting forgot password process for email:', email.value);
   
   if (!email.value) {
-    message.value = { type: 'error', content: 'Vui lòng nhập địa chỉ email' };
-    return;
-  }
-
-  if (!validateEmail(email.value)) {
-    message.value = { type: 'error', content: 'Địa chỉ email không hợp lệ' };
+    console.log('Validation failed: Email is empty');
+    error.value = 'Please enter your email address';
     return;
   }
 
   try {
+    console.log('Sending forgot password request...');
     isLoading.value = true;
-    // TODO: Implement API call to send reset password email
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-    
-    message.value = {
-      type: 'success',
-      content: 'Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn'
-    };
-    
+    error.value = '';
+    const response = await authService.forgotPassword(email.value);
+    console.log('Forgot password request successful:', response);
+    message.value = response.message;
     setTimeout(() => {
+      console.log('Redirecting to login page...');
       router.push('/login');
-    }, 2000);
-  } catch (error) {
-    message.value = {
-      type: 'error',
-      content: 'Đã có lỗi xảy ra, vui lòng thử lại sau'
-    };
+    }, 3000);
+  } catch (err) {
+    console.error('Forgot password request failed:', err);
+    error.value = err instanceof Error ? err.message : 'An error occurred. Please try again.';
   } finally {
     isLoading.value = false;
   }
@@ -75,9 +69,12 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div v-if="message.content" :class="['message', message.type]">
-            <i :class="message.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
-            {{ message.content }}
+          <div v-if="error" class="error-message">
+            {{ error }}
+          </div>
+
+          <div v-if="message" :class="['message', message.includes('success') ? 'success' : 'error']">
+            {{ message }}
           </div>
 
           <button type="submit" class="submit-btn" :disabled="isLoading">
@@ -203,6 +200,14 @@ const handleSubmit = async () => {
 .input-group input:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
+}
+
+.error-message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
 .message {

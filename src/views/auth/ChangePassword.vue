@@ -1,74 +1,63 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { authService } from '../../services/auth.service';
 
-const route = useRoute();
 const router = useRouter();
-
-const password = ref('');
+const currentPassword = ref('');
+const newPassword = ref('');
 const confirmPassword = ref('');
 const isLoading = ref(false);
-const message = ref({ type: '', content: '' });
-const showPassword = ref(false);
+const message = ref('');
+const error = ref('');
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
-const token = ref('');
 
-onMounted(() => {
-  token.value = route.params.token as string;
-  if (!token.value) {
-    router.push('/forgot-password');
-  }
+// Password validation
+const isPasswordValid = computed(() => {
+  return newPassword.value.length >= 6;
 });
 
-const validatePassword = () => {
-  if (!password.value) {
-    message.value = { type: 'error', content: 'Vui lòng nhập mật khẩu mới' };
-    return false;
-  }
-
-  if (password.value.length < 6) {
-    message.value = { type: 'error', content: 'Mật khẩu phải có ít nhất 6 ký tự' };
-    return false;
-  }
-
-  if (!confirmPassword.value) {
-    message.value = { type: 'error', content: 'Vui lòng xác nhận mật khẩu' };
-    return false;
-  }
-
-  if (password.value !== confirmPassword.value) {
-    message.value = { type: 'error', content: 'Mật khẩu xác nhận không khớp' };
-    return false;
-  }
-
-  return true;
-};
+const passwordsMatch = computed(() => {
+  return newPassword.value === confirmPassword.value && newPassword.value !== '';
+});
 
 const handleSubmit = async () => {
-  message.value = { type: '', content: '' };
+  console.log('Starting password change process');
+  
+  if (!currentPassword.value) {
+    console.log('Validation failed: Current password is empty');
+    error.value = 'Vui lòng nhập mật khẩu hiện tại';
+    return;
+  }
+  
+  if (!isPasswordValid.value) {
+    console.log('Validation failed: Password does not meet requirements');
+    error.value = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+    return;
+  }
 
-  if (!validatePassword()) {
+  if (!passwordsMatch.value) {
+    console.log('Validation failed: Passwords do not match');
+    error.value = 'Mật khẩu xác nhận không khớp';
     return;
   }
 
   try {
+    console.log('Sending password change request...');
     isLoading.value = true;
-    // TODO: Implement API call to reset password
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-    
-    message.value = {
-      type: 'success',
-      content: 'Mật khẩu đã được đặt lại thành công'
-    };
-    
+    error.value = '';
+    const response = await authService.changePassword(currentPassword.value, newPassword.value);
+    console.log('Password change successful:', response);
+    message.value = response.message;
     setTimeout(() => {
+      console.log('Redirecting to login page...');
       router.push('/login');
-    }, 2000);
-  } catch (error) {
-    message.value = {
-      type: 'error',
-      content: 'Đã có lỗi xảy ra, vui lòng thử lại sau'
-    };
+    }, 3000);
+  } catch (err) {
+    console.error('Password change failed:', err);
+    error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra, vui lòng thử lại sau';
   } finally {
     isLoading.value = false;
   }
@@ -76,41 +65,64 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="reset-password-page">
-    <div class="reset-password-container">
-      <div class="reset-password-left">
-        <div class="reset-password-header">
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-left">
+        <div class="auth-header">
           <div class="logo">
             <img src="/images/logo.png" alt="Logo" class="logo-img">
           </div>
-          <h1>Đặt lại mật khẩu</h1>
-          <p>Nhập mật khẩu mới cho tài khoản của bạn</p>
+          <h1>Đổi mật khẩu</h1>
+          <p>Cập nhật mật khẩu mới cho tài khoản của bạn</p>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="reset-password-form">
+        <form @submit.prevent="handleSubmit" class="auth-form">
           <div class="form-group">
-            <label for="password">Mật khẩu mới</label>
+            <label for="currentPassword">Mật khẩu hiện tại</label>
             <div class="input-group">
               <i class="fas fa-lock"></i>
               <input
-                :type="showPassword ? 'text' : 'password'"
-                id="password"
-                v-model="password"
+                :type="showCurrentPassword ? 'text' : 'password'"
+                id="currentPassword"
+                v-model="currentPassword"
                 placeholder="••••••••"
                 :disabled="isLoading"
+                @input="error = ''"
               >
               <button 
                 type="button" 
                 class="toggle-password"
-                @click="showPassword = !showPassword"
+                @click="showCurrentPassword = !showCurrentPassword"
               >
-                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                <i :class="showCurrentPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
               </button>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="confirmPassword">Xác nhận mật khẩu</label>
+            <label for="newPassword">Mật khẩu mới</label>
+            <div class="input-group">
+              <i class="fas fa-lock"></i>
+              <input
+                :type="showNewPassword ? 'text' : 'password'"
+                id="newPassword"
+                v-model="newPassword"
+                placeholder="••••••••"
+                :disabled="isLoading"
+                @input="error = ''"
+              >
+              <button 
+                type="button" 
+                class="toggle-password"
+                @click="showNewPassword = !showNewPassword"
+              >
+                <i :class="showNewPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Xác nhận mật khẩu mới</label>
             <div class="input-group">
               <i class="fas fa-lock"></i>
               <input
@@ -119,6 +131,7 @@ const handleSubmit = async () => {
                 v-model="confirmPassword"
                 placeholder="••••••••"
                 :disabled="isLoading"
+                @input="error = ''"
               >
               <button 
                 type="button" 
@@ -128,28 +141,35 @@ const handleSubmit = async () => {
                 <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
               </button>
             </div>
+            <div v-if="confirmPassword && !passwordsMatch" class="password-mismatch">
+              <i class="fas fa-exclamation-circle"></i>
+              Mật khẩu xác nhận không khớp
+            </div>
           </div>
 
-          <div v-if="message.content" :class="['message', message.type]">
-            <i :class="message.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
-            {{ message.content }}
+          <div v-if="error" class="error-message">
+            {{ error }}
           </div>
 
-          <button type="submit" class="submit-btn" :disabled="isLoading">
-            <span v-if="!isLoading">Đặt lại mật khẩu</span>
+          <div v-if="message" :class="['message', message.includes('success') ? 'success' : 'error']">
+            {{ message }}
+          </div>
+
+          <button type="submit" class="submit-btn" :disabled="isLoading || !isPasswordValid || !passwordsMatch || !currentPassword">
+            <span v-if="!isLoading">Cập nhật mật khẩu</span>
             <i v-else class="fas fa-spinner fa-spin"></i>
           </button>
 
           <div class="form-footer">
-            <router-link to="/login" class="back-link">
+            <router-link to="/profile" class="back-link">
               <i class="fas fa-arrow-left"></i>
-              Quay lại đăng nhập
+              Quay lại trang cá nhân
             </router-link>
           </div>
         </form>
       </div>
 
-      <div class="reset-password-right">
+      <div class="auth-right">
         <div class="illustration">
           <!-- Hình minh họa -->
         </div>
@@ -159,7 +179,7 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
-.reset-password-page {
+.auth-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -168,7 +188,7 @@ const handleSubmit = async () => {
   padding: 2rem;
 }
 
-.reset-password-container {
+.auth-container {
   display: flex;
   background: white;
   border-radius: 20px;
@@ -179,12 +199,12 @@ const handleSubmit = async () => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.reset-password-left {
+.auth-left {
   flex: 1;
   padding: 3rem;
 }
 
-.reset-password-right {
+.auth-right {
   flex: 1;
   background-color: #FFE4C4;
   display: flex;
@@ -201,20 +221,21 @@ const handleSubmit = async () => {
 
 .logo-img {
   width: 150px;
-  /* height: 50px; */
   object-fit: contain;
   margin-bottom: 1.5rem;
 }
 
-.reset-password-header h1 {
+.auth-header h1 {
   color: #2c3e50;
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
+  text-align: center;
 }
 
-.reset-password-header p {
+.auth-header p {
   color: #666;
   margin-bottom: 2rem;
+  text-align: center;
 }
 
 .form-group {
@@ -276,6 +297,23 @@ const handleSubmit = async () => {
   color: #008053;
 }
 
+.password-mismatch {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
 .message {
   padding: 1rem;
   border-radius: 8px;
@@ -309,7 +347,7 @@ const handleSubmit = async () => {
   transition: all 0.3s ease;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   background-color: #006c46;
 }
 
@@ -347,15 +385,15 @@ const handleSubmit = async () => {
 }
 
 @media (max-width: 768px) {
-  .reset-password-container {
+  .auth-container {
     flex-direction: column;
   }
 
-  .reset-password-right {
+  .auth-right {
     display: none;
   }
 
-  .reset-password-left {
+  .auth-left {
     padding: 2rem;
   }
 }

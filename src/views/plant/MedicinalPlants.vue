@@ -1,37 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { plantService } from '../../services/plant.service';
+import type { Plant } from '../../models/Plant';
 
-interface MedicinalPlant {
-  plant_id: number;
-  name: string;
-  image: string;
-  english_name: string;
-  description: string;
-  time: string;
-  benefits: string;
-  instructions: string;
-  species: {
-    name: string;
-    genus: {
-      name: string;
-      family: {
-        name: string;
-        order: {
-          name: string;
-          class: {
-            name: string;
-            division: {
-              name: string;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-const plants = ref<MedicinalPlant[]>([]);
+const router = useRouter();
+const plants = ref<Plant[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
 const searchQuery = ref('');
+
+// Filter states
 const selectedDivision = ref('');
 const selectedClass = ref('');
 const selectedOrder = ref('');
@@ -39,44 +18,43 @@ const selectedFamily = ref('');
 const selectedGenus = ref('');
 const selectedSpecies = ref('');
 
-// Computed properties for cascade filtering
+// Mock data for filters
+const mockDivisions = ['Magnoliophyta', 'Pteridophyta', 'Bryophyta'];
+const mockClasses = ['Magnoliopsida', 'Liliopsida', 'Polypodiopsida'];
+const mockOrders = ['Apiales', 'Asterales', 'Lamiales'];
+const mockFamilies = ['Araliaceae', 'Asteraceae', 'Lamiaceae'];
+const mockGenera = ['Panax', 'Artemisia', 'Mentha'];
+const mockSpecies = ['Panax vietnamensis', 'Artemisia annua', 'Mentha piperita'];
+
+// Computed properties for available filter options
 const availableClasses = computed(() => {
   if (!selectedDivision.value) return [];
-  return [...new Set(plants.value
-    .filter(p => p.species.genus.family.order.class.division.name === selectedDivision.value)
-    .map(p => p.species.genus.family.order.class.name))];
+  return mockClasses;
 });
 
 const availableOrders = computed(() => {
   if (!selectedClass.value) return [];
-  return [...new Set(plants.value
-    .filter(p => p.species.genus.family.order.class.name === selectedClass.value)
-    .map(p => p.species.genus.family.order.name))];
+  return mockOrders;
 });
 
 const availableFamilies = computed(() => {
   if (!selectedOrder.value) return [];
-  return [...new Set(plants.value
-    .filter(p => p.species.genus.family.order.name === selectedOrder.value)
-    .map(p => p.species.genus.family.name))];
+  return mockFamilies;
 });
 
 const availableGenera = computed(() => {
   if (!selectedFamily.value) return [];
-  return [...new Set(plants.value
-    .filter(p => p.species.genus.family.name === selectedFamily.value)
-    .map(p => p.species.genus.name))];
+  return mockGenera;
 });
 
 const availableSpecies = computed(() => {
   if (!selectedGenus.value) return [];
-  return [...new Set(plants.value
-    .filter(p => p.species.genus.name === selectedGenus.value)
-    .map(p => p.species.name))];
+  return mockSpecies;
 });
 
-// Reset dependent filters when parent filter changes
+// Filter change handlers
 const handleDivisionChange = () => {
+  console.log('Division changed to:', selectedDivision.value);
   selectedClass.value = '';
   selectedOrder.value = '';
   selectedFamily.value = '';
@@ -85,6 +63,7 @@ const handleDivisionChange = () => {
 };
 
 const handleClassChange = () => {
+  console.log('Class changed to:', selectedClass.value);
   selectedOrder.value = '';
   selectedFamily.value = '';
   selectedGenus.value = '';
@@ -92,128 +71,78 @@ const handleClassChange = () => {
 };
 
 const handleOrderChange = () => {
+  console.log('Order changed to:', selectedOrder.value);
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
 };
 
 const handleFamilyChange = () => {
+  console.log('Family changed to:', selectedFamily.value);
   selectedGenus.value = '';
   selectedSpecies.value = '';
 };
 
 const handleGenusChange = () => {
+  console.log('Genus changed to:', selectedGenus.value);
   selectedSpecies.value = '';
 };
 
+// Filtered plants based on search query and filters
 const filteredPlants = computed(() => {
-  return plants.value.filter(plant => {
-    const matchesSearch = plant.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                         plant.english_name.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesDivision = !selectedDivision.value || plant.species.genus.family.order.class.division.name === selectedDivision.value;
-    const matchesClass = !selectedClass.value || plant.species.genus.family.order.class.name === selectedClass.value;
-    const matchesOrder = !selectedOrder.value || plant.species.genus.family.order.name === selectedOrder.value;
-    const matchesFamily = !selectedFamily.value || plant.species.genus.family.name === selectedFamily.value;
-    const matchesGenus = !selectedGenus.value || plant.species.genus.name === selectedGenus.value;
-    const matchesSpecies = !selectedSpecies.value || plant.species.name === selectedSpecies.value;
-    return matchesSearch && matchesDivision && matchesClass && matchesOrder && matchesFamily && matchesGenus && matchesSpecies;
-  });
+  console.log('Filtering plants with query:', searchQuery.value);
+  let result = plants.value;
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(plant => 
+      plant.name.toLowerCase().includes(query) || 
+      plant.english_name.toLowerCase().includes(query)
+    );
+  }
+  
+  // Filter by selected filters (to be implemented later)
+  // This is where we'll add the actual filtering logic when the API is ready
+  
+  console.log('Filtered plants count:', result.length);
+  return result;
 });
 
-// Mocked data for demonstration
+const fetchPlants = async () => {
+  console.log('Starting to fetch plants...')
+  try {
+    loading.value = true;
+    error.value = null;
+    plants.value = await plantService.getPlants();
+    console.log('Plants fetched successfully:', plants.value)
+  } catch (err) {
+    console.error('Error in fetchPlants:', err)
+    error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách cây thuốc';
+  } finally {
+    loading.value = false;
+    console.log('Fetch plants completed, loading:', loading.value)
+  }
+};
+
+const handlePlantClick = (plantId: number) => {
+  console.log('Plant clicked, navigating to:', plantId)
+  router.push(`/plant/${plantId}`);
+};
+
 onMounted(() => {
-  plants.value = [
-    {
-      plant_id: 1,
-      name: 'Sâm Ngọc Linh',
-      image: '/images/sam-ngoc-linh.jpg',
-      english_name: 'Vietnamese Ginseng', 
-      description: 'Sâm Ngọc Linh là loại dược liệu quý hiếm của Việt Nam',
-      time: 'Thu hoạch sau 5-7 năm trồng',
-      benefits: 'Tăng cường sức đề kháng, chống mệt mỏi, bồi bổ cơ thể',
-      instructions: 'Có thể sử dụng dưới dạng cao, rượu hoặc bột',
-      species: {
-        name: 'Panax vietnamensis',
-        genus: {
-          name: 'Panax',
-          family: {
-            name: 'Araliaceae',
-            order: {
-              name: 'Apiales', 
-              class: {
-                name: 'Magnoliopsida',
-                division: {
-                  name: 'Magnoliophyta'
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      plant_id: 2,
-      name: 'Đinh Lăng',
-      image: '/images/dinh-lang.webp',
-      english_name: 'Polyscias fruticosa',
-      description: 'Đinh lăng là cây thuốc quý có tác dụng bổ não và tăng cường trí nhớ',
-      time: 'Thu hoạch sau 2-3 năm trồng',
-      benefits: 'Tăng cường trí nhớ, giảm stress, bổ não',
-      instructions: 'Dùng dưới dạng rễ phơi khô, ngâm rượu hoặc sắc nước uống',
-      species: {
-        name: 'Polyscias fruticosa',
-        genus: {
-          name: 'Polyscias',
-          family: {
-            name: 'Araliaceae',
-            order: {
-              name: 'Apiales',
-              class: {
-                name: 'Magnoliopsida', 
-                division: {
-                  name: 'Magnoliophyta'
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      plant_id: 3,
-      name: 'Đương Quy',
-      image: '/images/duong-quy.jpg',
-      english_name: 'Chinese Angelica',
-      description: 'Đương quy là vị thuốc quý trong Đông y có tác dụng bổ huyết',
-      time: 'Thu hoạch sau 1-2 năm trồng',
-      benefits: 'Bổ huyết, điều hòa kinh nguyệt, chống lão hóa',
-      instructions: 'Có thể dùng dưới dạng thuốc sắc, thuốc hoàn, rượu thuốc',
-      species: {
-        name: 'Angelica sinensis',
-        genus: {
-          name: 'Angelica',
-          family: {
-            name: 'Apiaceae',
-            order: {
-              name: 'Apiales',
-              class: {
-                name: 'Magnoliopsida',
-                division: {
-                  name: 'Magnoliophyta'
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    // Thêm các cây thuốc khác...
-  ];
+  console.log('MedicinalPlants component mounted')
+  fetchPlants();
 });
 </script>
 
 <template>
-  <div class="medicinal-plants">
+  <div class="plants-container">
+    <div class="plants-header">
+      <h1>Danh sách cây thuốc</h1>
+      <p>Tìm hiểu về các loại cây thuốc và công dụng của chúng</p>
+    </div>
+
     <section class="search-filter">
       <div class="search-box">
         <i class="fas fa-search search-icon"></i>
@@ -229,7 +158,7 @@ onMounted(() => {
           <label>Ngành</label>
           <select v-model="selectedDivision" class="filter-select" @change="handleDivisionChange">
             <option value="">Chọn ngành</option>
-            <option v-for="division in [...new Set(plants.map(p => p.species.genus.family.order.class.division.name))]" 
+            <option v-for="division in mockDivisions" 
                     :key="division" 
                     :value="division">
               {{ division }}
@@ -289,59 +218,65 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="plants-grid">
-      <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card">
-        <div class="card-image">
-          <img :src="`${plant.image}`" :alt="plant.name">
+    <div v-if="loading" class="loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Đang tải danh sách cây thuốc...</p>
+    </div>
+
+    <div v-else-if="error" class="error">
+      <i class="fas fa-exclamation-circle"></i>
+      <p>{{ error }}</p>
+      <button @click="fetchPlants" class="retry-btn">
+        <i class="fas fa-redo"></i> Thử lại
+      </button>
+    </div>
+
+    <div v-else class="plants-grid">
+      <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card" @click="handlePlantClick(plant.plant_id)">
+        <div class="plant-info">
+          <h3>{{ plant.name }}</h3>
+          <p class="english-name">{{ plant.english_name }}</p>
+          <p class="description">{{ plant.description }}</p>
         </div>
-        <div class="card-content">
-          <div class="plant-names">
-            <h3>{{ plant.name }}</h3>
-            <span class="scientific-name">{{ plant.species.name }}</span>
-          </div>
-          <div class="plant-info">
-            <div class="taxonomy">
-              <p><strong>Họ:</strong> {{ plant.species.genus.family.name }}</p>
-              <p><strong>Chi:</strong> {{ plant.species.genus.name }}</p>
-            </div>
-            <p class="description">{{ plant.description }}</p>
-            <div class="details">
-              <div class="benefits">
-                <h4>Công dụng:</h4>
-                <p>{{ plant.benefits }}</p>
-              </div>
-              <div class="instructions">
-                <h4>Hướng dẫn sử dụng:</h4>
-                <p>{{ plant.instructions }}</p>
-              </div>
-              <div class="harvest-time">
-                <h4>Thời gian thu hoạch:</h4>
-                <p>{{ plant.time }}</p>
-              </div>
-            </div>
-          </div>
-          <router-link :to="`/medicinal-plant-detail/${plant.plant_id}`" class="view-details">
-            Xem chi tiết
-          </router-link>
+        <div class="plant-footer">
+          <span class="benefits">
+            <i class="fas fa-leaf"></i>
+            {{ plant.benefits }}
+          </span>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.medicinal-plants {
-  padding: 2rem;
+.plants-container {
   max-width: 1200px;
-  margin: 40px auto;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.plants-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.plants-header h1 {
+  color: #008053;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.plants-header p {
+  color: #666;
 }
 
 .search-filter {
-  background: white;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
 }
 
 .search-box {
@@ -354,165 +289,146 @@ onMounted(() => {
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #666;
+  color: #008053;
 }
 
 .search-input {
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #008053;
 }
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .filter-group label {
+  margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #2c3e50;
+  color: #333;
 }
 
 .filter-select {
-  padding: 0.8rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   background-color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.filter-select:hover {
-  border-color: #008053;
+  font-size: 0.9rem;
 }
 
 .filter-select:focus {
-  border-color: #008053;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 128, 83, 0.1);
+  border-color: #008053;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading i, .error i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.retry-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.retry-btn:hover {
+  background-color: #c82333;
 }
 
 .plants-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 2rem;
 }
 
 .plant-card {
   background: white;
-  border-radius: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .plant-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.card-image {
-  height: 250px;
-  overflow: hidden;
-}
-
-.card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
-
-.plant-card:hover .card-image img {
-  transform: scale(1.1);
-}
-
-.card-content {
+.plant-info {
   padding: 1.5rem;
 }
 
-.plant-names {
-  margin-bottom: 1rem;
-}
-
-.plant-names h3 {
-  color: #2c3e50;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.scientific-name {
-  color: #666;
-  font-style: italic;
-}
-
-.taxonomy {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.taxonomy p {
-  margin: 0.3rem 0;
-  color: #666;
-}
-
-.description {
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-
-.details {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.details h4 {
+.plant-info h3 {
   color: #008053;
   margin-bottom: 0.5rem;
 }
 
-.details p {
+.english-name {
   color: #666;
+  font-style: italic;
   margin-bottom: 1rem;
 }
 
-.view-details {
-  display: inline-block;
-  padding: 0.8rem 1.5rem;
-  background-color: #008053;
-  color: white;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+.description {
+  color: #333;
+  line-height: 1.5;
 }
 
-.view-details:hover {
-  background-color: #006c46;
-  transform: translateY(-2px);
+.plant-footer {
+  padding: 1rem 1.5rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+.benefits {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #008053;
+  font-size: 0.9rem;
+}
+
+.benefits i {
+  color: #42b883;
 }
 
 @media (max-width: 768px) {
-  .medicinal-plants {
-    padding: 1rem;
-  }
-
-  .search-filter {
-    padding: 1rem;
+  .plants-container {
+    margin: 1rem auto;
   }
 
   .filters {
