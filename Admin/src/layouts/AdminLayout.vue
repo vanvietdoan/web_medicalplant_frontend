@@ -1,135 +1,112 @@
-<template>
-  <div class="admin-layout">
-    <header class="header">
-      <div class="logo">
-        <img src="../assets/logo.png" alt="Medical Plant" />
-        <h1>Medical Plant Admin</h1>
-      </div>
-      <div class="user-info">
-        <span>{{ currentUser?.name }}</span>
-        <button @click="logout" class="logout-btn">Đăng xuất</button>
-      </div>
-    </header>
-
-    <div class="container">
-      <nav class="sidebar">
-        <router-link to="/admin/dashboard" class="nav-item">
-          <i class="fas fa-home"></i>
-          Dashboard
-        </router-link>
-        <router-link to="/admin/plants" class="nav-item">
-          <i class="fas fa-leaf"></i>
-          Quản lý cây thuốc
-        </router-link>
-        <router-link to="/admin/diseases" class="nav-item">
-          <i class="fas fa-disease"></i>
-          Quản lý bệnh
-        </router-link>
-        <router-link to="/admin/comments" class="nav-item">
-          <i class="fas fa-comments"></i>
-          Quản lý bình luận
-        </router-link>
-        <router-link to="/admin/users" class="nav-item">
-          <i class="fas fa-users"></i>
-          Quản lý tài khoản
-        </router-link>
-      </nav>
-
-      <main class="content">
-        <router-view></router-view>
-      </main>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { Collection, Warning, ChatDotRound, User, SwitchButton } from '@element-plus/icons-vue'
+import { useAuth } from '../composables/useAuth'
+import { authService } from '../services/auth.service'
+import { computed } from 'vue'
+import logoImage from '../assets/logo.png'
 
-const router = useRouter()
-const currentUser = ref({
-  name: 'Admin'
+const { logout } = useAuth()
+
+const currentUser = computed(() => {
+  return authService.getCurrentUser()
 })
 
-const logout = () => {
-  // Implement logout logic here
-  router.push('/login')
+const handleLogout = () => {
+  logout()
 }
 </script>
 
-<style scoped>
+<template>
+  <el-container class="admin-layout">
+    <el-aside width="200px">
+      <div class="logo-container">
+        <img :src="logoImage" alt="Logo" class="logo">
+      </div>
+      <el-menu
+        :router="true"
+        :default-active="$route.path"
+        class="admin-menu"
+      >
+        <el-menu-item index="/admin/plants">
+          <el-icon><Collection /></el-icon>
+          <span>Plants</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/diseases">
+          <el-icon><Warning /></el-icon>
+          <span>Diseases</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/comments">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>Comments</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/users">
+          <el-icon><User /></el-icon>
+          <span>Users</span>
+        </el-menu-item>
+      </el-menu>
+    </el-aside>
+    <el-container>
+      <el-header>
+        <div class="header-content">
+          <h2>Xin chào, {{ currentUser?.full_name || 'Admin' }}</h2>
+          <el-button type="danger" @click="handleLogout">
+            <el-icon><SwitchButton /></el-icon>
+            Đăng xuất
+          </el-button>
+        </div>
+      </el-header>
+      <el-main>
+        <router-view></router-view>
+      </el-main>
+    </el-container>
+  </el-container>
+</template>
+
+
+<style scoped lang="scss">
 .admin-layout {
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+  height: 200vh;
+  
+  .logo-container {
+    text-align: center;
+    padding: 1rem;
+    background-color: #fff;
+    border-bottom: 1px solid #dcdfe6;
 
-.header {
-  background: #4CAF50;
-  color: white;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    .logo {
+      width: 120px;
+      height: auto;
+      object-fit: contain;
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo img {
-  height: 40px;
-}
-
-.container {
-  display: flex;
-  flex: 1;
-}
-
-.sidebar {
-  width: 250px;
-  background: #f5f5f5;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  text-decoration: none;
-  color: #333;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.nav-item:hover,
-.nav-item.router-link-active {
-  background: #e0e0e0;
-}
-
-.content {
-  flex: 1;
-  padding: 2rem;
-  background: #fff;
-}
-
-.logout-btn {
-  padding: 0.5rem 1rem;
-  background: #fff;
-  color: #4CAF50;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.logout-btn:hover {
-  background: #f0f0f0;
+    }
+  }
+  
+  .admin-menu {
+    height: calc(100% - 200px);
+    border-right: none;
+  }
+  
+  .el-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dcdfe6;
+    padding: 0 20px;
+    height: 100px;
+    
+    .header-content {
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      h2 {
+        margin: 0;
+      }
+    }
+  }
+  
+  .el-main {
+    background-color: #f5f7fa;
+    padding: 20px;
+  }
 }
 </style> 

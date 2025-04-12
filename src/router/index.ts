@@ -1,14 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
 import Home from '../views/Home.vue'
-import MedicinalPlants from '../views/MedicinalPlants.vue'
-import MedicinalPlantDetail from '../views/MedicinalPlantDetail.vue'
-import CommonDiseases from '../views/CommonDiseases.vue'
-import DiseasesDetail from '../views/DiseaseDetail.vue'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
-import ForgotPassword from '../views/ForgotPassword.vue'
-import ResetPassword from '../views/ResetPassword.vue'
-import Profile from '../views/Profile.vue'
+import MedicinalPlants from '../views/plant/MedicinalPlants.vue'
+import MedicinalPlantDetail from '../views/plant/MedicinalPlantDetail.vue'
+import CommonDiseases from '../views/disease/CommonDiseases.vue'
+import DiseaseDetail from '../views/disease/DiseaseDetail.vue'
+import Login from '../views/auth/Login.vue'
+import Register from '../views/auth/Register.vue'
+import ForgotPassword from '../views/auth/ForgotPassword.vue'
+import ResetPassword from '../views/auth/ResetPassword.vue'
+import Profile from '../views/profile/Profile.vue'
+
+console.log('Router configuration loaded')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,24 +22,24 @@ const router = createRouter({
       component: Home
     },
     {
-      path: '/medicinal-plants',
-      name: 'medicinal-plants',
+      path: '/plant',
+      name: 'plant',
       component: MedicinalPlants
     },
     {
-      path: '/medicinal-plant-detail/:id',
-      name: 'medicinal-plant-detail',
+      path: '/plant/:id',
+      name: 'plant-detail',
       component: MedicinalPlantDetail
     },
     {
-      path: '/common-diseases',
-      name: 'common-diseases',
+      path: '/disease',
+      name: 'disease',
       component: CommonDiseases
     },
     {
-      path: '/diseases-detail/:id',
-      name: 'diseases-detail',
-      component: DiseasesDetail
+      path: '/disease/:id',
+      name: 'disease-detail',
+      component: DiseaseDetail
     },
     {
       path: '/login',
@@ -49,21 +52,46 @@ const router = createRouter({
       component: Register
     },
     {
-      path: '/reset-password/:token',
-      name: 'ResetPassword',
-      component: ResetPassword
-    },
-    {
       path: '/forgot-password',
       name: 'forgot-password',
       component: ForgotPassword
+    },  
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: ResetPassword
     },
     {
       path: '/profile',
       name: 'profile',
-      component: Profile
+      component: Profile,
+      meta: { requiresAuth: true }
     }
   ]
+})
+
+// Navigation guard
+router.beforeEach((to, from, next) => {
+  console.log(`Navigation: ${from.path} -> ${to.path}`)
+  console.log(`Route name: ${String(to.name)}`)
+  console.log(`Route params:`, to.params)
+  console.log(`Route meta:`, to.meta)
+  
+  const isAuthenticated = localStorage.getItem('token')
+  console.log(`User authenticated: ${!!isAuthenticated}`)
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    console.log('Authentication required, redirecting to login')
+    next('/login')
+  } else {
+    console.log('Navigation allowed')
+    next()
+  }
+})
+
+// After navigation
+router.afterEach((to, from) => {
+  console.log(`Navigation completed: ${from.path} -> ${to.path}`)
 })
 
 export default router

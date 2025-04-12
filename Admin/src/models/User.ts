@@ -39,7 +39,6 @@ export interface Login{
   password: string;
   id: number;
   role: string;
-  fullName: string;
 }
 
 export interface AuthResponse {

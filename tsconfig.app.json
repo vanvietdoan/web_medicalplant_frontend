@@ -6,7 +6,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "vue-router"],
+    "types": ["node", "vue-router", "pinia"],
 
     /* Linting */
     "strict": true,

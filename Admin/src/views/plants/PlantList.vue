@@ -1,189 +1,120 @@
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import type { Plant } from '../../models/Plant'
+import { plantService } from '../../services/plant.service'
+
+const plants = ref<Plant[]>([])
+const loading = ref(false)
+const searchQuery = ref('')
+
+const filteredPlants = computed(() => {
+  if (!searchQuery.value) return plants.value
+  const query = searchQuery.value.toLowerCase()
+  return plants.value.filter(plant => 
+    plant.name.toLowerCase().includes(query) ||
+    plant.english_name.toLowerCase().includes(query)
+  )
+})
+
+const formatDate = (date: string) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+}
+
+const handleEdit = async (plant: Plant) => {
+  // TODO: Implement edit functionality
+  console.log('Edit plant:', plant)
+}
+
+const handleDelete = async (plantId: number) => {
+  try {
+    if (confirm('Bạn có chắc chắn muốn xóa cây thuốc này?')) {
+      await plantService.deletePlant(plantId)
+      ElMessage.success('Xóa cây thuốc thành công')
+      await fetchPlants() // Refresh the list
+    }
+  } catch (error) {
+    console.error('Error deleting plant:', error)
+    ElMessage.error('Không thể xóa cây thuốc')
+  }
+}
+
+const fetchPlants = async () => {
+  try {
+    loading.value = true
+    const response = await plantService.getPlants()
+    console.log('fetchPlants:', response)
+    plants.value = response.data
+    console.log('Plants:', plants.value)
+  } catch (error) {
+    console.error('Error fetching plants:', error)
+    ElMessage.error('Không thể tải danh sách cây thuốc')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchPlants()
+})
+</script>
+
 <template>
   <div class="plant-list">
     <div class="header">
-      <h2>Quản lý cây thuốc</h2>
-      <button @click="showAddModal = true" class="btn-add">
-        <i class="fas fa-plus"></i> Thêm cây thuốc
-      </button>
+      <h2>Danh sách cây thuốc</h2>
+      <div class="search-bar">
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          placeholder="Tìm kiếm cây thuốc..."
+          class="search-input"
+        >
+      </div>
     </div>
 
-    <div class="search-bar">
-      <input 
-        v-model="searchQuery" 
-        type="text" 
-        placeholder="Tìm kiếm cây thuốc..."
-        @input="handleSearch"
-      >
+    <div v-if="loading" class="loading">
+      Đang tải...
     </div>
 
-    <table class="plant-table">
+    <table v-else class="plant-table">
       <thead>
         <tr>
+          <th>ID</th>
           <th>Hình ảnh</th>
           <th>Tên cây</th>
-          <th>Mô tả</th>
-          <th>Công dụng</th>
-          <th>Trạng thái</th>
+          <th>Cập nhật gần nhất</th>
           <th>Thao tác</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="plant in plants" :key="plant.id">
+        <tr v-for="plant in filteredPlants" :key="plant.plant_id">
+          <td>{{ plant.plant_id }}</td>
           <td>
-            <img :src="plant.image" :alt="plant.name" class="plant-image">
+            <img 
+              :src="plant.image_url || '/placeholder-plant.jpg'" 
+              class="plant-image"
+            >
           </td>
           <td>{{ plant.name }}</td>
-          <td>{{ plant.description }}</td>
-          <td>{{ plant.uses }}</td>
+          <td>{{ formatDate(plant.updated_at) }}</td>
           <td>
-            <span :class="['status', plant.active ? 'active' : 'inactive']">
-              {{ plant.active ? 'Hoạt động' : 'Không hoạt động' }}
-            </span>
-          </td>
-          <td>
-            <button @click="editPlant(plant)" class="btn-edit">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button @click="deletePlant(plant.id)" class="btn-delete">
-              <i class="fas fa-trash"></i>
-            </button>
+            <div class="action-buttons">
+              <button @click="handleEdit(plant)" class="btn-edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button @click="handleDelete(plant.plant_id)" class="btn-delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
-
-    <!-- Add/Edit Modal -->
-    <div v-if="showAddModal || showEditModal" class="modal">
-      <div class="modal-content">
-        <h3>{{ showEditModal ? 'Sửa cây thuốc' : 'Thêm cây thuốc mới' }}</h3>
-        <form @submit.prevent="handleSubmit">
-          <div class="form-group">
-            <label>Tên cây thuốc</label>
-            <input v-model="plantForm.name" type="text" required>
-          </div>
-          
-          <div class="form-group">
-            <label>Mô tả</label>
-            <textarea v-model="plantForm.description" required></textarea>
-          </div>
-
-          <div class="form-group">
-            <label>Công dụng</label>
-            <textarea v-model="plantForm.uses" required></textarea>
-          </div>
-
-          <div class="form-group">
-            <label>Hình ảnh</label>
-            <input type="file" @change="handleImageUpload" accept="image/*">
-          </div>
-
-          <div class="form-group">
-            <label>
-              <input type="checkbox" v-model="plantForm.active">
-              Hoạt động
-            </label>
-          </div>
-
-          <div class="modal-actions">
-            <button type="submit" class="btn-save">Lưu</button>
-            <button type="button" @click="closeModal" class="btn-cancel">Hủy</button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, reactive } from 'vue'
-
-interface Plant {
-  id: number
-  name: string
-  description: string
-  uses: string
-  image: string
-  active: boolean
-}
-
-const plants = ref<Plant[]>([
-  {
-    id: 1,
-    name: 'Nghệ',
-    description: 'Cây nghệ là một loại cây thảo có củ màu vàng',
-    uses: 'Chống viêm, kháng khuẩn',
-    image: '/images/nghe.jpg',
-    active: true
-  }
-])
-
-const showAddModal = ref(false)
-const showEditModal = ref(false)
-const searchQuery = ref('')
-
-const plantForm = reactive({
-  id: 0,
-  name: '',
-  description: '',
-  uses: '',
-  image: '',
-  active: true
-})
-
-const handleSearch = () => {
-  // Implement search logic
-}
-
-const editPlant = (plant: Plant) => {
-  Object.assign(plantForm, plant)
-  showEditModal.value = true
-}
-
-const deletePlant = async (id: number) => {
-  if (confirm('Bạn có chắc chắn muốn xóa cây thuốc này?')) {
-    // Implement delete logic
-    plants.value = plants.value.filter(plant => plant.id !== id)
-  }
-}
-
-const handleImageUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    // Implement image upload logic
-  }
-}
-
-const handleSubmit = async () => {
-  if (showEditModal.value) {
-    // Implement update logic
-    const index = plants.value.findIndex(p => p.id === plantForm.id)
-    if (index !== -1) {
-      plants.value[index] = { ...plantForm }
-    }
-  } else {
-    // Implement create logic
-    const newPlant = {
-      ...plantForm,
-      id: plants.value.length + 1
-    }
-    plants.value.push(newPlant)
-  }
-  closeModal()
-}
-
-const closeModal = () => {
-  showAddModal.value = false
-  showEditModal.value = false
-  Object.assign(plantForm, {
-    id: 0,
-    name: '',
-    description: '',
-    uses: '',
-    image: '',
-    active: true
-  })
-}
-</script>
 
 <style scoped>
 .plant-list {
@@ -191,21 +122,28 @@ const closeModal = () => {
 }
 
 .header {
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .search-bar {
-  margin-bottom: 20px;
+  flex: 0 0 300px;
 }
 
-.search-bar input {
+.search-input {
   width: 100%;
-  padding: 8px;
+  padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
 .plant-table {
@@ -228,113 +166,39 @@ const closeModal = () => {
   border-radius: 4px;
 }
 
-.btn-add {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .btn-edit,
 .btn-delete {
-  padding: 4px 8px;
-  margin: 0 4px;
+  padding: 6px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  color: white;
 }
 
 .btn-edit {
   background: #2196F3;
-  color: white;
 }
 
 .btn-delete {
   background: #f44336;
-  color: white;
 }
 
-.status {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.9em;
+.btn-edit:hover {
+  background: #1976D2;
 }
 
-.status.active {
-  background: #e8f5e9;
-  color: #4CAF50;
-}
-
-.status.inactive {
-  background: #ffebee;
-  color: #f44336;
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 90%;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-.form-group input[type="text"],
-.form-group textarea {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.form-group textarea {
-  height: 100px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.btn-save {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-cancel {
-  background: #9e9e9e;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
+.btn-delete:hover {
+  background: #D32F2F;
 }
 </style> 

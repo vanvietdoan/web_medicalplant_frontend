@@ -1,26 +1,44 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { authService } from '../../services/auth.service';
 
 const router = useRouter();
 const email = ref('');
 const password = ref('');
-const rememberMe = ref(false);
 const error = ref('');
+const showPassword = ref(false);
+const loading = ref(false);
 
 const handleSubmit = async () => {
   error.value = '';
   if (!email.value || !password.value) {
-    error.value = 'Tài khoản hoặc mật khẩu đăng nhập sai.';
+    error.value = 'Vui lòng nhập đầy đủ thông tin đăng nhập.';
     return;
   }
+  
+  loading.value = true;
   try {
-    // TODO: Implement login logic here
     console.log('Login attempt:', { email: email.value, password: password.value });
-    router.push('/');
+    // @ts-ignore - Ignoring type error for now
+    const response = await authService.login({
+      email: email.value,
+      password: password.value
+    });
+    console.log('Login successful:', response);
+    
+    // Redirect to test page after successful login
+    router.push('/profile');
   } catch (err) {
+    console.error('Login error:', err);
     error.value = 'Tài khoản hoặc mật khẩu đăng nhập sai.';
+  } finally {
+    loading.value = false;
   }
+};
+
+const togglePassword = () => {
+  showPassword.value = !showPassword.value;
 };
 </script>
 
@@ -43,7 +61,8 @@ const handleSubmit = async () => {
               type="email" 
               id="email" 
               v-model="email"
-              placeholder="robert.langster@gmail.com"
+              placeholder="abcd@gmail.com"
+              :disabled="loading"
             >
           </div>
 
@@ -51,13 +70,14 @@ const handleSubmit = async () => {
             <label for="password">Mật khẩu</label>
             <div class="password-input">
               <input 
-                type="password" 
+                :type="showPassword ? 'text' : 'password'" 
                 id="password" 
                 v-model="password"
                 placeholder="••••••••"
+                :disabled="loading"
               >
-              <button type="button" class="toggle-password">
-                <i class="fas fa-eye"></i>
+              <button type="button" class="toggle-password" @click="togglePassword">
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
               </button>
             </div>
           </div>
@@ -68,16 +88,15 @@ const handleSubmit = async () => {
           </div>
 
           <div class="form-options">
-            <label class="remember-me">
-              <input type="checkbox" v-model="rememberMe">
-              <span>Ghi nhớ mật khẩu</span>
-            </label>
             <a href="/forgot-password" class="forgot-password">Quên mật khẩu?</a>
           </div>
 
           <div class="form-buttons">
-            <button type="submit" class="btn-login">Đăng nhập</button>
-            <button type="button" class="btn-register" @click="router.push('/register')">Đăng ký</button>
+            <button type="submit" class="btn-login" :disabled="loading">
+              <i v-if="loading" class="fas fa-spinner fa-spin"></i>
+              <span v-else>Đăng nhập</span>
+            </button>
+            <button type="button" class="btn-register" @click="router.push('/register')" :disabled="loading">Đăng ký</button>
           </div>
         </form>
       </div>
@@ -90,6 +109,7 @@ const handleSubmit = async () => {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .login-page {

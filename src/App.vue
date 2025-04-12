@@ -1,6 +1,17 @@
 <script setup lang="ts">
+import { onMounted, onBeforeMount } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+
+console.log('App component setup')
+
+onBeforeMount(() => {
+  console.log('App component before mount')
+})
+
+onMounted(() => {
+  console.log('App component mounted')
+})
 </script>
 
 <template>

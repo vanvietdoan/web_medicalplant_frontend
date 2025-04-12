@@ -125,33 +125,21 @@ const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
           </div>
 
           <div class="form-group">
-            <label for="password">Mật khẩu</label>
-            <div class="password-input">
-              <input 
-                type="password" 
-                id="password" 
-                v-model="password"
-                placeholder="••••••••"
-              >
-              <button type="button" class="toggle-password">
-                <i class="fas fa-eye"></i>
-              </button>
-            </div>
+            <PasswordInput
+              v-model="password"
+              label="Mật khẩu"
+              placeholder="••••••••"
+              :error="error"
+            />
           </div>
 
           <div class="form-group">
-            <label for="confirmPassword">Xác nhận mật khẩu</label>
-            <div class="password-input">
-              <input 
-                type="password" 
-                id="confirmPassword" 
-                v-model="confirmPassword"
-                placeholder="••••••••"
-              >
-              <button type="button" class="toggle-password">
-                <i class="fas fa-eye"></i>
-              </button>
-            </div>
+            <PasswordInput
+              v-model="confirmPassword"
+              label="Xác nhận mật khẩu"
+              placeholder="••••••••"
+              :error="error"
+            />
           </div>
 
           <div class="error-message" v-if="error">
