@@ -9,10 +9,6 @@ const isLoading = ref(false);
 const message = ref('');
 const error = ref('');
 
-const validateEmail = (email: string) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-};
-
 const handleSubmit = async () => {
   console.log('Starting forgot password process for email:', email.value);
   

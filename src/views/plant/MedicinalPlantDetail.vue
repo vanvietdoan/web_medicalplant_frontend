@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import type { Plant } from '../../models/Plant';
 
 const route = useRoute();
-const router = useRouter();
 const plant = ref<Plant | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -55,6 +54,7 @@ onMounted(() => {
     <div v-else-if="plant" class="plant-detail">
       <div class="plant-header">
         <h1>{{ plant.name }}</h1>
+        <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
         <p class="english-name">{{ plant.english_name }}</p>
       </div>
 

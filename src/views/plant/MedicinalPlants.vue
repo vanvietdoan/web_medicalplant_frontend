@@ -235,6 +235,7 @@ onMounted(() => {
       <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card" @click="handlePlantClick(plant.plant_id)">
         <div class="plant-info">
           <h3>{{ plant.name }}</h3>
+          <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
           <p class="english-name">{{ plant.english_name }}</p>
           <p class="description">{{ plant.description }}</p>
         </div>

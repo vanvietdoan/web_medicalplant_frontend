@@ -174,6 +174,7 @@ onBeforeUnmount(() => {
           <div v-for="plant in newPlants" :key="plant.plant_id" class="plant-card">
             <div class="card-content">
               <h3>{{ plant.name }}</h3>
+              <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
               <p class="english-name">{{ plant.english_name }}</p>
               <p class="description">{{ plant.description }}</p>
               <div class="discovery-date">
@@ -211,6 +212,7 @@ onBeforeUnmount(() => {
           <div v-for="plant in multiUsePlants" :key="plant.plant_id" class="plant-card">
             <div class="card-content">
               <h3>{{ plant.name }}</h3>
+              <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
               <p class="english-name">{{ plant.english_name }}</p>
               <p class="description">{{ plant.description }}</p>
               <div class="benefits-count">
