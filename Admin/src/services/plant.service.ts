@@ -1,4 +1,4 @@
-import type { Plant, PlantResponse } from '../models/Plant';
+import type { Plant, PlantResponse, UpdatePlantRequest } from '../models/Plant';
 import BaseService from './base.service';
 
 class PlantService extends BaseService {
@@ -43,7 +43,7 @@ class PlantService extends BaseService {
     }
   }
 
-  async updatePlant(id: number, plant: Partial<Plant>): Promise<Plant> {
+  async updatePlant(id: number, plant: UpdatePlantRequest): Promise<Plant> {
     console.log(`Updating plant with ID ${id}:`, plant);
     try {
       const response = await this.put<Plant>(`/plants/${id}`, plant);

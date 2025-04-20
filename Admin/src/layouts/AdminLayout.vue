@@ -29,19 +29,44 @@ const handleLogout = () => {
       >
         <el-menu-item index="/admin/plants">
           <el-icon><Collection /></el-icon>
-          <span>Plants</span>
+          <span>Cây thuốc</span>
         </el-menu-item>
+
+
         <el-menu-item index="/admin/diseases">
           <el-icon><Warning /></el-icon>
-          <span>Diseases</span>
+          <span>Bệnh</span>
         </el-menu-item>
+
+
         <el-menu-item index="/admin/comments">
           <el-icon><ChatDotRound /></el-icon>
-          <span>Comments</span>
+          <span>Bình luận</span>
         </el-menu-item>
+
+
+        <el-sub-menu index="1">
+  <template #title>
+    <el-icon><Operation /></el-icon>
+    <span>Phân loại</span>
+  </template>
+
+  <el-menu-item index="/admin/filter/division">Ngành</el-menu-item>
+  <el-menu-item index="/admin/filter/class">Lớp</el-menu-item>
+  <el-menu-item index="/admin/filter/order">Bộ</el-menu-item>
+  <el-menu-item index="/admin/filter/family">Họ</el-menu-item>
+  <el-menu-item index="/admin/filter/genus">Chi</el-menu-item>
+  <el-menu-item index="/admin/filter/species">Loài</el-menu-item>
+</el-sub-menu>
+
+
+
+
         <el-menu-item index="/admin/users">
           <el-icon><User /></el-icon>
-          <span>Users</span>
+          <span>Tài khoản</span>
+
+
         </el-menu-item>
       </el-menu>
     </el-aside>

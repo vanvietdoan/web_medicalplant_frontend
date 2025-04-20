@@ -1,37 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { diseasesService } from '../../services/diseases.service';
+import type { Diseases } from '../../models/Diseases';
 
-interface Disease {
-  disease_id: number;
-  name: string;
-  symptoms: string;
-  instructions: string;
-  pictures: {
-    name: string;
-    picture: string;
-  }[];
-  medicinal_plants: {
-    plant_id: number;
-    name: string;
-    english_name: string;
-    image: string;
-  }[];
-  advice_comments: {
-    advice_id: number;
-    title: string;
-    time: string;
-    content: string;
-    user: {
-      full_name: string;
-      title: string;
-      avatar: string;
-    }
-  }[];
-}
-
-const diseases = ref<Disease[]>([]);
+const diseases = ref<Diseases[]>([]);
 const searchQuery = ref('');
 const selectedSymptom = ref('');
+const isLoading = ref(true);
+const error = ref<string | null>(null);
 
 const symptoms = computed(() => {
   const allSymptoms = diseases.value.flatMap(disease => 
@@ -48,94 +24,23 @@ const filteredDiseases = computed(() => {
   });
 });
 
-// Mocked data for demonstration
+const fetchDiseases = async () => {
+  try {
+    isLoading.value = true;
+    error.value = null;
+    const response = await diseasesService.getDiseases();
+    diseases.value = response;
+    console.log(response);
+  } catch (err) {
+    error.value = 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.';
+    console.error('Error fetching diseases:', err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 onMounted(() => {
-  diseases.value = [
-    {
-      disease_id: 1,
-      name: 'Viêm họng',
-      symptoms: 'Đau rát họng, Ho khan, Sốt nhẹ',
-      instructions: 'Súc họng với nước muối, uống nhiều nước ấm, nghỉ ngơi hợp lý',
-      pictures: [
-        {
-          name: 'Triệu chứng viêm họng',
-          picture: '/images/diseases/viem-hong.jpg'
-        }
-      ],
-      medicinal_plants: [
-        {
-          plant_id: 1,
-          name: 'Gừng',
-          english_name: 'Ginger',
-          image: '/images/plants/ginger.jpg'
-        }
-      ],
-      advice_comments: []
-    },
-    {
-      disease_id: 2,
-      name: 'Cảm cúm',
-      symptoms: 'Sốt, Ho, Sổ mũi, Đau họng, Mệt mỏi',
-      instructions: 'Uống nước gừng ấm, xông hơi với lá tía tô, nghỉ ngơi hợp lý',
-      pictures: [
-        {
-          name: 'Triệu chứng cảm cúm',
-          picture: '/images/diseases/chua-cam-cum-so-mui-1-16773827551041592233873.jpg'
-        }
-      ],
-      medicinal_plants: [
-        {
-          plant_id: 2,
-          name: 'Tía Tô',
-          english_name: 'Perilla',
-          image: '/images/plants/tia-to.jpg'
-        }
-      ],
-      advice_comments: []
-    },
-    {
-      disease_id: 3,
-      name: 'Đau đầu',
-      symptoms: 'Đau nhức đầu, Chóng mặt, Buồn nôn',
-      instructions: 'Xoa bóp thái dương, uống trà gừng, nghỉ ngơi trong phòng tối',
-      pictures: [
-        {
-          name: 'Triệu chứng đau đầu',
-          picture: '/images/diseases/dau-dau-set-danh-1722590273321485717321.webp'
-        }
-      ],
-      medicinal_plants: [
-        {
-          plant_id: 3,
-          name: 'Bạc Hà',
-          english_name: 'Mint',
-          image: '/images/plants/bac-ha.jpg'
-        }
-      ],
-      advice_comments: []
-    },
-    {
-      disease_id: 4,
-      name: 'Mất ngủ',
-      symptoms: 'Khó ngủ, Thức dậy sớm, Ngủ không sâu',
-      instructions: 'Uống trà tâm sen, tắm nước ấm trước khi ngủ, tập yoga nhẹ nhàng',
-      pictures: [
-        {
-          name: 'Triệu chứng mất ngủ',
-          picture: '/images/diseases/mat-ngu-met-moi.jpg'
-        }
-      ],
-      medicinal_plants: [
-        {
-          plant_id: 4,
-          name: 'Tâm Sen',
-          english_name: 'Lotus Seed',
-          image: '/images/plants/tam-sen.jpg'
-        }
-      ],
-      advice_comments: []
-    }
-  ];
+  fetchDiseases();
 });
 </script>
 
@@ -174,15 +79,35 @@ onMounted(() => {
       </div>
     </section>
 
+    <!-- Loading State -->
+    <div v-if="isLoading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error-state">
+      <i class="fas fa-exclamation-circle"></i>
+      <p>{{ error }}</p>
+      <button @click="fetchDiseases" class="retry-button">
+        <i class="fas fa-redo"></i> Thử lại
+      </button>
+    </div>
+
     <!-- Diseases Grid -->
-    <section class="diseases-grid">
-      <div v-for="disease in filteredDiseases" :key="disease.disease_id" class="disease-card">
+    <section v-else class="diseases-grid">
+      <div v-if="filteredDiseases.length === 0" class="no-results">
+        <i class="fas fa-search"></i>
+        <p>Không tìm thấy bệnh phù hợp</p>
+      </div>
+      
+      <div v-else v-for="disease in filteredDiseases" :key="disease.disease_id" class="disease-card">
         <div class="disease-header">
           <div class="header-content">
             <h3>{{ disease.name }}</h3>
           </div>
           <div class="header-image">
-            <img :src="disease.pictures[0]?.picture" :alt="disease.name">
+            <img src="/images/diseases/dau-dau-set-danh-1722590273321485717321.webp" :alt="disease.name">
           </div>
         </div>
 
@@ -195,8 +120,6 @@ onMounted(() => {
               </li>
             </ul>
           </div>
-
-          
 
           <div class="plants-section">
             <h4><i class="fas fa-leaf"></i> Cây thuốc điều trị</h4>
@@ -212,7 +135,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <router-link :to="`/diseases-detail/${disease.disease_id}`" class="view-details">
+        <router-link :to="`/disease/${disease.disease_id}`" class="view-details">
           <i class="fas fa-arrow-right"></i> Xem chi tiết
         </router-link>
       </div>
@@ -522,5 +445,50 @@ h4 i {
   .plants-list {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.loading-state,
+.error-state,
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading-state i,
+.error-state i,
+.no-results i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #008053;
+}
+
+.error-state {
+  color: #dc3545;
+}
+
+.error-state i {
+  color: #dc3545;
+}
+
+.retry-button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #008053;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #006c46;
+}
+
+.retry-button i {
+  margin-right: 0.5rem;
+  font-size: 1rem;
+  color: white;
 }
 </style> 

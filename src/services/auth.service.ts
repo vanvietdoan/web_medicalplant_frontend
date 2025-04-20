@@ -52,6 +52,22 @@ class AuthService extends BaseService {
     return !!this.getToken();
   }
 
+  async register(data: {
+    full_name: string;
+    title: string;
+    proof: string;
+    specialty: string;
+    email: string;
+    password: string;
+  }) {
+    try {
+      const response = await this.post('/auth/register', data);
+      return response;
+    } catch (error) {
+      console.error('Error during registration:', error);
+      throw error;
+    }
+  }
 }
 
 export const authService = new AuthService();

@@ -5,41 +5,55 @@ import { useRouter } from 'vue-router'
 import type { User } from '../../models/User'
 import { userService } from '../../services/user.service'
 
+// Router setup
 const router = useRouter()
+
+// State management
 const users = ref<User[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 const showEditModal = ref(false)
 const selectedUser = ref<User | null>(null)
 
+// Computed properties
 const filteredUsers = computed(() => {
-  if (!searchQuery.value) return users.value
+  console.log('Filtering users...')
+  console.log('Current users:', users.value)
+  console.log('Search query:', searchQuery.value)
+  
+  if (!searchQuery.value) {
+    console.log('No search query, returning all users')
+    return users.value
+  }
+  
   const query = searchQuery.value.toLowerCase()
-  return users.value.filter(user =>
+  const filtered = users.value.filter(user =>
     user.full_name.toLowerCase().includes(query) ||
     user.email.toLowerCase().includes(query)
   )
+  
+  console.log('Filtered users:', filtered)
+  return filtered
 })
 
-const formatDate = (date: string) => {
-  if (!date) return ''
-  const d = new Date(date)
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
-}
 
+
+// Event handlers
 const handleEdit = (user: User) => {
+  if (!user) return;
+  
   router.push({
     name: 'user-edit',
     params: { id: user.user_id },
     query: {
-      full_name: user.full_name,
-      email: user.email,
-      title: user.title,
-      proof: user.proof,
-      specialty: user.specialty,
-      active: user.active.toString(),
-      avatar: user.avatar,
-      role_id: user.role_id.toString()
+      full_name: user.full_name || '',
+      email: user.email || '',
+      title: user.title || '',
+      proof: user.proof || '',
+      specialty: user.specialty || '',
+      active: user.active?.toString() || 'true',
+      avatar: user.avatar || '',
+      role_id: user.role_id?.toString() || '1'
     }
   })
 }
@@ -47,6 +61,7 @@ const handleEdit = (user: User) => {
 const handleDelete = async (userId: number) => {
   try {
     if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
+      console.log('Deleting user with ID:', userId)
       await userService.deleteUser(userId)
       ElMessage.success('Xóa người dùng thành công')
       await fetchUsers()
@@ -57,57 +72,31 @@ const handleDelete = async (userId: number) => {
   }
 }
 
-const handleSubmit = async () => {
-  if (!selectedUser.value) return
-  
-  try {
-    loading.value = true
-    await userService.updateUser(selectedUser.value.user_id, {
-      full_name: selectedUser.value.full_name,
-      title: selectedUser.value.title,
-      proof: selectedUser.value.proof,
-      specialty: selectedUser.value.specialty,
-      active: selectedUser.value.active,
-      email: selectedUser.value.email,
-      role_id: selectedUser.value.role_id
-    })
-    ElMessage.success('Cập nhật thông tin thành công')
-    await fetchUsers()
-    showEditModal.value = false
-  } catch (error) {
-    console.error('Error updating user:', error)
-    ElMessage.error('Không thể cập nhật thông tin')
-  } finally {
-    loading.value = false
-  }
-}
 
-const handleAvatarUpload = async (event: Event) => {
-  if (!selectedUser.value) return
-  
-  const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    try {
-      loading.value = true
-      const response = await userService.uploadAvatar(selectedUser.value.user_id, input.files[0])
-      selectedUser.value.avatar = response.avatar_url
-      ElMessage.success('Cập nhật ảnh đại diện thành công')
-    } catch (error) {
-      console.error('Error uploading avatar:', error)
-      ElMessage.error('Không thể cập nhật ảnh đại diện')
-    } finally {
-      loading.value = false
-    }
-  }
-}
 
+// Data fetching
 const fetchUsers = async () => {
   try {
+    console.log('Fetching users list...')
     loading.value = true
     const response = await userService.getUsers()
-    console.log('API Response:', response)
-    users.value = response.data
-    console.log('Users data:', users.value)
+    console.log('Users API Response:', response)
+    console.log('Response data type:', typeof response.data)
+    console.log('Response data structure:', JSON.stringify(response.data, null, 2))
+    
+    // Ensure we're assigning the correct data structure
+    if (Array.isArray(response.data)) {
+      users.value = response.data
+    } else if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      users.value = (response.data as { data: User[] }).data
+    } else {
+      console.error('Unexpected data structure:', response.data)
+      ElMessage.error('Dữ liệu không đúng định dạng')
+      return
+    }
+    
+    console.log('Users data after assignment:', users.value)
+    console.log('Number of users:', users.value.length)
   } catch (error) {
     console.error('Error fetching users:', error)
     ElMessage.error('Không thể tải danh sách người dùng')
@@ -117,10 +106,13 @@ const fetchUsers = async () => {
 }
 
 const handleCreate = () => {
+  console.log('Navigating to user creation page')
   router.push({ name: 'user-create' })
 }
 
+// Lifecycle hooks
 onMounted(() => {
+  console.log('UserList component mounted')
   fetchUsers()
 })
 </script>
@@ -143,7 +135,11 @@ onMounted(() => {
       </button>
     </div>
 
+  
+
     <div v-if="loading" class="loading">Đang tải...</div>
+
+   
 
     <table v-else class="user-table">
       <thead>
@@ -179,71 +175,7 @@ onMounted(() => {
       </tbody>
     </table>
 
-    <!-- Edit Modal -->
-    <div v-if="showEditModal && selectedUser" class="modal">
-      <div class="modal-content">
-        <h3>Cập nhật thông tin người dùng</h3>
-        <form @submit.prevent="handleSubmit">
-          <div class="avatar-section">
-            <img :src="selectedUser.avatar || '/placeholder-avatar.jpg'" class="avatar-preview" alt="Avatar">
-            <div class="avatar-upload">
-              <input type="file" accept="image/*" @change="handleAvatarUpload">
-              <button type="button" class="btn-upload">Tải ảnh lên</button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Họ tên</label>
-            <input v-model="selectedUser.full_name" type="text" required>
-          </div>
-
-          <div class="form-group">
-            <label>Email</label>
-            <input v-model="selectedUser.email" type="email" required>
-          </div>
-
-          <div class="form-group">
-            <label>Chức danh</label>
-            <input v-model="selectedUser.title" type="text" required>
-          </div>
-
-          <div class="form-group">
-            <label>Bằng cấp</label>
-            <input v-model="selectedUser.proof" type="text" required>
-          </div>
-
-          <div class="form-group">
-            <label>Chuyên môn</label>
-            <input v-model="selectedUser.specialty" type="text" required>
-          </div>
-
-          <div class="form-group">
-            <label>Vai trò</label>
-            <select v-model="selectedUser.role_id" required>
-              <option value="1">Người dùng</option>
-              <option value="2">Người kiểm duyệt</option>
-              <option value="3">Quản trị viên</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>
-              <input type="checkbox" v-model="selectedUser.active">
-              Kích hoạt tài khoản
-            </label>
-          </div>
-
-          <div class="modal-actions">
-            <button type="submit" class="btn-save" :disabled="loading">
-              {{ loading ? 'Đang lưu...' : 'Lưu thay đổi' }}
-            </button>
-            <button type="button" class="btn-cancel" @click="showEditModal = false">
-              Hủy
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    
   </div>
 </template>
 
@@ -449,5 +381,42 @@ onMounted(() => {
 .btn-cancel {
   background: #9e9e9e;
   color: white;
+}
+
+.btn-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-create:hover {
+  background-color: #388E3C;
+}
+
+/* Add debug info styles */
+.debug-info {
+  background: #f5f5f5;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin-top: 20px;
 }
 </style>

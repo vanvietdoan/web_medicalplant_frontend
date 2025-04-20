@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { authService } from '../../services/auth.service';
 
 const router = useRouter();
 const currentStep = ref(1);
+const isLoading = ref(false);
 
 // Step 1 data
 const email = ref('');
@@ -13,9 +15,9 @@ const error = ref('');
 
 // Step 2 data
 const fullName = ref('');
+const title = ref('');
 const specialty = ref('');
-const workplace = ref('');
-const introduction = ref('');
+const proof = ref('');
 const certificateFile = ref<File | null>(null);
 const avatarFile = ref<File | null>(null);
 
@@ -54,10 +56,10 @@ const validateStep2 = () => {
     error.value = 'Vui lòng nhập chuyên khoa';
     return false;
   }
-  if (!workplace.value) {
-    error.value = 'Vui lòng nhập đơn vị công tác';
-    return false;
-  }
+  // if (!workplace.value) {
+  //   error.value = 'Vui lòng nhập đơn vị công tác';
+  //   return false;
+  // }
   return true;
 };
 
@@ -70,34 +72,39 @@ const handleContinue = () => {
 const handleSubmit = async () => {
   if (validateStep2()) {
     try {
-      // TODO: Implement registration logic here
-      console.log('Registration data:', {
-        email: email.value,
-        password: password.value,
-        fullName: fullName.value,
+      isLoading.value = true;
+      const registrationData = {
+        full_name: fullName.value,
+        title: title.value,
+        proof: proof.value,
         specialty: specialty.value,
-        workplace: workplace.value,
-        introduction: introduction.value,
-        certificateFile: certificateFile.value,
-        avatarFile: avatarFile.value
-      });
+        email: email.value,
+        password: password.value
+      };
+
+      const response = await authService.register(registrationData) as { message: string };
+      // Hiển thị thông báo từ server
+      alert(response.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+      
       router.push('/login');
-    } catch (err) {
-      error.value = 'Đã có lỗi xảy ra khi đăng ký';
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Đã có lỗi xảy ra khi đăng ký';
+    } finally {
+      isLoading.value = false;
     }
   }
 };
 
-const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files[0]) {
-    if (type === 'certificate') {
-      certificateFile.value = input.files[0];
-    } else {
-      avatarFile.value = input.files[0];
-    }
-  }
-};
+// const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
+//   const input = event.target as HTMLInputElement;
+//   if (input.files && input.files[0]) {
+//     if (type === 'certificate') {
+//       certificateFile.value = input.files[0];
+//     } else {
+//       avatarFile.value = input.files[0];
+//     }
+//   }
+// };
 </script>
 
 <template>
@@ -115,31 +122,36 @@ const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
         <!-- Step 1: Login Information -->
         <form v-if="currentStep === 1" @submit.prevent="handleContinue" class="register-form">
           <div class="form-group">
-            <label for="email">Địa chỉ gmail</label>
+            <label for="email">Địa chỉ email</label>
             <input 
               type="email" 
               id="email" 
               v-model="email"
-              placeholder="robert.langster@gmail.com"
+              placeholder="Nhập địa chỉ email của bạn"
+              required
             >
           </div>
 
           <div class="form-group">
-            <PasswordInput
+            <label for="password">Mật khẩu</label>
+            <input 
+              type="password" 
+              id="password" 
               v-model="password"
-              label="Mật khẩu"
-              placeholder="••••••••"
-              :error="error"
-            />
+              placeholder="Nhập mật khẩu"
+              required
+            >
           </div>
 
           <div class="form-group">
-            <PasswordInput
+            <label for="confirmPassword">Xác nhận mật khẩu</label>
+            <input 
+              type="password" 
+              id="confirmPassword" 
               v-model="confirmPassword"
-              label="Xác nhận mật khẩu"
-              placeholder="••••••••"
-              :error="error"
-            />
+              placeholder="Nhập lại mật khẩu"
+              required
+            >
           </div>
 
           <div class="error-message" v-if="error">
@@ -159,6 +171,18 @@ const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
               id="fullName" 
               v-model="fullName"
               placeholder="Lê Văn A"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="title">Chức danh</label>
+            <input 
+              type="text" 
+              id="title" 
+              v-model="title"
+              placeholder="Giáo sư"
+              required
             >
           </div>
 
@@ -168,60 +192,29 @@ const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
               type="text" 
               id="specialty" 
               v-model="specialty"
-              placeholder="Tai - Mũi - Họng"
+              placeholder="Dược học cổ truyền"
+              required
             >
           </div>
 
-          <div class="form-group">
-            <label for="workplace">Đơn vị công tác</label>
+          <!-- <div class="form-group">
+            <label for="proof">Chứng chỉ</label>
             <input 
               type="text" 
-              id="workplace" 
-              v-model="workplace"
-              placeholder="Bệnh Viện TW Huế"
+              id="proof" 
+              v-model="proof"
+              placeholder="Chứng chỉ hành nghề"
             >
-          </div>
-
-          <div class="form-group">
-            <label for="introduction">Giới thiệu bản thân</label>
-            <input 
-              type="text" 
-              id="introduction" 
-              v-model="introduction"
-              placeholder="robert.langster@gmail.com"
-            >
-          </div>
-
-          <div class="form-group">
-            <label>Chứng nhận chuyên ngành</label>
-            <div class="file-upload">
-              <input 
-                type="file" 
-                @change="(e) => handleFileUpload(e, 'certificate')"
-                accept=".pdf,.doc,.docx"
-              >
-              <button type="button" class="btn-upload">Tải tài liệu lên</button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Ảnh đại diện</label>
-            <div class="file-upload">
-              <input 
-                type="file" 
-                @change="(e) => handleFileUpload(e, 'avatar')"
-                accept="image/*"
-              >
-              <button type="button" class="btn-upload">Tải ảnh lên</button>
-            </div>
-          </div>
+          </div> -->
 
           <div class="error-message" v-if="error">
             <i class="fas fa-exclamation-triangle"></i>
             {{ error }}
           </div>
 
-          <button type="submit" class="btn-register">Đăng ký</button>
+          <button type="submit" class="btn-register" :disabled="isLoading">
+            {{ isLoading ? 'Đang xử lý...' : 'Đăng ký' }}
+          </button>
         </form>
       </div>
 
@@ -383,6 +376,11 @@ const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
 
 .btn-continue:hover, .btn-register:hover {
   background-color: #006c46;
+}
+
+.btn-register:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .illustration {

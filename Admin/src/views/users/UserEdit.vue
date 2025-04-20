@@ -31,20 +31,6 @@ const user = ref<User>({
 const fileInput = ref<HTMLInputElement | null>(null)
 const proofFileInput = ref<HTMLInputElement | null>(null)
 
-const fetchUser = async () => {
-  try {
-    loading.value = true
-    const userId = Number(route.params.id)
-    const response = await userService.getUserById(userId)
-    user.value = response
-  } catch (error) {
-    console.error('Error fetching user:', error)
-    ElMessage.error('Không thể tải thông tin người dùng')
-  } finally {
-    loading.value = false
-  }
-}
-
 const handleSubmit = async () => {
   try {
     loading.value = true

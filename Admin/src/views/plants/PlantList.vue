@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import type { Plant } from '../../models/Plant'
 import { plantService } from '../../services/plant.service'
 
+const router = useRouter()
 const plants = ref<Plant[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
@@ -11,7 +13,7 @@ const searchQuery = ref('')
 const filteredPlants = computed(() => {
   if (!searchQuery.value) return plants.value
   const query = searchQuery.value.toLowerCase()
-  return plants.value.filter(plant => 
+  return plants.value.filter(plant =>
     plant.name.toLowerCase().includes(query) ||
     plant.english_name.toLowerCase().includes(query)
   )
@@ -23,9 +25,22 @@ const formatDate = (date: string) => {
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
 }
 
-const handleEdit = async (plant: Plant) => {
-  // TODO: Implement edit functionality
-  console.log('Edit plant:', plant)
+const handleEdit = (plant: Plant) => {
+  if (!plant) return;
+  
+  router.push({
+    name: 'plant-edit',
+    params: { id: plant.plant_id },
+    query: {
+      name: plant.name || '',
+      english_name: plant.english_name || '',
+      description: plant.description || '',
+      benefits: plant.benefits || '',
+      instructions: plant.instructions || '',
+      species_id: plant.species_id?.toString() || '1',
+      image_url: plant.image_url || ''
+    }
+  })
 }
 
 const handleDelete = async (plantId: number) => {
@@ -33,7 +48,7 @@ const handleDelete = async (plantId: number) => {
     if (confirm('Bạn có chắc chắn muốn xóa cây thuốc này?')) {
       await plantService.deletePlant(plantId)
       ElMessage.success('Xóa cây thuốc thành công')
-      await fetchPlants() // Refresh the list
+      await fetchPlants()
     }
   } catch (error) {
     console.error('Error deleting plant:', error)
@@ -45,15 +60,19 @@ const fetchPlants = async () => {
   try {
     loading.value = true
     const response = await plantService.getPlants()
-    console.log('fetchPlants:', response)
+    console.log('API Response:', response)
     plants.value = response.data
-    console.log('Plants:', plants.value)
+    console.log('Plants data:', plants.value)
   } catch (error) {
     console.error('Error fetching plants:', error)
     ElMessage.error('Không thể tải danh sách cây thuốc')
   } finally {
     loading.value = false
   }
+}
+
+const handleCreate = () => {
+  router.push({ name: 'plant-create' })
 }
 
 onMounted(() => {
@@ -64,42 +83,43 @@ onMounted(() => {
 <template>
   <div class="plant-list">
     <div class="header">
-      <h2>Danh sách cây thuốc</h2>
+      <h2>Quản lý cây thuốc</h2>
+     
       <div class="search-bar">
         <input 
           v-model="searchQuery" 
           type="text" 
-          placeholder="Tìm kiếm cây thuốc..."
+          placeholder="Tìm kiếm cây thuốc..." 
           class="search-input"
-        >
+        />
       </div>
+      <button class="btn-create" @click="handleCreate">
+        <i class="fas fa-plus"></i> Thêm cây thuốc
+      </button>
     </div>
 
-    <div v-if="loading" class="loading">
-      Đang tải...
-    </div>
+    <div v-if="loading" class="loading">Đang tải...</div>
 
     <table v-else class="plant-table">
       <thead>
         <tr>
           <th>ID</th>
-          <th>Hình ảnh</th>
-          <th>Tên cây</th>
-          <th>Cập nhật gần nhất</th>
+          <th>Tên</th>
+          <th>Tên tiếng Anh</th>
+          <th>Loài</th>
           <th>Thao tác</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="plant in filteredPlants" :key="plant.plant_id">
           <td>{{ plant.plant_id }}</td>
-          <td>
-            <img 
-              :src="plant.image_url || '/placeholder-plant.jpg'" 
-              class="plant-image"
-            >
-          </td>
           <td>{{ plant.name }}</td>
-          <td>{{ formatDate(plant.updated_at) }}</td>
+          <td>{{ plant.english_name }}</td>
+          <td>
+            <span class="species">
+              {{ plant.species_id === 1 ? 'Cây thuốc' : plant.species_id === 2 ? 'Cây dược liệu' : 'Cây cảnh' }}
+            </span>
+          </td>
           <td>
             <div class="action-buttons">
               <button @click="handleEdit(plant)" class="btn-edit">
@@ -122,10 +142,10 @@ onMounted(() => {
 }
 
 .header {
-  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
 }
 
 .search-bar {
@@ -155,15 +175,7 @@ onMounted(() => {
 .plant-table th,
 .plant-table td {
   padding: 12px;
-  text-align: left;
   border-bottom: 1px solid #ddd;
-}
-
-.plant-image {
-  width: 50px;
-  height: 50px;
-  object-fit: cover;
-  border-radius: 4px;
 }
 
 .loading {
@@ -200,5 +212,31 @@ onMounted(() => {
 
 .btn-delete:hover {
   background: #D32F2F;
+}
+
+.species {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  background: #e8f5e9;
+  color: #4CAF50;
+}
+
+.btn-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-create:hover {
+  background-color: #388E3C;
 }
 </style> 
