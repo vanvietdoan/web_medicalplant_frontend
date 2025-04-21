@@ -9,6 +9,7 @@ class UserService extends BaseService {
       const response = await this.get<User[]>('/users')
       console.log('User list response:', response)
       return {
+        success: true,
         data: response,
         total: response.length,
         page: 1,

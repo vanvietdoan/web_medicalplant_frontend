@@ -1,108 +1,221 @@
-<template>
-  <div class="order-list">
-    <h1>Order List</h1>
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Class</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="order in orders" :key="order.Order_ID">
-            <td>{{ order.Order_ID }}</td>
-            <td>{{ order.Name }}</td>
-            <td>{{ getClassName(order.Class_ID) }}</td>
-            <td>
-              <button @click="editOrder(order)" class="btn btn-edit">Edit</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import type { Order } from '../../../models/Order';
+import { ref, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import type { OrderResponse } from '../../../models/Order'
+import orderService from '../../../services/fillter/order.service'
 
-const router = useRouter();
-const orders = ref<Order[]>([]);
-const classes = ref<{ Class_ID: number; Name: string }[]>([]);
+const router = useRouter()
+const orders = ref<OrderResponse[]>([])
+const loading = ref(false)
+const searchQuery = ref('')
+
+const filteredOrders = computed(() => {
+  if (!searchQuery.value) return orders.value
+  const query = searchQuery.value.toLowerCase()
+  return orders.value.filter(item =>
+    item.name.toLowerCase().includes(query)
+  )
+})
+
+const formatDate = (date: string) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+}
+
+const handleEdit = (item: OrderResponse) => {
+  router.push({
+    name: 'editOrder',
+    params: { id: item.order_id }
+  })
+}
+
+const handleDelete = async (orderId: number) => {
+  try {
+    if (confirm('Bạn có chắc chắn muốn xóa phân loại này?')) {
+        await orderService.deleteOrder(Number(orderId))
+      ElMessage.success('Xóa phân loại thành công')
+      await fetchOrders()
+    }
+  } catch (error) {
+    console.error('Error deleting order:', error)
+    ElMessage.error('Không thể xóa phân loại')
+  }
+}
+
+const handleCreate = () => {
+  router.push({ name: 'createClass' })
+}
 
 const fetchOrders = async () => {
   try {
-    // TODO: Implement API call to fetch orders
-    // orders.value = await orderService.getAll();
+    loading.value = true
+    const response = await orderService.getOrders()
+    console.log('API Response:', response)
+    orders.value = response
+   
+    console.log('Orders data:', orders.value)
   } catch (error) {
-    console.error('Error fetching orders:', error);
+    console.error('Error fetching orders:', error)
+    ElMessage.error('Không thể tải danh sách phân loại')
+  } finally {
+    loading.value = false
   }
-};
-
-const fetchClasses = async () => {
-  try {
-    // TODO: Implement API call to fetch classes
-    // classes.value = await classService.getAll();
-  } catch (error) {
-    console.error('Error fetching classes:', error);
-  }
-};
-
-const getClassName = (classId: number) => {
-  const classItem = classes.value.find(c => c.Class_ID === classId);
-  return classItem ? classItem.Name : '';
-};
-
-const editOrder = (order: Order) => {
-  router.push({ name: 'editOrder', params: { id: order.Order_ID } });
-};
+}
 
 onMounted(() => {
-  fetchOrders();
-  fetchClasses();
-});
+  fetchOrders()
+})
 </script>
 
+<template>
+  <div class="user-list">
+    <div class="header">
+      <h2>Quản lý phân Lớp</h2>
+     
+      <div class="search-bar">
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          placeholder="Tìm kiếm phân loại..." 
+          class="search-input"
+        />
+      </div>
+      <button class="btn-create" @click="handleCreate">
+        <i class="fas fa-plus"></i> Tạo phân loại
+      </button>
+    </div>
+
+    <div v-if="loading" class="loading">Đang tải...</div>
+
+    <table v-else class="user-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tên</th>
+          <th>Ngày tạo</th>
+          <th>Ngày cập nhật</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in filteredOrders" :key="item.order_id">
+          <td>{{ item.order_id }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ formatDate(item.created_at) }}</td>
+          <td>{{ formatDate(item.updated_at) }}</td>
+          <td>
+            <div class="action-buttons">
+              <button @click="handleEdit(item)" class="btn-edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button @click="handleDelete(item.class_id)" class="btn-delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
 <style scoped>
-.order-list {
+.user-list {
   padding: 20px;
 }
 
-.table-container {
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  flex: 0 0 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 20px;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
+.user-table th,
+.user-table td {
   padding: 12px;
-  border: 1px solid #ddd;
-  text-align: left;
+  border-bottom: 1px solid #ddd;
 }
 
-.table th {
-  background-color: #f5f5f5;
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
 }
 
-.btn {
-  padding: 8px 12px;
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit,
+.btn-delete {
+  padding: 6px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin-right: 5px;
+  color: white;
 }
 
 .btn-edit {
-  background-color: #2196F3;
+  background: #2196F3;
+}
+
+.btn-delete {
+  background: #f44336;
+}
+
+.btn-edit:hover {
+  background: #1976D2;
+}
+
+.btn-delete:hover {
+  background: #D32F2F;
+}
+
+.btn-create {
+  background: #4CAF50;
   color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-create:hover {
+  background: #388E3C;
+}
+
+.btn-create i {
+  font-size: 14px;
 }
 </style> 

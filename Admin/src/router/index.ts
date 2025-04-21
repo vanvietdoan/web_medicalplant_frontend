@@ -11,12 +11,16 @@ import CommentList from '../views/comments/CommentList.vue'
 import UserList from '../views/users/UserList.vue'
 import UserEdit from '../views/users/UserEdit.vue'
 import UserCreate from '../views/users/UserCreate.vue'
+import AdviceList from '../views/advices/AdviceList.vue'
+import AdviceCreate from '../views/advices/AdviceCreate.vue'
+import AdviceEdit from '../views/advices/AdviceEdit.vue'
 
 import listDivision from '../views/fillter/Division/listDivision.vue'
 import editDivision from '../views/fillter/Division/editDivision.vue'
 import CreateDivision from '../views/fillter/Division/CreateDivision.vue'
 import listClass from '../views/fillter/Class/listClass.vue'  
 import editClass from '../views/fillter/Class/editClass.vue'
+import CreateClass from '../views/fillter/Class/createClass.vue'
 import listOrder from '../views/fillter/Order/listOrder.vue'
 import editOrder from '../views/fillter/Order/editOrder.vue'
 import listFamily from '../views/fillter/Family/listFamily.vue'
@@ -25,7 +29,7 @@ import listGenus from '../views/fillter/Genus/listGenus.vue'
 import editGenus from '../views/fillter/Genus/editGenus.vue'
 import listSpecies from '../views/fillter/Species/listSpecies.vue'
 import editSpecies from '../views/fillter/Species/editSpecies.vue'
-
+import createOrder from '../views/fillter/Order/createOrder.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -96,6 +100,22 @@ const router = createRouter({
           component: UserCreate
         },
         {
+          path: 'advices',
+          name: 'advices',
+          component: AdviceList
+        },
+        {
+          path: 'advices/create',
+          name: 'advice-create',
+          component: AdviceCreate
+        },
+        {
+          path: 'advices/:id/edit',
+          name: 'advice-edit',
+          component: AdviceEdit,
+          props: true
+        },
+        {
           path: 'filter',
           
           children: [
@@ -126,6 +146,11 @@ const router = createRouter({
               component: editClass
             },
             {
+              path: 'class/create',
+              name: 'createClass',
+              component: CreateClass
+            },
+            {
               path: 'class/:id/edit',
               name: 'editClass',
               component: editClass,
@@ -139,7 +164,7 @@ const router = createRouter({
             {
               path: 'order/create',
               name: 'createOrder',
-              component: editOrder
+              component: createOrder
             },
             {
               path: 'order/:id/edit',

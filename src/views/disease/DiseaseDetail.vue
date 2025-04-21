@@ -2,10 +2,14 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { diseasesService } from '../../services/diseases.service';
+import { adviceService } from '../../services/advice.service';
 import type { Diseases } from '../../models/Diseases';
+import type { Advice } from '../../models/Advice';
+import type { IAdviceService } from '../../services/advice.service';
 
 const route = useRoute();
 const disease = ref<Diseases | null>(null);
+const advices = ref<Advice[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 
@@ -14,8 +18,12 @@ const fetchDiseaseDetail = async () => {
     isLoading.value = true;
     error.value = null;
     const diseaseId = Number(route.params.id);
-    const response = await diseasesService.getDiseaseById(diseaseId);
-    disease.value = response;
+    const [diseaseResponse, advicesResponse] = await Promise.all([
+      diseasesService.getDiseaseById(diseaseId),
+      adviceService.getAdviceByDiseaseID(diseaseId)
+    ]);
+    disease.value = diseaseResponse;
+    advices.value = advicesResponse;
   } catch (err) {
     error.value = 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.';
     console.error('Error fetching disease details:', err);
@@ -59,74 +67,92 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- Main Content -->
-      <div class="main-content">
-        <!-- Symptoms Section -->
-        <section class="section symptoms-section">
-          <h2><i class="fas fa-exclamation-circle"></i> Triệu chứng</h2>
-          <ul class="symptoms-list">
-            <li v-for="symptom in disease.symptoms.split(',')" :key="symptom">
-              {{ symptom.trim() }}
-            </li>
-          </ul>
-        </section>
+      <!-- Main Content Grid -->
+      <div class="main-content-grid">
+        <!-- Disease Information Column -->
+        <div class="disease-info-column">
+          <!-- Symptoms Section -->
+          <section class="section symptoms-section">
+            <h2><i class="fas fa-exclamation-circle"></i> Triệu chứng</h2>
+            <ul class="symptoms-list">
+              <li v-for="symptom in disease.symptoms.split(',')" :key="symptom">
+                {{ symptom.trim() }}
+              </li>
+            </ul>
+          </section>
 
-        <!-- Last Updated Section -->
-        <section class="section update-section">
-          <h2><i class="fas fa-clock"></i> Thông tin cập nhật</h2>
-          <div class="update-content">
-            <p><strong>Ngày tạo:</strong> {{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</p>
-            <p><strong>Lần cập nhật cuối:</strong> {{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</p>
-          </div>
-        </section>
+          <!-- Last Updated Section -->
+          <section class="section update-section">
+            <h2><i class="fas fa-clock"></i> Thông tin cập nhật</h2>
+            <div class="update-content">
+              <p><strong>Ngày tạo:</strong> {{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</p>
+              <p><strong>Lần cập nhật cuối:</strong> {{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</p>
+            </div>
+          </section>
 
-        <!-- Treatment Section -->
-        <section class="section treatment-section">
-          <h2><i class="fas fa-clipboard-list"></i> Hướng dẫn điều trị</h2>
-          <div class="treatment-content">
-            {{ disease.instructions }}
-          </div>
-        </section>
+          <!-- Treatment Section -->
+          <section class="section treatment-section">
+            <h2><i class="fas fa-clipboard-list"></i> Hướng dẫn điều trị</h2>
+            <div class="treatment-content">
+              {{ disease.instructions }}
+            </div>
+          </section>
 
-        <!-- Medicinal Plants Section -->
-        <section class="section plants-section">
-          <h2><i class="fas fa-leaf"></i> Cây thuốc điều trị</h2>
-          <div class="plants-grid">
-            <div v-for="plant in disease.medicinal_plants" :key="plant.plant_id" class="plant-card">
-              <div class="plant-image">
-                <img :src="plant.image" :alt="plant.name">
-              </div>
-              <div class="plant-info">
-                <h3>{{ plant.name }}</h3>
-                <p class="english-name">{{ plant.english_name }}</p>
-                <router-link :to="`/plants/${plant.plant_id}`" class="view-plant">
-                  Xem chi tiết
-                </router-link>
+          <!-- Medicinal Plants Section -->
+          <section class="section plants-section">
+            <h2><i class="fas fa-leaf"></i> Cây thuốc điều trị</h2>
+            <div class="plants-grid">
+              <div v-for="plant in disease.medicinal_plants" :key="plant.plant_id" class="plant-card">
+                <div class="plant-image">
+                  <img :src="plant.image" :alt="plant.name">
+                </div>
+                <div class="plant-info">
+                  <h3>{{ plant.name }}</h3>
+                  <p class="english-name">{{ plant.english_name }}</p>
+                  <router-link :to="`/plants/${plant.plant_id}`" class="view-plant">
+                    Xem chi tiết
+                  </router-link>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <!-- Advice Comments Section -->
-        <section v-if="disease?.advice_comments?.length > 0" class="section comments-section">
-          <h2><i class="fas fa-comments"></i> Tư vấn từ chuyên gia</h2>
-          <div class="comments-list">
-            <div v-for="comment in disease.advice_comments" :key="comment.advice_id" class="comment-card">
-              <div class="comment-header">
-                <div class="user-info">
-                  <img :src="comment.user.avatar" :alt="comment.user.full_name" class="user-avatar">
-                  <div>
-                    <h4>{{ comment.user.full_name }}</h4>
-                    <p class="user-title">{{ comment.user.title }}</p>
+        <!-- Advice Comments Column -->
+        <div class="advice-column">
+          <section v-if="advices.length > 0" class="section comments-section">
+            <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
+            <div class="advice-list">
+              <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
+                <div class="advice-header">
+                  <h3>{{ advice.title }}</h3>
+                  <div class="advice-meta">
+                    <span class="date">{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
                   </div>
                 </div>
-                <span class="comment-time">{{ comment.time }}</span>
+                
+                <div class="advice-content">
+                  <p>{{ advice.content }}</p>
+                </div>
+
+                <div class="advice-footer">
+                  <div class="plant-info">
+                    <i class="fas fa-leaf"></i>
+                    <router-link :to="`/plant/${advice.plant.plant_id}`">
+                      {{ advice.plant.name }}
+                    </router-link>
+                  </div>
+                  
+                  <div class="user-info">
+                    <i class="fas fa-user-md"></i>
+                    <span class="user-name">{{ advice.user.full_name }}</span>
+                    <span class="user-title">({{ advice.user.title }})</span>
+                  </div>
+                </div>
               </div>
-              <h3 class="comment-title">{{ comment.title }}</h3>
-              <p class="comment-content">{{ comment.content }}</p>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   </div>
@@ -219,28 +245,28 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-/* Main Content */
-.main-content {
-  max-width: 1200px;
+/* Main Content Grid */
+.main-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
-.section {
-  margin-bottom: 3rem;
-}
-
-.section h2 {
-  color: #008053;
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
+.disease-info-column {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.section h2 i {
-  font-size: 1.5rem;
+.advice-column {
+  position: sticky;
+  top: 80px;
+  height: fit-content;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
 /* Symptoms Section */
@@ -331,65 +357,74 @@ onMounted(() => {
 }
 
 /* Comments Section */
-.comments-list {
+.comments-section {
+  margin-top: 0;
+}
+
+.advice-list {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.comment-card {
+.advice-card {
   background: white;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.comment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.advice-header {
   margin-bottom: 1rem;
 }
 
-.user-info {
+.advice-header h3 {
+  color: #008053;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.advice-meta {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.advice-content {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.advice-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.plant-info, .user-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
-.user-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
+.plant-info a {
+  color: #008053;
+  text-decoration: none;
 }
 
-.user-info h4 {
-  margin: 0;
-  color: #2c3e50;
+.plant-info a:hover {
+  text-decoration: underline;
+}
+
+.user-name {
+  font-weight: 500;
 }
 
 .user-title {
   color: #666;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.comment-time {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.comment-title {
-  color: #2c3e50;
-  margin: 0 0 1rem;
-  font-size: 1.2rem;
-}
-
-.comment-content {
-  color: #666;
-  line-height: 1.6;
-  margin: 0;
 }
 
 /* Update Section */
@@ -414,17 +449,29 @@ onMounted(() => {
   margin-right: 0.5rem;
 }
 
+@media (max-width: 1024px) {
+  .main-content-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .advice-column {
+    position: static;
+    max-height: none;
+  }
+}
+
 @media (max-width: 768px) {
+  .main-content-grid {
+    padding: 0 1rem;
+  }
+  
   .hero-section {
     height: 300px;
   }
 
   .hero-content h1 {
     font-size: 2rem;
-  }
-
-  .main-content {
-    padding: 0 1rem;
   }
 
   .plants-grid {

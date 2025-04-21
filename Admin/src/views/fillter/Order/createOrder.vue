@@ -1,22 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import orderService from '../../../services/fillter/order.service';
+import { useRouter } from 'vue-router';
 import classService from '../../../services/fillter/class.service';
+import divisionService from '../../../services/fillter/division.service';
 import { ElMessage } from 'element-plus';
-
-const route = useRoute();
+import type { ClassResponse } from '../../../models/Class';
 const router = useRouter();
 const loading = ref(false);
 
 const formData = ref({
   name: '',
   class_id: ''
-});
+}); 
 
 const classes = ref<{ class_id: number; name: string }[]>([]);
 
-const fetchClasses = async () => {
+const fetchDivisions = async () => {
   try {
     const response = await classService.getClasses();
     classes.value = response;
@@ -26,59 +25,39 @@ const fetchClasses = async () => {
   }
 };
 
-const fetchOrder = async (id: number) => {
-  try {
-    loading.value = true;
-    const orderData = await orderService.getOrderById(id);
-    formData.value = {
-      name: orderData.name,
-      class_id: orderData.class_id.toString()
-    };
-  } catch (error) {
-    console.error('Error fetching order:', error);
-    ElMessage.error('Không thể tải thông tin phân loại');
-  } finally {
-    loading.value = false;
-  }
-};
-
 const handleSubmit = async () => {
   try {
     loading.value = true;
-    const id = Number(route.params.id);
-    await orderService.updateOrder(id, formData.value);
-    ElMessage.success('Cập nhật phân loại thành công');
-    router.push({ name: 'listOrder' });
+    await classService.createClass(formData.value as unknown as Omit<ClassResponse, 'created_at' | 'updated_at' | 'class_id'>);
+    ElMessage.success('Tạo lớp thành công');
+    router.push({ name: 'listClass' });
   } catch (error) {
-    console.error('Error updating order:', error);
-    ElMessage.error('Không thể cập nhật phân loại');
+    console.error('Error creating class:', error);
+    ElMessage.error('Không thể tạo lớp');
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  const id = Number(route.params.id);
-  if (id) {
-    fetchOrder(id);
-  }
-  fetchClasses();
+  fetchDivisions();
 });
 </script>
 
 <template>
-  <div class="order-edit">
-    <h1>Cập nhật phân loại</h1>
+  <div class="class-create">
+    <h1>Tạo lớp mới</h1>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="name">Tên phân loại:</label>
+          <label for="name">Tên lớp:</label>
           <input 
             type="text" 
             id="name" 
             v-model="formData.name" 
             required
             :disabled="loading"
+            placeholder="Nhập tên lớp"
           />
         </div>
         <div class="form-group">
@@ -99,20 +78,30 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <button 
-          type="submit" 
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          {{ loading ? 'Đang cập nhật...' : 'Cập nhật' }}
-        </button>
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="btn btn-primary"
+            :disabled="loading"
+          >
+            {{ loading ? 'Đang tạo...' : 'Tạo mới' }}
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-secondary"
+            @click="router.push({ name: 'listClass' })"
+            :disabled="loading"
+          >
+            Hủy
+          </button>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <style scoped>
-.order-edit {
+.class-create {
   padding: 20px;
 }
 
@@ -151,6 +140,12 @@ onMounted(() => {
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
 .btn {
   padding: 10px 20px;
   border: none;
@@ -158,11 +153,18 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .btn-primary {
   background-color: #4CAF50;
   color: white;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
 }
 
 .btn:disabled {
@@ -173,4 +175,8 @@ onMounted(() => {
 .btn:hover:not(:disabled) {
   opacity: 0.9;
 }
-</style>
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+</style> 

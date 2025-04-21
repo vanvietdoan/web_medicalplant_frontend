@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import classService from '../../../services/fillter/class.service';
 import divisionService from '../../../services/fillter/division.service';
 import { ElMessage } from 'element-plus';
-
-const route = useRoute();
+import type { ClassResponse } from '../../../models/Class';
 const router = useRouter();
 const loading = ref(false);
 
@@ -26,49 +25,28 @@ const fetchDivisions = async () => {
   }
 };
 
-const fetchClass = async (id: number) => {
-  try {
-    loading.value = true;
-    const classData = await classService.getClassById(id);
-    formData.value = {
-      name: classData.name,
-      division_id: classData.division_id.toString()
-    };
-  } catch (error) {
-    console.error('Error fetching class:', error);
-    ElMessage.error('Không thể tải thông tin lớp');
-  } finally {
-    loading.value = false;
-  }
-};
-
 const handleSubmit = async () => {
   try {
     loading.value = true;
-    const id = Number(route.params.id);
-    await classService.updateClass(id, formData.value);
-    ElMessage.success('Cập nhật lớp thành công');
+    await classService.createClass(formData.value as unknown as Omit<ClassResponse, 'created_at' | 'updated_at' | 'class_id'>);
+    ElMessage.success('Tạo lớp thành công');
     router.push({ name: 'listClass' });
   } catch (error) {
-    console.error('Error updating class:', error);
-    ElMessage.error('Không thể cập nhật lớp');
+    console.error('Error creating class:', error);
+    ElMessage.error('Không thể tạo lớp');
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  const id = Number(route.params.id);
-  if (id) {
-    fetchClass(id);
-  }
   fetchDivisions();
 });
 </script>
 
 <template>
-  <div class="class-edit">
-    <h1>Cập nhật lớp</h1>
+  <div class="class-create">
+    <h1>Tạo lớp mới</h1>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
@@ -79,6 +57,7 @@ onMounted(() => {
             v-model="formData.name" 
             required
             :disabled="loading"
+            placeholder="Nhập tên lớp"
           />
         </div>
         <div class="form-group">
@@ -99,20 +78,30 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <button 
-          type="submit" 
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          {{ loading ? 'Đang cập nhật...' : 'Cập nhật' }}
-        </button>
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="btn btn-primary"
+            :disabled="loading"
+          >
+            {{ loading ? 'Đang tạo...' : 'Tạo mới' }}
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-secondary"
+            @click="router.push({ name: 'listClass' })"
+            :disabled="loading"
+          >
+            Hủy
+          </button>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <style scoped>
-.class-edit {
+.class-create {
   padding: 20px;
 }
 
@@ -151,6 +140,12 @@ onMounted(() => {
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
 .btn {
   padding: 10px 20px;
   border: none;
@@ -158,11 +153,18 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .btn-primary {
   background-color: #4CAF50;
   color: white;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
 }
 
 .btn:disabled {
@@ -172,5 +174,9 @@ onMounted(() => {
 
 .btn:hover:not(:disabled) {
   opacity: 0.9;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e0e0e0;
 }
 </style> 

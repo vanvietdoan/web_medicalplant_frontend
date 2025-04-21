@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { Division } from '../../../models/division';
 import divisionService from '../../../services/fillter/division.service';
 
 const route = useRoute();

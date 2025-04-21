@@ -28,6 +28,7 @@ export interface CreateUser {
 }
 
 export interface UserResponse {
+  success: boolean;
   data: User[];
   total: number;
   page: number;

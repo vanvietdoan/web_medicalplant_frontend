@@ -39,10 +39,16 @@ const handleLogout = () => {
         </el-menu-item>
 
 
-        <el-menu-item index="/admin/comments">
+        <el-menu-item index="/admin/advices">
           <el-icon><ChatDotRound /></el-icon>
-          <span>Bình luận</span>
+          <span> Lời khuyên</span>
         </el-menu-item>
+
+        <!-- <el-menu-item index="/admin/comments">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>....</span>
+        </el-menu-item> -->
+
 
 
         <el-sub-menu index="1">

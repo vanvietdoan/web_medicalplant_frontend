@@ -2,10 +2,13 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { plantService } from '../../services/plant.service';
+import { adviceService } from '../../services/advice.service';
 import type { Plant } from '../../models/Plant';
+import type { Advice } from '../../models/Advice';
 
 const route = useRoute();
 const plant = ref<Plant | null>(null);
+const advices = ref<Advice[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -19,7 +22,12 @@ const fetchPlantDetails = async () => {
     if (!plantId) {
       throw new Error('ID cây thuốc không hợp lệ');
     }
-    plant.value = await plantService.getPlantById(plantId);
+    const [plantResponse, advicesResponse] = await Promise.all([
+      plantService.getPlantById(plantId),
+      adviceService.getAdvicesByPlant(plantId)
+    ]);
+    plant.value = plantResponse;
+    advices.value = advicesResponse;
     console.log('Plant details fetched successfully:', plant.value)
   } catch (err) {
     console.error('Error in fetchPlantDetails:', err)
@@ -58,30 +66,69 @@ onMounted(() => {
         <p class="english-name">{{ plant.english_name }}</p>
       </div>
 
-      <div class="plant-content">
-        <div class="info-section">
-          <h2>Mô tả</h2>
-          <p>{{ plant.description }}</p>
-        </div>
-
-        <div class="info-section">
-          <h2>Công dụng</h2>
-          <p>{{ plant.benefits }}</p>
-        </div>
-
-        <div class="info-section">
-          <h2>Hướng dẫn sử dụng</h2>
-          <p>{{ plant.instructions }}</p>
-        </div>
-
-        <div class="info-section">
-          <h2>Thông tin thêm</h2>
-          <div class="additional-info">
-            <p><strong>ID:</strong> {{ plant.plant_id }}</p>
-            <p><strong>Loài:</strong> {{ plant.species_id }}</p>
-            <p><strong>Ngày tạo:</strong> {{ new Date(plant.created_at).toLocaleDateString('vi-VN') }}</p>
-            <p><strong>Cập nhật lần cuối:</strong> {{ new Date(plant.updated_at).toLocaleDateString('vi-VN') }}</p>
+      <div class="plant-content-grid">
+        <!-- Plant Information Column -->
+        <div class="plant-info-column">
+          <div class="info-section">
+            <h2>Mô tả</h2>
+            <p>{{ plant.description }}</p>
           </div>
+
+          <div class="info-section">
+            <h2>Công dụng</h2>
+            <p>{{ plant.benefits }}</p>
+          </div>
+
+          <div class="info-section">
+            <h2>Hướng dẫn sử dụng</h2>
+            <p>{{ plant.instructions }}</p>
+          </div>
+
+          <div class="info-section">
+            <h2>Thông tin thêm</h2>
+            <div class="additional-info">
+              <p><strong>ID:</strong> {{ plant.plant_id }}</p>
+              <p><strong>Loài:</strong> {{ plant.species_id }}</p>
+              <p><strong>Ngày tạo:</strong> {{ new Date(plant.created_at).toLocaleDateString('vi-VN') }}</p>
+              <p><strong>Cập nhật lần cuối:</strong> {{ new Date(plant.updated_at).toLocaleDateString('vi-VN') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expert Advice Column -->
+        <div class="advice-column">
+          <section v-if="advices.length > 0" class="advice-section">
+            <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
+            <div class="advice-list">
+              <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
+                <div class="advice-header">
+                  <h3>{{ advice.title }}</h3>
+                  <div class="advice-meta">
+                    <span class="date">{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
+                  </div>
+                </div>
+                
+                <div class="advice-content">
+                  <p>{{ advice.content }}</p>
+                </div>
+
+                <div class="advice-footer">
+                  <div class="disease-info">
+                    <i class="fas fa-disease"></i>
+                    <router-link :to="`/disease/${advice.disease.disease_id}`">
+                      {{ advice.disease.name }}
+                    </router-link>
+                  </div>
+                  
+                  <div class="user-info">
+                    <i class="fas fa-user-md"></i>
+                    <span class="user-name">{{ advice.user.full_name }}</span>
+                    <span class="user-title">({{ advice.user.title }})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -152,55 +199,123 @@ onMounted(() => {
   font-style: italic;
 }
 
-.plant-content {
+.plant-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
   padding: 2rem;
 }
 
-.info-section {
-  margin-bottom: 2rem;
+.plant-info-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.info-section:last-child {
-  margin-bottom: 0;
+.advice-column {
+  position: sticky;
+  top: 80px;
+  height: fit-content;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
-.info-section h2 {
+.advice-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.advice-section h2 {
   color: #008053;
   font-size: 1.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.info-section p {
-  color: #333;
+.advice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.advice-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  border-left: 4px solid #008053;
+}
+
+.advice-header {
+  margin-bottom: 1rem;
+}
+
+.advice-header h3 {
+  color: #008053;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.advice-meta {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.advice-content {
+  margin-bottom: 1rem;
   line-height: 1.6;
 }
 
-.additional-info {
-  background-color: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
+.advice-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.9rem;
 }
 
-.additional-info p {
-  margin: 0.5rem 0;
+.disease-info, .user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.additional-info strong {
+.disease-info a {
   color: #008053;
+  text-decoration: none;
+}
+
+.disease-info a:hover {
+  text-decoration: underline;
+}
+
+.user-name {
+  font-weight: 500;
+}
+
+.user-title {
+  color: #666;
+}
+
+@media (max-width: 1024px) {
+  .plant-content-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .advice-column {
+    position: static;
+    max-height: none;
+  }
 }
 
 @media (max-width: 768px) {
-  .plant-detail-container {
-    margin: 1rem auto;
-  }
-
-  .plant-header {
-    padding: 1.5rem;
-  }
-
-  .plant-content {
+  .plant-content-grid {
     padding: 1.5rem;
   }
 }
