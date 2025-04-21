@@ -46,53 +46,77 @@ onMounted(() => {
 
 <template>
   <div class="plant-detail-container">
-    <div v-if="loading" class="loading">
+    <div v-if="loading" class="loading-state">
       <i class="fas fa-spinner fa-spin"></i>
       <p>Đang tải thông tin cây thuốc...</p>
     </div>
 
-    <div v-else-if="error" class="error">
+    <div v-else-if="error" class="error-state">
       <i class="fas fa-exclamation-circle"></i>
       <p>{{ error }}</p>
-      <button @click="fetchPlantDetails" class="retry-btn">
+      <button @click="fetchPlantDetails" class="retry-button">
         <i class="fas fa-redo"></i> Thử lại
       </button>
     </div>
 
     <div v-else-if="plant" class="plant-detail">
-      <div class="plant-header">
-        <h1>{{ plant.name }}</h1>
-        <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
-        <p class="english-name">{{ plant.english_name }}</p>
-      </div>
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="hero-image">
+          <img src="/images/plant/tia-to.webp" :alt="plant.name">
+        </div>
+        <div class="hero-content">
+          <h1>{{ plant.name }}</h1>
+          <p class="english-name">{{ plant.english_name }}</p>
+        </div>
+      </section>
 
-      <div class="plant-content-grid">
+      <!-- Main Content Grid -->
+      <div class="main-content-grid">
         <!-- Plant Information Column -->
-        <div class="plant-info-column">
-          <div class="info-section">
-            <h2>Mô tả</h2>
-            <p>{{ plant.description }}</p>
-          </div>
-
-          <div class="info-section">
-            <h2>Công dụng</h2>
-            <p>{{ plant.benefits }}</p>
-          </div>
-
-          <div class="info-section">
-            <h2>Hướng dẫn sử dụng</h2>
-            <p>{{ plant.instructions }}</p>
-          </div>
-
-          <div class="info-section">
-            <h2>Thông tin thêm</h2>
-            <div class="additional-info">
-              <p><strong>ID:</strong> {{ plant.plant_id }}</p>
-              <p><strong>Loài:</strong> {{ plant.species_id }}</p>
-              <p><strong>Ngày tạo:</strong> {{ new Date(plant.created_at).toLocaleDateString('vi-VN') }}</p>
-              <p><strong>Cập nhật lần cuối:</strong> {{ new Date(plant.updated_at).toLocaleDateString('vi-VN') }}</p>
+        <div class="info-column">
+          <section class="info-section">
+            <h2><i class="fas fa-info-circle"></i> Mô tả</h2>
+            <div class="content-box">
+              <p>{{ plant.description }}</p>
             </div>
-          </div>
+          </section>
+
+          <section class="info-section">
+            <h2><i class="fas fa-heart"></i> Công dụng</h2>
+            <div class="content-box">
+              <p>{{ plant.benefits }}</p>
+            </div>
+          </section>
+
+          <section class="info-section">
+            <h2><i class="fas fa-book-medical"></i> Hướng dẫn sử dụng</h2>
+            <div class="content-box">
+              <p>{{ plant.instructions }}</p>
+            </div>
+          </section>
+
+          <section class="info-section">
+            <h2><i class="fas fa-info"></i> Thông tin thêm</h2>
+            <div class="content-box metadata">
+              <div class="metadata-item">
+                <span class="label">ID:</span>
+                <span class="value">{{ plant.plant_id }}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="label">Loài:</span>
+                <span class="value">{{ plant.species_id }}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="label">Ngày tạo:</span>
+                <span class="value">{{ new Date(plant.created_at).toLocaleDateString('vi-VN') }}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="label">Cập nhật lần cuối:</span>
+                <span class="value">{{ new Date(plant.updated_at).toLocaleDateString('vi-VN') }}</span>
+              </div>
+            </div>
+          </section>
         </div>
 
         <!-- Expert Advice Column -->
@@ -104,7 +128,8 @@ onMounted(() => {
                 <div class="advice-header">
                   <h3>{{ advice.title }}</h3>
                   <div class="advice-meta">
-                    <span class="date">{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
                   </div>
                 </div>
                 
@@ -120,10 +145,12 @@ onMounted(() => {
                     </router-link>
                   </div>
                   
-                  <div class="user-info">
+                  <div class="expert-info">
                     <i class="fas fa-user-md"></i>
-                    <span class="user-name">{{ advice.user.full_name }}</span>
-                    <span class="user-title">({{ advice.user.title }})</span>
+                    <div class="expert-details">
+                      <span class="name">{{ advice.user.full_name }}</span>
+                      <span class="title">{{ advice.user.title }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -137,114 +164,174 @@ onMounted(() => {
 
 <style scoped>
 .plant-detail-container {
-  max-width: 1000px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
-.loading, .error {
+/* Loading & Error States */
+.loading-state,
+.error-state {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
-  padding: 2rem;
   color: #666;
 }
 
-.loading i, .error i {
-  font-size: 2rem;
+.loading-state i,
+.error-state i {
+  font-size: 3rem;
   margin-bottom: 1rem;
+  color: #008053;
 }
 
-.error {
+.error-state {
   color: #dc3545;
 }
 
-.retry-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #dc3545;
+.retry-button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #008053;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  display: inline-flex;
+  transition: all 0.3s ease;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.retry-btn:hover {
-  background-color: #c82333;
+.retry-button:hover {
+  background: #006040;
+  transform: translateY(-2px);
 }
 
-.plant-detail {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* Hero Section */
+.hero-section {
+  position: relative;
+  height: 400px;
+  border-radius: 16px;
   overflow: hidden;
+  margin-bottom: 2rem;
 }
 
-.plant-header {
-  background: linear-gradient(135deg, #008053 0%, #006040 100%);
-  color: white;
+.hero-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 2rem;
-  text-align: center;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  color: white;
 }
 
-.plant-header h1 {
+.hero-content h1 {
+  font-size: 2.5rem;
   margin: 0;
-  font-size: 2rem;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
-.english-name {
-  margin: 0.5rem 0 0;
+.hero-content .english-name {
+  font-size: 1.2rem;
   opacity: 0.9;
   font-style: italic;
+  margin-top: 0.5rem;
 }
 
-.plant-content-grid {
+/* Main Content Grid */
+.main-content-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  padding: 2rem;
-}
-
-.plant-info-column {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 1.5fr 1fr;
   gap: 2rem;
 }
 
-.advice-column {
-  position: sticky;
-  top: 80px;
-  height: fit-content;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-}
-
-.advice-section {
+/* Info Sections */
+.info-section {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
 }
 
-.advice-section h2 {
+.info-section h2 {
   color: #008053;
   font-size: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin: 0 0 1rem;
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+}
+
+.content-box {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.metadata-item {
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
+}
+
+.metadata-item .label {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.metadata-item .value {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+/* Advice Section */
+.advice-section {
+  position: sticky;
+  top: 2rem;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .advice-list {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
 }
 
 .advice-card {
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
   border-left: 4px solid #008053;
 }
@@ -255,19 +342,22 @@ onMounted(() => {
 
 .advice-header h3 {
   color: #008053;
-  margin: 0;
+  margin: 0 0 0.5rem;
   font-size: 1.2rem;
 }
 
 .advice-meta {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: #666;
+  font-size: 0.9rem;
 }
 
 .advice-content {
-  margin-bottom: 1rem;
+  color: #2c3e50;
   line-height: 1.6;
+  margin-bottom: 1rem;
 }
 
 .advice-footer {
@@ -276,47 +366,70 @@ onMounted(() => {
   align-items: center;
   padding-top: 1rem;
   border-top: 1px solid #eee;
-  font-size: 0.9rem;
 }
 
-.disease-info, .user-info {
+.disease-info,
+.expert-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .disease-info a {
   color: #008053;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .disease-info a:hover {
   text-decoration: underline;
 }
 
-.user-name {
-  font-weight: 500;
+.expert-details {
+  display: flex;
+  flex-direction: column;
 }
 
-.user-title {
+.expert-details .name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.expert-details .title {
+  font-size: 0.9rem;
   color: #666;
 }
 
+/* Responsive Design */
 @media (max-width: 1024px) {
-  .plant-content-grid {
+  .main-content-grid {
     grid-template-columns: 1fr;
-    gap: 2rem;
   }
 
-  .advice-column {
+  .advice-section {
     position: static;
+  }
+
+  .advice-list {
     max-height: none;
   }
 }
 
 @media (max-width: 768px) {
-  .plant-content-grid {
-    padding: 1.5rem;
+  .plant-detail-container {
+    padding: 1rem;
+  }
+
+  .hero-section {
+    height: 300px;
+  }
+
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+
+  .metadata {
+    grid-template-columns: 1fr;
   }
 }
-</style> 
+</style>

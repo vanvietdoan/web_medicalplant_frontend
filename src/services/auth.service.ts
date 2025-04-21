@@ -1,5 +1,6 @@
 import type { Login, AuthResponse, User } from '../models/User';
 import BaseService from './base.service';
+import { userService } from './user.service';
 
 class AuthService extends BaseService {
   async login(credentials: Login): Promise<AuthResponse> {
@@ -8,7 +9,7 @@ class AuthService extends BaseService {
     // Lưu token vào localStorage
     this.setToken(response.token);
     
-    // Lưu thông tin user
+    // Lưu thông tin user cơ bản vào localStorage
     localStorage.setItem('user', JSON.stringify(response.user));
     
     return response;
@@ -40,7 +41,7 @@ class AuthService extends BaseService {
     }
   }
 
-  getCurrentUser(): User | null {
+  getCurrentUser(): Login | null {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       return JSON.parse(userStr);
@@ -52,22 +53,6 @@ class AuthService extends BaseService {
     return !!this.getToken();
   }
 
-  async register(data: {
-    full_name: string;
-    title: string;
-    proof: string;
-    specialty: string;
-    email: string;
-    password: string;
-  }) {
-    try {
-      const response = await this.post('/auth/register', data);
-      return response;
-    } catch (error) {
-      console.error('Error during registration:', error);
-      throw error;
-    }
-  }
 }
 
 export const authService = new AuthService();

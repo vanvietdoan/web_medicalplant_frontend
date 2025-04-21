@@ -119,6 +119,7 @@ const formatDate = (dateString: string) => {
 };
 
 onMounted(() => {
+  
   console.log('Home component mounted');
   fetchNewestPlants();
   fetchMultiUsePlants();

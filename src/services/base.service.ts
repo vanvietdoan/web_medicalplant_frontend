@@ -4,7 +4,6 @@ import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 //const API_URL = 'http://157.20.58.220:2204/api';
 const API_URL = 'http://localhost:2204/api';
 
-
 class BaseService {
   protected api: AxiosInstance;
 

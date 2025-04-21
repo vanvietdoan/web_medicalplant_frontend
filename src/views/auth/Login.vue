@@ -41,6 +41,9 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false;
   }
+  console.log("isLoggedIn", isLoggedIn.value);
+  localStorage.setItem('isLoggedIn', isLoggedIn.value.toString());
+  
 };
 
 const togglePassword = () => {

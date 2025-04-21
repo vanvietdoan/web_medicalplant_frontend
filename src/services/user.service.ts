@@ -8,20 +8,28 @@ class UserService extends BaseService {
       const currentUser = authService.getCurrentUser() as Login | null;
       const userId = id || (currentUser ? currentUser.id : undefined);
 
-      if (!userId) {
-        throw new Error('User ID is required');
+      console.log("Calling API with userId:", userId);
+      const response = await this.get<{ success: boolean; data: User }>(`/users/${userId}`);
+      console.log("Get User by id fromAPI Response:", response);
+
+      if (!response.success || !response.data) {
+        throw new Error('Không tìm thấy thông tin người dùng');
       }
 
-      return await this.get<User>(`/users/${userId}`);
+      return response.data;
     } catch (error) {
+      console.error("Error in getUserById:", error);
       throw error;
     }
   }
+  
+    
 
   async updateUser(id: number, user: Partial<User>): Promise<User> {
     try {
       return await this.put<User>(`/users/${id}`, user);
-    } catch (error) {
+    } catch (error) { 
+      console.error("Error in updateUser:", error);
       throw error;
     }
   }

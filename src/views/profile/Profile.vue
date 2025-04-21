@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import {  useRouter } from 'vue-router';
 import type { User, Login } from '../../models/User';
 import { authService } from '../../services/auth.service';
 import { userService } from '../../services/user.service';
 
-const route = useRoute();
+
 const router = useRouter();
 const user = ref<User | null>(null);
 const loading = ref(true);
@@ -13,24 +13,28 @@ const error = ref<string | null>(null);
 
 const fetchUserDetails = async () => {
   try {
+    
     loading.value = true;
     error.value = null;
+
     
-    const userId = Number(route.params.id);
-    if (!userId) {
-      const currentUser = authService.getCurrentUser() as Login | null;
+    const currentUser = authService.getCurrentUser();
+
+    console.log("currentUser:", currentUser);
+
+    
       if (!currentUser?.id) {
         throw new Error('Không tìm thấy thông tin người dùng');
       }
       user.value = await userService.getUserById(currentUser.id);
-    } else {
-      user.value = await userService.getUserById(userId);
-    }
+      console.log("user:", user.value);
+    
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải thông tin người dùng';
   } finally {
     loading.value = false;
   }
+  
 };
 
 const handleLogout = async () => {
@@ -41,6 +45,17 @@ const handleLogout = async () => {
   }
 };
 onMounted(fetchUserDetails);
+onMounted(async () => {
+  const reloaded = localStorage.getItem('hasReloaded');
+
+  if (!reloaded) {
+    localStorage.setItem('hasReloaded', 'true'); // đánh dấu đã reload
+    window.location.reload(); // reload 1 lần duy nhất
+  } else {
+    localStorage.removeItem('hasReloaded'); // xóa để lần sau không reload nữa
+    await fetchUserDetails(); // chỉ fetch sau reload
+  }
+});
 </script>
 
 <template>
