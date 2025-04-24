@@ -79,7 +79,9 @@ const handleSubmit = async () => {
         proof: proof.value,
         specialty: specialty.value,
         email: email.value,
-        password: password.value
+        password: password.value,
+        active: true,
+        avatar: ''
       };
 
       const response = await authService.register(registrationData) as { message: string };

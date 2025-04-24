@@ -1,80 +1,80 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import orderService from '../../../services/fillter/order.service';
-import classService from '../../../services/fillter/class.service';
+import familyService from '../../../services/fillter/family.service';
 import { ElMessage } from 'element-plus';
-import type { OrderResponse } from '../../../models/Order';
+import genusService from '../../../services/fillter/genus.service';
+import type { GenusResponse } from '../../../models/Genus'; 
 const router = useRouter();
 const loading = ref(false);
 
 const formData = ref({
   name: '',
-  class_id: ''
-});
+  family_id: ''
+}); 
 
-const classes = ref<{ class_id: number; name: string }[]>([]);
+  const families = ref<{ family_id: number; name: string }[]>([]);
 
-const fetchDivisions = async () => {
+const fetchFamilies = async () => {
   try {
-    const response = await classService.getClasses();
-    classes.value = response;
+    const response = await familyService.getFamilies();
+    families.value = response;    
   } catch (error) {
-    console.error('Error fetching classes:', error);
-    ElMessage.error('Không thể tải danh sách lớp');
+    console.error('Error fetching families:', error);
+    ElMessage.error('Không thể tải danh sách họ');
   }
 };
 
-const handleSubmit = async () => {
+const handleSubmit = async () => {  
   try {
     loading.value = true;
-    await orderService.createOrder(formData.value as unknown as Omit<OrderResponse, 'created_at' | 'updated_at' | 'order_id'>);
-    ElMessage.success('Tạo bộ thành công');
-    router.push({ name: 'listOrder' });
+    await genusService.createGenus(formData.value as unknown as Omit<GenusResponse, 'created_at' | 'updated_at' | 'genus_id'>);
+    ElMessage.success('Tạo chi thành công');
+    router.push({ name: 'listGenus' });
   } catch (error) {
-    console.error('Error creating order:', error);
-    ElMessage.error('Không thể tạo bộ');
+    console.error('Error creating genus:', error);
+    ElMessage.error('Không thể tạo chi');
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  fetchDivisions();
+  fetchFamilies();
 });
 </script>
 
 <template>
-  <div class="order-create">
-    <h1>Tạo bộ mới</h1>
+  <div class="class-create">
+    <h1>Tạo chi mới</h1>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="name">Tên bộ:</label>
+          <label for="name">Tên chi:</label>
           <input 
             type="text" 
             id="name" 
             v-model="formData.name" 
             required
             :disabled="loading"
-            placeholder="Nhập tên bộ"
+            placeholder="Nhập tên chi"
           />
         </div>
         <div class="form-group">
-          <label for="class">Lớp:</label>
+          <label for="family">Họ:</label>
           <select 
-            id="class" 
-            v-model="formData.class_id" 
+            id="family" 
+            v-model="formData.family_id"   
             required
             :disabled="loading"
           >
-            <option value="">Chọn lớp</option>
+            <option value="">Chọn họ</option>
             <option 
-              v-for="classItem in classes" 
-              :key="classItem.class_id" 
-              :value="classItem.class_id"
+              v-for="familyItem in families" 
+              :key="familyItem.family_id" 
+              :value="familyItem.family_id"
             >
-              {{ classItem.name }}
+              {{ familyItem.name }}
             </option>
           </select>
         </div>
@@ -89,7 +89,7 @@ onMounted(() => {
           <button 
             type="button" 
             class="btn btn-secondary"
-            @click="router.push({ name: 'listOrder' })"
+            @click="router.push({ name: 'listGenus' })"
             :disabled="loading"
           >
             Hủy
@@ -101,7 +101,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.order-create {
+.class-create {
   padding: 20px;
 }
 

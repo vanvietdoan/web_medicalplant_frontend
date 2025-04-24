@@ -20,7 +20,7 @@ import editDivision from '../views/fillter/Division/editDivision.vue'
 import CreateDivision from '../views/fillter/Division/CreateDivision.vue'
 import listClass from '../views/fillter/Class/listClass.vue'  
 import editClass from '../views/fillter/Class/editClass.vue'
-import CreateClass from '../views/fillter/Class/createClass.vue'
+import createClass from '../views/fillter/Class/createClass.vue'
 import listOrder from '../views/fillter/Order/listOrder.vue'
 import editOrder from '../views/fillter/Order/editOrder.vue'
 import listFamily from '../views/fillter/Family/listFamily.vue'
@@ -30,6 +30,9 @@ import editGenus from '../views/fillter/Genus/editGenus.vue'
 import listSpecies from '../views/fillter/Species/listSpecies.vue'
 import editSpecies from '../views/fillter/Species/editSpecies.vue'
 import createOrder from '../views/fillter/Order/createOrder.vue'
+import createFamily from '../views/fillter/Family/createFamily.vue'
+import createGenus from '../views/fillter/Genus/createGenus.vue'
+import createSpecies from '../views/fillter/Species/createSpecies.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -143,12 +146,7 @@ const router = createRouter({
             {
               path: 'class/create',
               name: 'createClass',
-              component: editClass
-            },
-            {
-              path: 'class/create',
-              name: 'createClass',
-              component: CreateClass
+              component: createClass
             },
             {
               path: 'class/:id/edit',
@@ -156,6 +154,7 @@ const router = createRouter({
               component: editClass,
               props: true
             },
+            
             {
               path: 'order',
               name: 'listOrder',
@@ -180,7 +179,7 @@ const router = createRouter({
             {
               path: 'family/create',
               name: 'createFamily',
-              component: editFamily
+              component: createFamily
             },
             {
               path: 'family/:id/edit',
@@ -196,7 +195,7 @@ const router = createRouter({
             {
               path: 'genus/create',
               name: 'createGenus',
-              component: editGenus
+              component: createGenus
             },
             {
               path: 'genus/:id/edit',
@@ -212,7 +211,7 @@ const router = createRouter({
             {
               path: 'species/create',
               name: 'createSpecies',
-              component: editSpecies
+              component: createSpecies
             },
             {
               path: 'species/:id/edit',

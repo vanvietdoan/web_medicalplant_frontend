@@ -1,80 +1,80 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import orderService from '../../../services/fillter/order.service';
-import classService from '../../../services/fillter/class.service';
+import speciesService from '../../../services/fillter/species.service';
 import { ElMessage } from 'element-plus';
-import type { OrderResponse } from '../../../models/Order';
+import genusService from '../../../services/fillter/genus.service';
+import type { SpeciesResponse } from '../../../models/Species'; 
 const router = useRouter();
 const loading = ref(false);
 
 const formData = ref({
   name: '',
-  class_id: ''
-});
+  genus_id: ''
+}); 
 
-const classes = ref<{ class_id: number; name: string }[]>([]);
+  const genuses  = ref<{ genus_id: number; name: string }[]>([]);
 
-const fetchDivisions = async () => {
+const fetchGenuses = async () => {
   try {
-    const response = await classService.getClasses();
-    classes.value = response;
+    const response = await genusService.getGenuses();
+    genuses.value = response;    
   } catch (error) {
-    console.error('Error fetching classes:', error);
-    ElMessage.error('Không thể tải danh sách lớp');
+    console.error('Error fetching genuses:', error);
+    ElMessage.error('Không thể tải danh sách chi');
   }
 };
 
-const handleSubmit = async () => {
+const handleSubmit = async () => {  
   try {
     loading.value = true;
-    await orderService.createOrder(formData.value as unknown as Omit<OrderResponse, 'created_at' | 'updated_at' | 'order_id'>);
-    ElMessage.success('Tạo bộ thành công');
-    router.push({ name: 'listOrder' });
+    await speciesService.createSpecies(formData.value as unknown as Omit<SpeciesResponse, 'created_at' | 'updated_at' | 'species_id'>);
+    ElMessage.success('Tạo loài thành công');
+    router.push({ name: 'listSpecies' });
   } catch (error) {
-    console.error('Error creating order:', error);
-    ElMessage.error('Không thể tạo bộ');
+    console.error('Error creating species:', error);
+    ElMessage.error('Không thể tạo loài');
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  fetchDivisions();
+  fetchGenuses();
 });
 </script>
 
 <template>
-  <div class="order-create">
-    <h1>Tạo bộ mới</h1>
+  <div class="class-create">
+    <h1>Tạo loài mới</h1>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="name">Tên bộ:</label>
+          <label for="name">Tên loài:</label>
           <input 
             type="text" 
             id="name" 
             v-model="formData.name" 
             required
             :disabled="loading"
-            placeholder="Nhập tên bộ"
+            placeholder="Nhập tên loài"
           />
         </div>
         <div class="form-group">
-          <label for="class">Lớp:</label>
+          <label for="genus">Chi:</label>
           <select 
-            id="class" 
-            v-model="formData.class_id" 
+            id="genus" 
+            v-model="formData.genus_id"   
             required
             :disabled="loading"
           >
-            <option value="">Chọn lớp</option>
+            <option value="">Chọn chi</option>
             <option 
-              v-for="classItem in classes" 
-              :key="classItem.class_id" 
-              :value="classItem.class_id"
+              v-for="genusItem in genuses" 
+              :key="genusItem.genus_id" 
+              :value="genusItem.genus_id"
             >
-              {{ classItem.name }}
+              {{ genusItem.name }}
             </option>
           </select>
         </div>
@@ -89,7 +89,7 @@ onMounted(() => {
           <button 
             type="button" 
             class="btn btn-secondary"
-            @click="router.push({ name: 'listOrder' })"
+            @click="router.push({ name: 'listSpecies' })"
             :disabled="loading"
           >
             Hủy
@@ -101,7 +101,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.order-create {
+.class-create {
   padding: 20px;
 }
 

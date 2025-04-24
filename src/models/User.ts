@@ -46,3 +46,16 @@ export interface AuthResponse {
   token: string;
   user: Login;
 } 
+
+
+
+export interface RegisterUser {
+    full_name: string;
+    title: string;
+    proof: string;
+    specialty: string;
+    active: boolean;
+    avatar: string;
+    email: string;
+    password: string;
+}

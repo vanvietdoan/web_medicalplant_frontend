@@ -1,6 +1,6 @@
-import type { Login, AuthResponse, User } from '../models/User';
+import type { Login, AuthResponse,  RegisterUser } from '../models/User';
 import BaseService from './base.service';
-import { userService } from './user.service';
+import { userService } from './user.service';   
 
 class AuthService extends BaseService {
   async login(credentials: Login): Promise<AuthResponse> {
@@ -40,6 +40,16 @@ class AuthService extends BaseService {
       window.dispatchEvent(new Event('auth-state-changed'));
     }
   }
+  async register(userData: RegisterUser): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await this.post<{ success: boolean; message: string }>('/auth/register', userData);
+      return response;
+    } catch (error) {
+      console.error("Error in register:", error);
+      throw error;
+    }
+  }
+  
 
   getCurrentUser(): Login | null {
     const userStr = localStorage.getItem('user');

@@ -45,7 +45,7 @@ const handleDelete = async (orderId: number) => {
 }
 
 const handleCreate = () => {
-  router.push({ name: 'createClass' })
+  router.push({ name: 'createOrder' })
 }
 
 const fetchOrders = async () => {
@@ -72,7 +72,7 @@ onMounted(() => {
 <template>
   <div class="user-list">
     <div class="header">
-      <h2>Quản lý phân Lớp</h2>
+      <h2>Quản lý phân Bộ</h2>
      
       <div class="search-bar">
         <input 

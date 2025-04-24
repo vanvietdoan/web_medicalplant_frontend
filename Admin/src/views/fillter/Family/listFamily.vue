@@ -1,108 +1,221 @@
-<template>
-  <div class="family-list">
-    <h1>Family List</h1>
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Order</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="family in families" :key="family.Family_ID">
-            <td>{{ family.Family_ID }}</td>
-            <td>{{ family.Name }}</td>
-            <td>{{ getOrderName(family.Order_ID) }}</td>
-            <td>
-              <button @click="editFamily(family)" class="btn btn-edit">Edit</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import type { Family } from '../../../models/Family';
+import { ref, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import type { FamilyResponse } from '../../../models/Family'
+import familyService from '../../../services/fillter/family.service'
 
-const router = useRouter();
-const families = ref<Family[]>([]);
-const orders = ref<{ Order_ID: number; Name: string }[]>([]);
+const router = useRouter()
+const families = ref<FamilyResponse[]>([])
+const loading = ref(false)
+const searchQuery = ref('')
+
+const filteredFamilies = computed(() => {
+  if (!searchQuery.value) return families.value
+  const query = searchQuery.value.toLowerCase()
+  return families.value.filter(item =>
+    item.name.toLowerCase().includes(query)
+  )
+})
+
+const formatDate = (date: string) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+}
+
+const handleEdit = (item: FamilyResponse) => {
+  router.push({
+    name: 'editFamily',
+    params: { id: item.family_id }
+  })
+}
+
+const handleDelete = async (familyId: number) => {
+  try {
+    if (confirm('Bạn có chắc chắn muốn xóa phân loại này?')) {
+          await familyService.deleteFamily(Number(familyId))
+      ElMessage.success('Xóa phân loại thành công')
+      await fetchFamilies()
+    }
+  } catch (error) {
+    console.error('Error deleting family:', error)
+    ElMessage.error('Không thể xóa phân loại')
+  }
+}
+
+const handleCreate = () => {
+  router.push({ name: 'createFamily' })
+}
 
 const fetchFamilies = async () => {
   try {
-    // TODO: Implement API call to fetch families
-    // families.value = await familyService.getAll();
+    loading.value = true
+    const response = await familyService.getFamilies()
+    console.log('API Response:', response)
+    families.value = response
+   
+    console.log('Families data:', families.value)
   } catch (error) {
-    console.error('Error fetching families:', error);
+    console.error('Error fetching families:', error)
+    ElMessage.error('Không thể tải danh sách phân loại')
+  } finally {
+    loading.value = false
   }
-};
-
-const fetchOrders = async () => {
-  try {
-    // TODO: Implement API call to fetch orders
-    // orders.value = await orderService.getAll();
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-  }
-};
-
-const getOrderName = (orderId: number) => {
-  const order = orders.value.find(o => o.Order_ID === orderId);
-  return order ? order.Name : '';
-};
-
-const editFamily = (family: Family) => {
-  router.push({ name: 'editFamily', params: { id: family.Family_ID } });
-};
+}
 
 onMounted(() => {
-  fetchFamilies();
-  fetchOrders();
-});
+  fetchFamilies()
+})
 </script>
 
+<template>
+  <div class="user-list">
+    <div class="header">
+      <h2>Quản lý phân họ</h2>
+     
+      <div class="search-bar">
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          placeholder="Tìm kiếm phân loại..." 
+          class="search-input"
+        />
+      </div>
+      <button class="btn-create" @click="handleCreate">
+        <i class="fas fa-plus"></i> Tạo phân loại họ
+      </button>
+    </div>
+
+    <div v-if="loading" class="loading">Đang tải...</div>
+
+    <table v-else class="user-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tên</th>
+          <th>Ngày tạo</th>
+          <th>Ngày cập nhật</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in filteredFamilies" :key="item.family_id">
+          <td>{{ item.family_id }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ formatDate(item.created_at) }}</td>
+          <td>{{ formatDate(item.updated_at) }}</td>
+          <td>
+            <div class="action-buttons">
+              <button @click="handleEdit(item)" class="btn-edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button @click="handleDelete(item.family_id)" class="btn-delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
 <style scoped>
-.family-list {
+.user-list {
   padding: 20px;
 }
 
-.table-container {
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  flex: 0 0 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 20px;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
+.user-table th,
+.user-table td {
   padding: 12px;
-  border: 1px solid #ddd;
-  text-align: left;
+  border-bottom: 1px solid #ddd;
 }
 
-.table th {
-  background-color: #f5f5f5;
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
 }
 
-.btn {
-  padding: 8px 12px;
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit,
+.btn-delete {
+  padding: 6px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin-right: 5px;
+  color: white;
 }
 
 .btn-edit {
-  background-color: #2196F3;
+  background: #2196F3;
+}
+
+.btn-delete {
+  background: #f44336;
+}
+
+.btn-edit:hover {
+  background: #1976D2;
+}
+
+.btn-delete:hover {
+  background: #D32F2F;
+}
+
+.btn-create {
+  background: #4CAF50;
   color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-create:hover {
+  background: #388E3C;
+}
+
+.btn-create i {
+  font-size: 14px;
 }
 </style> 

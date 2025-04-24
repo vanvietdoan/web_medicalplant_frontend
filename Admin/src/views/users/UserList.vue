@@ -12,8 +12,6 @@ const router = useRouter()
 const users = ref<User[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
-const showEditModal = ref(false)
-const selectedUser = ref<User | null>(null)
 
 // Computed properties
 const filteredUsers = computed(() => {

@@ -1,74 +1,52 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import familyService from '../../../services/fillter/family.service';
-import orderService from '../../../services/fillter/order.service';
 import { ElMessage } from 'element-plus';
-
-const route = useRoute();
+import type { FamilyResponse } from '../../../models/Family';
+import orderService from '../../../services/fillter/order.service';
 const router = useRouter();
 const loading = ref(false);
 
 const formData = ref({
   name: '',
   order_id: ''
-});
+}); 
 
-const orders = ref<{ order_id: number; name: string }[]>([]);
+  const orders = ref<{ order_id: number; name: string }[]>([]);
 
 const fetchOrders = async () => {
   try {
     const response = await orderService.getOrders();
-    orders.value = response;
+    orders.value = response;    
   } catch (error) {
     console.error('Error fetching orders:', error);
-    ElMessage.error('Không thể tải danh sách bộ');
+    ElMessage.error('Không thể tải danh sách lớp');
   }
 };
 
-const fetchFamily = async (id: number) => {
+const handleSubmit = async () => {  
   try {
     loading.value = true;
-    const familyData = await familyService.getFamilyById(id);
-    formData.value = {
-      name: familyData.name,
-      order_id: familyData.order_id.toString()
-    };
-  } catch (error) {
-    console.error('Error fetching family:', error);
-    ElMessage.error('Không thể tải thông tin phân loại');
-  } finally {
-    loading.value = false;
-  }
-};
-
-const handleSubmit = async () => {
-  try {
-    loading.value = true;
-    const id = Number(route.params.id);
-    await familyService.updateFamily(id, formData.value);
-    ElMessage.success('Cập nhật phân loại thành công');
+    await familyService.createFamily(formData.value as unknown as Omit<FamilyResponse, 'created_at' | 'updated_at' | 'family_id'>);
+    ElMessage.success('Tạo họ thành công');
     router.push({ name: 'listFamily' });
   } catch (error) {
-    console.error('Error updating family:', error);
-    ElMessage.error('Không thể cập nhật phân loại');
+    console.error('Error creating family:', error);
+    ElMessage.error('Không thể tạo họ');
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  const id = Number(route.params.id);
-  if (id) {
-    fetchFamily(id);
-  }
   fetchOrders();
 });
 </script>
 
 <template>
-  <div class="order-edit">
-    <h1>Cập nhật phân họ</h1>
+  <div class="class-create">
+    <h1>Tạo họ mới</h1>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
@@ -79,13 +57,14 @@ onMounted(() => {
             v-model="formData.name" 
             required
             :disabled="loading"
+            placeholder="Nhập tên họ"
           />
         </div>
         <div class="form-group">
           <label for="order">Bộ:</label>
           <select 
             id="order" 
-            v-model="formData.order_id" 
+            v-model="formData.order_id"   
             required
             :disabled="loading"
           >
@@ -99,20 +78,30 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <button 
-          type="submit" 
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          {{ loading ? 'Đang cập nhật...' : 'Cập nhật' }}
-        </button>
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="btn btn-primary"
+            :disabled="loading"
+          >
+            {{ loading ? 'Đang tạo...' : 'Tạo mới' }}
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-secondary"
+            @click="router.push({ name: 'listClass' })"
+            :disabled="loading"
+          >
+            Hủy
+          </button>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <style scoped>
-.order-edit {
+.class-create {
   padding: 20px;
 }
 
@@ -151,6 +140,12 @@ onMounted(() => {
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
 .btn {
   padding: 10px 20px;
   border: none;
@@ -158,11 +153,18 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .btn-primary {
   background-color: #4CAF50;
   color: white;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
 }
 
 .btn:disabled {
@@ -173,4 +175,8 @@ onMounted(() => {
 .btn:hover:not(:disabled) {
   opacity: 0.9;
 }
-</style>
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+</style> 

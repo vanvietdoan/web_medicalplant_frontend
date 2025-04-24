@@ -1,5 +1,13 @@
 export interface Genus {
-  Genus_ID: number;
-  Name: string;
-  Family_ID: number;
+  genus_id: number;
+  name: string;
+  family_id: number;
 } 
+
+export interface GenusResponse {
+  created_at: string;
+  updated_at: string;
+  genus_id: number;
+  name: string;
+  family_id: number;
+}
