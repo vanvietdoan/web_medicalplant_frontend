@@ -1,35 +1,58 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import { diseasesService } from '../../services/diseases.service'
 import type { Disease } from '../../models/Diseases'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
+const diseaseForm = ref<FormInstance>()
 const diseaseId = Number(route.params.id)
+const imageFiles = ref<File[]>([])
+const existingImages = ref<{ picture_id: number; url: string }[]>([])
 
-console.log('Initializing EditDisease component with ID:', diseaseId)
-
-const formData = ref<Partial<Disease>>({
+// Form data
+const formData = reactive({
   name: '',
   description: '',
-  symptoms: ''
+  symptoms: '',
+  instructions: '',
+  images: [] as File[]
 })
 
+// Form validation rules
+const rules = {
+  name: [
+    { required: true, message: 'Vui lòng nhập tên bệnh', trigger: 'blur' },
+    { min: 3, message: 'Tên bệnh phải có ít nhất 3 ký tự', trigger: 'blur' }
+  ],
+  description: [
+    { required: true, message: 'Vui lòng nhập mô tả', trigger: 'blur' }
+  ],
+  symptoms: [
+    { required: true, message: 'Vui lòng nhập triệu chứng', trigger: 'blur' }
+  ],
+  instructions: [
+    { required: true, message: 'Vui lòng nhập hướng dẫn', trigger: 'blur' }
+  ]
+}
+
+// Fetch disease data
 const fetchDisease = async () => {
   try {
-    console.log('Fetching disease details for ID:', diseaseId)
     loading.value = true
     const disease = await diseasesService.getDiseaseById(diseaseId)
-    console.log('Fetched disease data:', disease)
-    formData.value = {
-      name: disease.name,
-      description: disease.description,
-      symptoms: disease.symptoms
+    
+    if (disease) {
+      formData.name = disease.name
+      formData.description = disease.description
+      formData.symptoms = disease.symptoms
+      formData.instructions = disease.instructions || ''
+      existingImages.value = disease.images || []
     }
-    console.log('Updated form data:', formData.value)
   } catch (error) {
     console.error('Error fetching disease:', error)
     ElMessage.error('Không thể tải thông tin bệnh')
@@ -38,99 +61,201 @@ const fetchDisease = async () => {
   }
 }
 
+// Handle image upload
+const handleImageUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    const files = Array.from(input.files)
+    if (files.length + imageFiles.value.length + existingImages.value.length > 5) {
+      ElMessage.warning('Chỉ được tải lên tối đa 5 ảnh')
+      return
+    }
+    imageFiles.value = [...imageFiles.value, ...files]
+  }
+}
+
+
+
+// Create object URL for image preview      
+const createObjectURL = (file: File) => {
+  return URL.createObjectURL(file)
+}
+
+// Handle form submission
 const handleSubmit = async () => {
+  if (!diseaseForm.value) return
+  
   try {
-    console.log('Submitting updated disease data:', formData.value)
+    await diseaseForm.value.validate()
     loading.value = true
-    const response = await diseasesService.updateDisease(diseaseId, formData.value)
-    console.log('Update disease response:', response)
-    ElMessage.success('Cập nhật bệnh thành công')
-    router.push({ name: 'diseases' })
+    
+    // Create FormData for image upload
+    const formDataToSubmit = new FormData()
+    imageFiles.value.forEach((file) => {
+      formDataToSubmit.append('images', file)
+    })
+    
+    // Upload images first if there are new ones
+    let uploadedImages: { url?: string }[] = []
+    if (imageFiles.value.length > 0) {
+      const uploadResponse = await diseasesService.uploadImages(formDataToSubmit)
+      uploadedImages = uploadResponse.map(img => ({ url: img.url }))
+    }
+    
+    // Create disease object for update
+    const diseaseData: Partial<Disease> = {
+      name: formData.name,
+      description: formData.description,
+      symptoms: formData.symptoms,
+      instructions: formData.instructions,
+      images: [...existingImages.value, ...uploadedImages.map(img => ({
+        picture_id: 0, // Temporary placeholder
+        url: img.url || ''
+      }))],
+      updated_at: new Date().toISOString()
+    }
+    
+    const response = await diseasesService.updateDisease(diseaseId, diseaseData)
+    if (response) {
+      ElMessage.success('Cập nhật bệnh thành công')
+      router.push('/admin/diseases')
+    }
   } catch (error) {
     console.error('Error updating disease:', error)
-    ElMessage.error('Không thể cập nhật bệnh')
+    ElMessage.error('Cập nhật bệnh thất bại')
   } finally {
     loading.value = false
   }
 }
 
-const handleCancel = () => {
-  console.log('Canceling disease edit')
-  router.push({ name: 'diseases' })
-}
-
 onMounted(() => {
-  console.log('EditDisease component mounted')
   fetchDisease()
 })
 </script>
 
 <template>
-  <div class="edit-disease">
-    <h2>Chỉnh sửa bệnh</h2>
-    
-    <form @submit.prevent="handleSubmit" class="disease-form">
-      <div class="form-group">
-        <label for="name">Tên bệnh</label>
-        <input
-          id="name"
-          v-model="formData.name"
-          type="text"
-          required
-          placeholder="Nhập tên bệnh"
-        />
-      </div>
+  <div class="disease-edit">
+    <h1>Chỉnh sửa bệnh</h1>
+    <div class="form-container">
+      <el-form
+        ref="diseaseForm"
+        :model="formData"
+        :rules="rules"
+        class="custom-form"
+        @submit.prevent="handleSubmit"
+      >
+        <div class="form-group">
+          <label>Tên bệnh:</label>
+          <el-input
+            v-model="formData.name"
+            placeholder="Nhập tên bệnh"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label for="description">Mô tả</label>
-        <textarea
-          id="description"
-          v-model="formData.description"
-          required
-          placeholder="Nhập mô tả bệnh"
-          rows="4"
-        ></textarea>
-      </div>
+        <div class="form-group">
+          <label>Mô tả:</label>
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="4"
+            placeholder="Nhập mô tả"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label for="symptoms">Triệu chứng</label>
-        <textarea
-          id="symptoms"
-          v-model="formData.symptoms"
-          required
-          placeholder="Nhập triệu chứng"
-          rows="4"
-        ></textarea>
-      </div>
+        <div class="form-group">
+          <label>Triệu chứng:</label>
+          <el-input
+            v-model="formData.symptoms"
+            type="textarea"
+            :rows="4"
+            placeholder="Nhập triệu chứng"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-actions">
-        <button type="button" @click="handleCancel" class="btn-cancel">
-          Hủy
-        </button>
-        <button type="submit" :disabled="loading" class="btn-submit">
-          {{ loading ? 'Đang cập nhật...' : 'Cập nhật' }}
-        </button>
-      </div>
-    </form>
+        <div class="form-group">
+          <label>Hướng dẫn:</label>
+          <el-input
+            v-model="formData.instructions"
+            type="textarea"
+            :rows="4"
+            placeholder="Nhập hướng dẫn"
+            :disabled="loading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Hình ảnh (tối đa 5 ảnh)</label>
+          <div class="existing-images" v-if="existingImages.length">
+            <div v-for="(image, index) in existingImages" :key="image.picture_id" class="preview-item">
+              <img :src="image.url" :alt="'Existing image'">
+              <button 
+                type="button" 
+                class="remove-image" 
+                @click="existingImages.splice(index, 1)"
+                :disabled="loading"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            @change="handleImageUpload"
+            :disabled="loading || (imageFiles.length + existingImages.length) >= 5"
+          />
+          <div v-if="imageFiles.length" class="new-images">
+            <div v-for="(file, index) in imageFiles" :key="index" class="preview-item">
+              <img :src="createObjectURL(file)" :alt="'New image ' + (index + 1)">
+              <button 
+                type="button" 
+                class="remove-image" 
+                @click="imageFiles.splice(index, 1)"
+                :disabled="loading"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <el-button
+            type="primary"
+            native-type="submit"
+            :loading="loading"
+            class="btn btn-primary"
+          >
+            {{ loading ? 'Đang cập nhật...' : 'Cập nhật' }}
+          </el-button>
+          <el-button
+            @click="router.push('/admin/diseases')"
+            :disabled="loading"
+            class="btn btn-secondary"
+          >
+            Hủy
+          </el-button>
+        </div>
+      </el-form>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.edit-disease {
+.disease-edit {
   padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
-h2 {
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.disease-form {
+.form-container {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
   background: white;
-  padding: 20px;
-  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -138,71 +263,120 @@ h2 {
   margin-bottom: 20px;
 }
 
-label {
+.form-group label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #333;
 }
 
-input,
-textarea {
+:deep(.el-input),
+:deep(.el-select),
+:deep(.el-textarea) {
   width: 100%;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner) {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
 }
 
-input:focus,
-textarea:focus {
+:deep(.el-input__inner:focus),
+:deep(.el-textarea__inner:focus) {
   outline: none;
-  border-color: #2196F3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
-}
-
-textarea {
-  resize: vertical;
-  min-height: 100px;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .form-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
 }
 
-.btn-cancel,
-.btn-submit {
+.btn {
   padding: 10px 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.btn-cancel {
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.btn-cancel:hover {
-  background-color: #e0e0e0;
-}
-
-.btn-submit {
+.btn-primary {
   background-color: #4CAF50;
   color: white;
 }
 
-.btn-submit:hover {
-  background-color: #388E3C;
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
 }
 
-.btn-submit:disabled {
-  background-color: #a5d6a7;
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.existing-images,
+.new-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.preview-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.remove-image:hover {
+  background: rgba(255, 0, 0, 0.9);
+}
+
+.remove-image:disabled {
+  background: rgba(255, 0, 0, 0.5);
   cursor: not-allowed;
 }
 </style> 

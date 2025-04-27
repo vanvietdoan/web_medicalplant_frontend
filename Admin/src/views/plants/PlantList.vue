@@ -26,11 +26,7 @@ const getSpecies = async () => {
   species.value = response
 }
 
-const formatDate = (date: string) => {
-  if (!date) return ''
-  const d = new Date(date)
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
-}
+
 
 const handleEdit = (plant: Plant) => {
   if (!plant) return;
@@ -68,7 +64,7 @@ const fetchPlants = async () => {
     loading.value = true
     const response = await plantService.getPlants()
     console.log('API Response:', response)
-    plants.value = response.data
+    plants.value = response
     console.log('Plants data:', plants.value)
   } catch (error) {
     console.error('Error fetching plants:', error)

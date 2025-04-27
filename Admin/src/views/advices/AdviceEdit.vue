@@ -77,8 +77,8 @@ const fetchOptions = async () => {
     ])
 
     // Handle plants response
-    if (plantsResponse && plantsResponse.data) {
-      plants.value = Array.isArray(plantsResponse.data) ? plantsResponse.data : []
+    if (plantsResponse) {
+      plants.value = Array.isArray(plantsResponse) ? plantsResponse : []
     }
 
     // Handle diseases response

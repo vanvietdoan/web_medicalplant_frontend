@@ -26,6 +26,7 @@ const users = ref<User[]>([])
 const formData = reactive({
   title: '',
   content: '',
+  instructions: '',
   plant_id: '',
   disease_id: '',
   user_id: ''
@@ -70,8 +71,8 @@ const fetchOptions = async () => {
     })
 
     // Handle plants response (has data property)
-    if (plantsResponse && plantsResponse.data) {
-      plants.value = Array.isArray(plantsResponse.data) ? plantsResponse.data : []
+    if (plantsResponse) {
+      plants.value = Array.isArray(plantsResponse) ? plantsResponse : []
     } else {
       plants.value = []
     }
@@ -128,20 +129,25 @@ const handleSubmit = async () => {
     
     // Prepare data for submission
     const submitData = {
-      title: formData.title,
-      content: formData.content,
-      plant_id: parseInt(formData.plant_id),
-      disease_id: parseInt(formData.disease_id),
-      user_id: parseInt(formData.user_id)
+      title: formData.title.trim(),
+      content: formData.content.trim(),
+      plant_id: Number(formData.plant_id),
+      disease_id: Number(formData.disease_id),
+      user_id: Number(formData.user_id)
     }
     
     console.log('Submitting data:', submitData)
     
     // Submit data
-    await adviceService.createAdvice(submitData)
+    const response = await adviceService.createAdvice(submitData)
+    console.log('Create advice response:', response)
     
-    ElMessage.success('Tạo lời khuyên thành công')
-    router.push('/admin/advices')
+    if (response) {
+      ElMessage.success('Tạo lời khuyên thành công')
+      router.push('/admin/advices')
+    } else {
+      throw new Error('Không thể tạo lời khuyên')
+    }
   } catch (error) {
     console.error('Submit error:', error)
     if (error instanceof Error) {
@@ -164,106 +170,106 @@ onMounted(() => {
   <div class="advice-create">
     <h1>Tạo lời khuyên mới</h1>
     <div class="form-container">
-      <form @submit.prevent="handleSubmit">
+      <el-form
+        ref="adviceForm"
+        :model="formData"
+        :rules="rules"
+        class="custom-form"
+        @submit.prevent="handleSubmit"
+      >
         <div class="form-group">
-          <label for="title">Tiêu đề:</label>
-          <input 
-            type="text" 
-            id="title" 
-            v-model="formData.title" 
-            required
-            :disabled="loading"
+          <label>Tiêu đề:</label>
+          <el-input
+            v-model="formData.title"
             placeholder="Nhập tiêu đề"
+            :disabled="loading"
           />
         </div>
 
         <div class="form-group">
-          <label for="content">Nội dung:</label>
-          <textarea 
-            id="content" 
-            v-model="formData.content" 
-            required
-            :disabled="loading"
+          <label>Nội dung:</label>
+          <el-input
+            v-model="formData.content"
+            type="textarea"
+            :rows="4"
             placeholder="Nhập nội dung"
-            rows="4"
-          ></textarea>
+            :disabled="loading"
+          />
         </div>
 
+        
+        
+
+
         <div class="form-group">
-          <label for="plant">Cây thuốc:</label>
-          <select 
-            id="plant" 
-            v-model="formData.plant_id" 
-            required
+          <label>Cây thuốc:</label>
+          <el-select
+            v-model="formData.plant_id"
+            placeholder="Chọn cây thuốc"
             :disabled="loading"
+            class="full-width"
           >
-            <option value="">Chọn cây thuốc</option>
-            <option 
-              v-for="plant in plants" 
-              :key="plant.plant_id" 
+            <el-option
+              v-for="plant in plants"
+              :key="plant.plant_id"
+              :label="plant.name"
               :value="plant.plant_id"
-            >
-              {{ plant.name }}
-            </option>
-          </select>
+            />
+          </el-select>
         </div>
 
         <div class="form-group">
-          <label for="disease">Bệnh:</label>
-          <select 
-            id="disease" 
-            v-model="formData.disease_id" 
-            required
+          <label>Bệnh:</label>
+          <el-select
+            v-model="formData.disease_id"
+            placeholder="Chọn bệnh"
             :disabled="loading"
+            class="full-width"
           >
-            <option value="">Chọn bệnh</option>
-            <option 
-              v-for="disease in diseases" 
-              :key="disease.disease_id" 
+            <el-option
+              v-for="disease in diseases"
+              :key="disease.disease_id"
+              :label="disease.name"
               :value="disease.disease_id"
-            >
-              {{ disease.name }}
-            </option>
-          </select>
+            />
+          </el-select>
         </div>
 
         <div class="form-group">
-          <label for="user">Người đưa lời khuyên:</label>
-          <select 
-            id="user" 
-            v-model="formData.user_id" 
-            required
+          <label>Người đưa lời khuyên:</label>
+          <el-select
+            v-model="formData.user_id"
+            placeholder="Chọn người dùng"
             :disabled="loading"
+            class="full-width"
           >
-            <option value="">Chọn người dùng</option>
-            <option 
-              v-for="user in users" 
-              :key="user.user_id" 
+            <el-option
+              v-for="user in users"
+              :key="user.user_id"
+              :label="`${user.full_name} (${user.active ? 'Hoạt động' : 'Không hoạt động'})`"
               :value="user.user_id"
-            >
-              {{ user.full_name }} ({{ user.active ? 'Hoạt động' : 'Không hoạt động' }})
-            </option>
-          </select>
+            />
+          </el-select>
         </div>
 
         <div class="form-actions">
-          <button 
-            type="submit" 
+          <el-button
+            type="primary"
+            native-type="submit"
+            :loading="loading"
             class="btn btn-primary"
-            :disabled="loading"
           >
             {{ loading ? 'Đang tạo...' : 'Tạo mới' }}
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-secondary"
+          </el-button>
+          <el-button
             @click="router.push('/admin/advices')"
             :disabled="loading"
+            class="btn btn-secondary"
           >
             Hủy
-          </button>
+          </el-button>
         </div>
-      </form>
+      </el-form>
     </div>
   </div>
 </template>
@@ -292,19 +298,22 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+:deep(.el-input),
+:deep(.el-select),
+:deep(.el-textarea) {
   width: 100%;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner) {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+:deep(.el-input__inner:focus),
+:deep(.el-textarea__inner:focus) {
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
@@ -348,5 +357,9 @@ onMounted(() => {
 
 .btn-secondary:hover:not(:disabled) {
   background-color: #e0e0e0;
+}
+
+.full-width {
+  width: 100%;
 }
 </style> 

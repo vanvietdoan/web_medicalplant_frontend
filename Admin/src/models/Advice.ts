@@ -4,6 +4,7 @@ export interface Advice {
     updated_at: string;
     title: string;
     content: string;
+    instructions: string;
     plant: {
         plant_id: number;
         name: string;
@@ -55,6 +56,7 @@ export class Advice implements Advice {
             advice_id: 0,
             title: '',
             content: '',
+            instructions: '',
             plant: {
                 plant_id: 0,
                 name: ''

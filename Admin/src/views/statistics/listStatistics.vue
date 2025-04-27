@@ -68,7 +68,7 @@ const fetchStatistics = async () => {
       return
     }
 
-    stats.value.totalPlants = plantsResponse.data.length
+    stats.value.totalPlants = plantsResponse.length
     stats.value.totalDiseases = diseasesResponse.length
     stats.value.totalAdvices = advicesResponse.length
     stats.value.totalUsers = usersData.length

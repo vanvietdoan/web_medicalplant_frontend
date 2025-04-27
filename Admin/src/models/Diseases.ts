@@ -1,19 +1,16 @@
-export class Disease {
+export interface Disease {
     disease_id: number;
     name: string;
     description: string;
     symptoms: string;
-
-    constructor(
-        disease_id: number,
-        name: string,
-        description: string,
-        symptoms: string
-    ) {
-        this.disease_id = disease_id;
-        this.name = name;
-        this.description = description;
-        this.symptoms = symptoms;
-    }
+    instructions: string;
+    created_at: string;
+    updated_at: string;
+    images: {
+        picture_id: number;
+        url: string;
+    }[];
 }
+
+
 

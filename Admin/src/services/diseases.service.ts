@@ -50,6 +50,7 @@ class DiseasesService extends BaseService {
     }
   }
 
+
   async deleteDisease(id: number): Promise<void> {
     console.log(`Deleting disease with ID: ${id}...`);
     try {
@@ -57,6 +58,20 @@ class DiseasesService extends BaseService {
       console.log(`Disease with ID ${id} deleted successfully`);
     } catch (error) {
       console.error(`Error deleting disease with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  
+
+  async uploadImages(formData: FormData): Promise<{ url: string }[]> {
+    console.log(`Uploading images...`);
+    try {
+      const response = await this.post<{ url: string }[]>('/upload/multiple', formData);
+      console.log(`Images uploaded successfully`);
+      return response;
+    } catch (error) {
+      console.error(`Error uploading images:`, error);
       throw error;
     }
   }

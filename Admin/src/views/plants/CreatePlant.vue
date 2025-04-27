@@ -1,238 +1,252 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import { plantService } from '../../services/plant.service'
+import speciesService from '../../services/fillter/species.service'
+import type { Plant } from '../../models/Plant'
+import type { SpeciesResponse } from '../../models/Species'
 
 const router = useRouter()
 const loading = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
+const plantForm = ref<FormInstance>()
+const imageFiles = ref<File[]>([])
+const species = ref<SpeciesResponse[]>([])
 
-const formData = ref({
+const getSpecies = async () => {
+  const response = await speciesService.getSpecies()
+  species.value = response
+}
+getSpecies()
+
+// Form data
+const formData = reactive({
   name: '',
   english_name: '',
   description: '',
   benefits: '',
   instructions: '',
-  species_id: 1, // Default species ID
-  image_url: ''
+  species_id: '',
+  images: [] as File[]
 })
 
-const handleSubmit = async () => {
-  try {
-    loading.value = true
-    // Validate required fields
-    if (!formData.value.name) {
-      ElMessage.error('Vui lòng điền tên cây thuốc')
-      loading.value = false
+// Form validation rules
+const rules = {
+  name: [
+    { required: true, message: 'Vui lòng nhập tên cây thuốc', trigger: 'blur' },
+    { min: 3, message: 'Tên cây thuốc phải có ít nhất 3 ký tự', trigger: 'blur' }
+  ],
+  description: [
+    { required: true, message: 'Vui lòng nhập mô tả', trigger: 'blur' }
+  ],
+  benefits: [
+    { required: true, message: 'Vui lòng nhập công dụng', trigger: 'blur' }
+  ],
+  instructions: [
+    { required: true, message: 'Vui lòng nhập hướng dẫn', trigger: 'blur' }
+  ]
+}
+
+// Handle image upload
+const handleImageUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    const files = Array.from(input.files)
+    if (files.length + imageFiles.value.length > 5) {
+      ElMessage.warning('Chỉ được tải lên tối đa 5 ảnh')
       return
     }
+    imageFiles.value = [...imageFiles.value, ...files]
+  }
+}
+
+// Create object URL for image preview
+const createObjectURL = (file: File) => {
+  return URL.createObjectURL(file)
+}
+
+// Handle form submission
+const handleSubmit = async () => {
+  if (!plantForm.value) return
+  
+  try {
+    await plantForm.value.validate()
+    loading.value = true
     
-    await plantService.createPlant(formData.value)
-    ElMessage.success('Thêm cây thuốc thành công')
-    router.push('/admin/plants')
+    // Create FormData for image upload
+    const formDataToSubmit = new FormData()
+    imageFiles.value.forEach((file) => {
+      formDataToSubmit.append('images', file)
+    })
+    
+    // Upload images first
+    let uploadedImages: { url?: string }[] = []
+    if (imageFiles.value.length > 0) {
+      const uploadResponse = await plantService.uploadImages(formDataToSubmit)
+      uploadedImages = uploadResponse.map((img: { url?: string }) => ({ url: img.url }))
+    }
+    
+    // Create plant object
+    const plantData: Omit<Plant, 'plant_id'> = {
+      name: formData.name,
+      english_name: formData.english_name,
+      description: formData.description,
+      benefits: formData.benefits,
+      instructions: formData.instructions,
+      species_id: Number(formData.species_id),
+      images: uploadedImages.map(img => ({
+        picture_id: 0, // Temporary placeholder
+        url: img.url || ''
+      })),
+      created_at: '',
+      updated_at: ''
+    }
+    
+    const response = await plantService.createPlant(plantData)
+    console.log("creatq",response)
+    if (response) {
+      ElMessage.success('Tạo cây thuốc thành công')
+      router.push('/admin/plants')
+    }
   } catch (error) {
     console.error('Error creating plant:', error)
-    ElMessage.error('Không thể thêm cây thuốc: ' + (error instanceof Error ? error.message : 'Lỗi không xác định'))
+    ElMessage.error('Tạo cây thuốc thất bại: ' + (error instanceof Error ? error.message : 'Lỗi không xác định'))
   } finally {
     loading.value = false
   }
 }
-
-const triggerFileInput = () => {
-  if (fileInput.value) {
-    fileInput.value.click()
-  }
-}
-
-const handleImageUpload = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    try {
-      loading.value = true
-      const file = input.files[0]
-      
-      // Kiểm tra kích thước file (tối đa 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        ElMessage.error('Kích thước ảnh không được vượt quá 5MB')
-        loading.value = false
-        return
-      }
-      
-      // Kiểm tra định dạng file
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-      if (!allowedTypes.includes(file.type)) {
-        ElMessage.error('Định dạng ảnh không hợp lệ. Vui lòng chọn ảnh có định dạng JPG, PNG, GIF hoặc WEBP')
-        loading.value = false
-        return
-      }
-      
-      // Hiển thị ảnh preview trước khi tải lên
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        if (e.target && e.target.result) {
-          formData.value.image_url = e.target.result as string
-        }
-      }
-      reader.readAsDataURL(file)
-      
-      // Tải ảnh lên server
-      // const response = await plantService.uploadImage(file)
-      // formData.value.image_url = response.url
-      ElMessage.success('Tải ảnh thành công')
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      ElMessage.error('Không thể tải ảnh')
-    } finally {
-      loading.value = false
-    }
-  }
-}
-
-const handleCancel = () => {
-  router.push('/admin/plants')
-}
 </script>
 
 <template>
-  <div class="plant-create">
-    <div class="header">
-      <h2>Thêm cây thuốc mới</h2>
-    </div>
-
-    <form @submit.prevent="handleSubmit" class="create-form">
-      <div class="image-section">
-        <img :src="formData.image_url || '/placeholder-plant.jpg'" class="image-preview" alt="Plant Image">
-        <div class="image-upload">
-          <input 
-            ref="fileInput"
-            type="file" 
-            accept="image/jpeg,image/png,image/gif,image/webp" 
-            @change="handleImageUpload"
-            style="display: none;"
-          >
-          <button type="button" class="btn-upload" @click="triggerFileInput">
-            <i class="fas fa-upload"></i> Tải ảnh lên
-          </button>
-          <p class="upload-hint">Hỗ trợ: JPG, PNG, GIF, WEBP (Tối đa 5MB)</p>
+  <div class="disease-create">
+    <h1>Tạo cây thuốc mới</h1>
+    <div class="form-container">
+      <el-form
+        ref="plantForm"
+        :model="formData"
+        :rules="rules"
+        class="custom-form"
+        @submit.prevent="handleSubmit"
+      >
+        <div class="form-group">
+          <label>Tên cây tiếng Việt:</label>
+          <el-input
+            v-model="formData.name"
+            placeholder="Nhập tên cây"
+            :disabled="loading"
+          />
         </div>
-      </div>
+        <div class="form-group">
+          <label>Tên cây tiếng Anh:</label>
+          <el-input
+            v-model="formData.english_name"
+            placeholder="Nhập tên tiếng anh"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label>Tên cây thuốc</label>
-        <input v-model="formData.name" type="text" required>
-      </div>
 
-      <div class="form-group">
-        <label>Tên tiếng Anh</label>
-        <input v-model="formData.english_name" type="text">
-      </div>
+        <div class="form-group">
+          <label>Mô tả:</label>
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="4"
+            placeholder="Nhập mô tả"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label>Mô tả</label>
-        <textarea v-model="formData.description" rows="4"></textarea>
-      </div>
+        <div class="form-group">
+          <label>Lợi ích:</label>
+          <el-input
+            v-model="formData.benefits"
+            type="textarea"
+            :rows="4"
+            placeholder="Nhập công dụng"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label>Công dụng</label>
-        <textarea v-model="formData.benefits" rows="4"></textarea>
-      </div>
+        <div class="form-group">
+          <label>Hướng dẫn:</label>
+          <el-input
+            v-model="formData.instructions"
+            type="textarea"
+            :rows="4"
+            placeholder="Nhập hướng dẫn"
+            :disabled="loading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label>Hướng dẫn sử dụng</label>
-        <textarea v-model="formData.instructions" rows="4"></textarea>
-      </div>
+        <div class="form-group">
+          <label>Loại cây:</label>
+          <el-select v-model="formData.species_id" placeholder="Chọn loại cây">
+            <el-option v-for="item in species" :key="item.species_id" :label="item.name" :value="item.species_id" />
+          </el-select>
+        </div>
 
-      <div class="form-group">
-        <label>Loài cây</label>
-        <select v-model="formData.species_id">
-          <option value="1">Cây thuốc</option>
-          <option value="2">Cây dược liệu</option>
-          <option value="3">Cây cảnh</option>
-        </select>
-      </div>
+        
+        <div class="form-group">
+          <label>Hình ảnh (tối đa 5 ảnh)</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            @change="handleImageUpload"
+            :disabled="loading || imageFiles.length >= 5"
+          />
+          <div v-if="imageFiles.length" class="image-preview">
+            <div v-for="(file, index) in imageFiles" :key="index" class="preview-item">
+              <img :src="createObjectURL(file)" :alt="'Preview ' + (index + 1)">
+              <button 
+                type="button" 
+                class="remove-image" 
+                @click="imageFiles.splice(index, 1)"
+                :disabled="loading"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
 
-      <div class="form-actions">
-        <button type="submit" class="btn-save" :disabled="loading">
-          {{ loading ? 'Đang lưu...' : 'Lưu' }}
-        </button>
-        <button type="button" class="btn-cancel" @click="handleCancel">
-          Hủy
-        </button>
-      </div>
-    </form>
+        <div class="form-actions">
+          <el-button
+            type="primary"
+            native-type="submit"
+            :loading="loading"
+            class="btn btn-primary"
+            @click="handleSubmit"
+          >
+            {{ loading ? 'Đang tạo...' : 'Tạo mới' }}
+          </el-button>
+          <el-button
+            @click="router.push('/admin/plants')"
+            :disabled="loading"
+            class="btn btn-secondary"
+          >
+            Hủy
+          </el-button>
+        </div>
+      </el-form>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.plant-create {
+.disease-create {
   padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
-.header {
-  margin-bottom: 24px;
-}
-
-.header h2 {
-  margin: 0;
-  color: #333;
-  font-size: 24px;
-}
-
-.create-form {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.image-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.image-preview {
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
+.form-container {
+  margin-top: 20px;
+  padding: 20px;
   border: 1px solid #ddd;
-}
-
-.image-upload {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-upload {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
-}
-
-.btn-upload:hover {
-  background-color: #1976D2;
-}
-
-.upload-hint {
-  margin: 0;
-  font-size: 12px;
-  color: #666;
+  border-radius: 5px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-group {
@@ -243,62 +257,115 @@ const handleCancel = () => {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #333;
 }
 
-.form-group input[type="text"],
-.form-group textarea,
-.form-group select {
+:deep(.el-input),
+:deep(.el-select),
+:deep(.el-textarea) {
   width: 100%;
-  padding: 8px 12px;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner) {
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
 }
 
-.form-group textarea {
-  resize: vertical;
-  min-height: 100px;
+:deep(.el-input__inner:focus),
+:deep(.el-textarea__inner:focus) {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .form-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
-.btn-save,
-.btn-cancel {
-  padding: 8px 16px;
+.btn {
+  padding: 10px 20px;
+  border: none;
   border-radius: 4px;
-  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
-.btn-save {
+.btn-primary {
   background-color: #4CAF50;
   color: white;
-  border: none;
 }
 
-.btn-save:hover {
-  background-color: #388E3C;
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
 }
 
-.btn-save:disabled {
-  background-color: #a5d6a7;
+.btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-.btn-cancel {
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  color: #333;
+.btn:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
-.btn-cancel:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: #e0e0e0;
 }
-</style> 
+
+.image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.preview-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.remove-image:hover {
+  background: rgba(255, 0, 0, 0.9);
+}
+
+.remove-image:disabled {
+  background: rgba(255, 0, 0, 0.5);
+  cursor: not-allowed;
+}
+</style>

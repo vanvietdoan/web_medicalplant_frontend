@@ -134,7 +134,6 @@ onUnmounted(() => {
           <th>Tiêu đề</th>
           <th>Cây thuốc</th>
           <th>Bệnh</th>
-          <th>Người đưa lời khuyên</th>
           <th>Ngày tạo</th>
           <th>Thao tác</th>
         </tr>

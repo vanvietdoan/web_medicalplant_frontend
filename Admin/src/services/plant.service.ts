@@ -1,18 +1,13 @@
-import type { Plant, PlantResponse, UpdatePlantRequest } from '../models/Plant';
+import type { Plant, } from '../models/Plant';
 import BaseService from './base.service';
 
 class PlantService extends BaseService {
-  async getPlants(): Promise<PlantResponse> {
+  async getPlants(): Promise<Plant[]> {
     console.log('Fetching plants list from API...');
     try {
       const response = await this.get<Plant[]>('/plants');
       console.log('Plants list response:', response);
-      return {
-        data: response,
-        total: response.length,
-        page: 1,
-        limit: response.length
-      };
+      return response;
     } catch (error) {
       console.error('Error fetching plants list:', error);
       throw error;
@@ -43,7 +38,7 @@ class PlantService extends BaseService {
     }
   }
 
-  async updatePlant(id: number, plant: UpdatePlantRequest): Promise<Plant> {
+  async updatePlant(id: number, plant: Partial<Plant>): Promise<Plant> {
     console.log(`Updating plant with ID ${id}:`, plant);
     try {
       const response = await this.put<Plant>(`/plants/${id}`, plant);
@@ -80,6 +75,17 @@ class PlantService extends BaseService {
       return response;
     } catch (error) {
       console.error(`Error uploading image for plant ID ${id}:`, error);
+      throw error;
+    }
+  }
+  async uploadImages(formData: FormData): Promise<{ url: string }[]> {
+    console.log(`Uploading images...`);
+    try {
+      const response = await this.post<{ url: string }[]>('/upload/multiple', formData);
+      console.log(`Images uploaded successfully`);
+      return response;
+    } catch (error) {
+      console.error(`Error uploading images:`, error);
       throw error;
     }
   }

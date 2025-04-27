@@ -68,6 +68,15 @@ class PlantService extends BaseService {
       throw error
     }
   }
+  async getPlantSearch(query: string): Promise<Plant[]> {
+    try {
+      const response = await this.get<Plant[]>(`/plants/filter-plant?${query}`)
+      return response
+    } catch (error) {
+      console.error('Error fetching plants by search:', error)
+      throw error
+    }
+  }
 }
 
 export const plantService = new PlantService()

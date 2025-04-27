@@ -145,8 +145,7 @@ onMounted(async () => {
           Quản lý lời khuyên
         </router-link>
         
-
-        <button @click="router.push('/profile/edit')" class="edit-btn">
+        <button @click="router.push('/profile/edit')" class="advice-btn">
           <i class="fas fa-edit"></i>
           Chỉnh sửa
         </button>
@@ -311,59 +310,58 @@ onMounted(async () => {
   border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
 }
 
-.edit-btn {
+.profile-actions button,
+.profile-actions .advice-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: #42b883;
-  color: white;
+  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
-  margin-right: 1rem;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  text-decoration: none;
+  color: white;
+}
+
+.advice-btn {
+  background-color: #008053;
+}
+
+.advice-btn:hover {
+  background-color: #006040;
+  transform: translateY(-2px);
+}
+
+.edit-btn {
+  background-color: #42b883;
 }
 
 .edit-btn:hover {
   background-color: #3aa876;
+  transform: translateY(-2px);
 }
 
 .password-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
   background-color: #008053;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  margin-right: 1rem;
 }
 
 .password-btn:hover {
-  background-color: #006c46;
+  background-color: #006040;
+  transform: translateY(-2px);
 }
 
 .logout-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
   background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
 }
 
 .logout-btn:hover {
   background-color: #c82333;
+  transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
@@ -389,7 +387,14 @@ onMounted(async () => {
   }
 
   .profile-actions {
-    padding: 1rem 1.5rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .profile-actions button,
+  .profile-actions .advice-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style> 

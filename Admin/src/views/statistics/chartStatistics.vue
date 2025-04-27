@@ -33,7 +33,7 @@ import { userService } from '../../services/user.service'
     switch (type) {
       case 'plant':
         const plantsRes = await plantService.getPlants()
-        data = plantsRes.data || []
+        data = plantsRes || []
         title = 'Cây thuốc theo thời gian'
         color = '#4CAF50'
         break

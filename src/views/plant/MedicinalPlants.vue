@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import divisionService from '../../services/fillter/division.service';
@@ -59,35 +59,100 @@ const availableSpecies = computed(() => {
   return species.value.filter(species => species.genus_id === selectedGenus.value);
 });
 
+// Filtered plants based on search query and filters
+const filteredPlants = computed(() => {
+  let result = plants.value;
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(plant => 
+      plant.name.toLowerCase().includes(query) || 
+      plant.english_name.toLowerCase().includes(query) ||
+      plant.description.toLowerCase().includes(query)
+    );
+  }
+  
+  return result;
+});
+
 // Filter change handlers
-const handleDivisionChange = () => {
+const handleDivisionChange = async () => {
   selectedClass.value = '';
   selectedOrder.value = '';
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
+  await fetchFilteredPlants();
 };
 
-const handleClassChange = () => {
+const handleClassChange = async () => {
   selectedOrder.value = '';
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
+  await fetchFilteredPlants();
 };
 
-const handleOrderChange = () => {
+const handleOrderChange = async () => {
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
+  await fetchFilteredPlants();
 };
 
-const handleFamilyChange = () => {
+const handleFamilyChange = async () => {
   selectedGenus.value = '';
   selectedSpecies.value = '';
+  await fetchFilteredPlants();
 };
 
-const handleGenusChange = () => {
+const handleGenusChange = async () => {
   selectedSpecies.value = '';
+  await fetchFilteredPlants();
+};
+
+const handleSpeciesChange = async () => {
+  await fetchFilteredPlants();
+};
+
+// Fetch filtered plants based on selected filters
+const fetchFilteredPlants = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    
+    let query = '';
+    
+    // Priority order: speciesId > genusId > familyId > orderId > classId > divisionId
+    if (selectedSpecies.value) {
+      query = `speciesId=${selectedSpecies.value}`;
+    } else if (selectedGenus.value) {
+      query = `genusId=${selectedGenus.value}`;
+    } else if (selectedFamily.value) {
+      query = `familyId=${selectedFamily.value}`;
+    } else if (selectedOrder.value) {
+      query = `orderId=${selectedOrder.value}`;
+    } else if (selectedClass.value) {
+      query = `classId=${selectedClass.value}`;
+    } else if (selectedDivision.value) {
+      query = `divisionId=${selectedDivision.value}`;
+    }
+
+    // If no filter, get all plants
+    if (!query) {
+      plants.value = await plantService.getPlants();
+    } else {
+      plants.value = await plantService.getPlantSearch(query);
+    }
+    
+    console.log('Filtered plants with query:', query, plants.value);
+  } catch (err) {
+    console.error('Error in fetchFilteredPlants:', err);
+    error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách cây thuốc';
+  } finally {
+    loading.value = false;
+  }
 };
 
 // Fetch filter data
@@ -119,27 +184,6 @@ const fetchFilterData = async () => {
     console.error('Error fetching filter data:', error);
   }
 };
-
-// Filtered plants based on search query and filters
-const filteredPlants = computed(() => {
-  console.log('Filtering plants with query:', searchQuery.value);
-  let result = plants.value;
-  
-  // Filter by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(plant => 
-      plant.name.toLowerCase().includes(query) || 
-      plant.english_name.toLowerCase().includes(query)
-    );
-  }
-  
-  // Filter by selected filters (to be implemented later)
-  // This is where we'll add the actual filtering logic when the API is ready
-  
-  console.log('Filtered plants count:', result.length);
-  return result;
-});
 
 const fetchPlants = async () => {
   console.log('Starting to fetch plants...')
@@ -249,7 +293,7 @@ onMounted(() => {
 
         <div class="filter-group" v-if="selectedGenus">
           <label>Loài</label>
-          <select v-model="selectedSpecies" class="filter-select">
+          <select v-model="selectedSpecies" class="filter-select" @change="handleSpeciesChange">
             <option value="">Chọn loài</option>
             <option v-for="species in availableSpecies" 
                     :key="species.species_id" 

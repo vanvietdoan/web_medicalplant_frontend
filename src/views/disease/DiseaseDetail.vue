@@ -102,16 +102,10 @@ onMounted(() => {
           <section class="section plants-section">
             <h2><i class="fas fa-leaf"></i> Cây thuốc điều trị</h2>
             <div class="plants-grid">
-              <div v-for="plant in disease.medicinal_plants" :key="plant.plant_id" class="plant-card">
-                <div class="plant-image">
-                  <img :src="plant.image" :alt="plant.name">
-                </div>
-                <div class="plant-info">
-                  <h3>{{ plant.name }}</h3>
-                  <p class="english-name">{{ plant.english_name }}</p>
-                  <router-link :to="`/plants/${plant.plant_id}`" class="view-plant">
-                    Xem chi tiết
-                  </router-link>
+              <div class="plant-info">
+              <div v-for="advice in advices" :key="advice.plant.plant_id" class="plant-card"> 
+               
+                  <router-link :to="`/plant/${advice.plant.plant_id}`"> {{ advice.plant.name }}</router-link>
                 </div>
               </div>
             </div>

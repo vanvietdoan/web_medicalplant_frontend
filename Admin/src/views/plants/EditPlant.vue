@@ -2,31 +2,76 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import type { Plant, UpdatePlantRequest } from '../../models/Plant'
+import type { Plant } from '../../models/Plant'
+import speciesService from '../../services/fillter/species.service'
 import { plantService } from '../../services/plant.service'
+import type { SpeciesResponse } from '../../models/Species'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
+const species = ref<SpeciesResponse[]>([])
+const imageFiles = ref<File[]>([])
 
-const plant = ref<UpdatePlantRequest>({
-  name: route.query.name as string || '',
-  english_name: route.query.english_name as string || '',
-  description: route.query.description as string || '',
-  benefits: route.query.benefits as string || '',
-  instructions: route.query.instructions as string || '',
-  species_id: Number(route.query.species_id) || 1,
+const plant = ref<Plant>({  
+  plant_id: Number(route.params.id) || 0,
+  name: '',
+  english_name: '',
+  description: '',
+  benefits: '',
+  instructions: '',
+  species_id: 1,
   created_at: '',
-  updated_at: ''
+  updated_at: '',
+  images: []
 })
 
-const imageUrl = ref(route.query.image_url as string || '')
+const getPlantDetails = async () => {
+  try {
+    const plantId = Number(route.params.id)
+    const response = await plantService.getPlantById(plantId)
+    plant.value = response
+  } catch (error) {
+    console.error('Error fetching plant details:', error)
+    ElMessage.error('Không thể tải thông tin cây thuốc')
+  }
+}
+
+const getSpecies = async () => {
+  const response = await speciesService.getSpecies()
+  species.value = response
+}
+
+onMounted(async () => {
+  await Promise.all([getPlantDetails(), getSpecies()])
+})
+
+// Handle image upload
+const handleImageUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    const files = Array.from(input.files)
+    if (files.length + imageFiles.value.length + plant.value.images.length > 5) {
+      ElMessage.warning('Chỉ được tải lên tối đa 5 ảnh')
+      return
+    }
+    imageFiles.value = [...imageFiles.value, ...files]
+  }
+}
+
+// Create object URL for image preview
+const createObjectURL = (file: File) => {
+  return URL.createObjectURL(file)
+}
+
+// Remove existing image
+const removeExistingImage = (index: number) => {
+  plant.value.images.splice(index, 1)
+}
 
 const handleSubmit = async () => {
   try {
     loading.value = true
-    console.log('Updating plant data:', plant.value)
     
     // Validate required fields
     if (!plant.value.name) {
@@ -38,12 +83,38 @@ const handleSubmit = async () => {
     // Get plant ID from route params
     const plantId = Number(route.params.id)
     
+    // Create FormData for image upload
+    const formDataToSubmit = new FormData()
+    imageFiles.value.forEach((file) => {
+      formDataToSubmit.append('images', file)
+    })
+    
+    // Upload new images first
+    let uploadedImages: { url?: string }[] = []
+    if (imageFiles.value.length > 0) {
+      const uploadResponse = await plantService.uploadImages(formDataToSubmit)
+      uploadedImages = uploadResponse.map((img: { url?: string }) => ({ url: img.url }))
+    }
+    
+    // Update plant with existing and new images
+    const plantData: Partial<Plant> = {
+      ...plant.value,
+      images: [
+        ...plant.value.images,
+        ...uploadedImages.map(img => ({
+          picture_id: 0,
+          url: img.url || ''
+        }))
+      ],
+      updated_at: new Date().toISOString()
+    }
+    
     // Call API to update plant
-    const response = await plantService.updatePlant(plantId, plant.value)
+    const response = await plantService.updatePlant(plantId, plantData)
     
     console.log('Plant updated successfully:', response)
     ElMessage.success('Cập nhật thông tin thành công')
-    router.push({ name: 'plants' })
+    router.push('/admin/plants')
   } catch (error) {
     console.error('Error updating plant:', error)
     ElMessage.error('Không thể cập nhật thông tin: ' + (error instanceof Error ? error.message : 'Lỗi không xác định'))
@@ -52,58 +123,8 @@ const handleSubmit = async () => {
   }
 }
 
-const triggerFileInput = () => {
-  if (fileInput.value) {
-    fileInput.value.click()
-  }
-}
-
-const handleImageUpload = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    try {
-      loading.value = true
-      const file = input.files[0]
-      
-      // Kiểm tra kích thước file (tối đa 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        ElMessage.error('Kích thước ảnh không được vượt quá 5MB')
-        loading.value = false
-        return
-      }
-      
-      // Kiểm tra định dạng file
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-      if (!allowedTypes.includes(file.type)) {
-        ElMessage.error('Định dạng ảnh không hợp lệ. Vui lòng chọn ảnh có định dạng JPG, PNG, GIF hoặc WEBP')
-        loading.value = false
-        return
-      }
-      
-      // Hiển thị ảnh preview trước khi tải lên
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        if (e.target && e.target.result) {
-          imageUrl.value = e.target.result as string
-        }
-      }
-      reader.readAsDataURL(file)
-      
-      // Tải ảnh lên server
-      const response = await plantService.uploadImage(Number(route.params.id), file)
-      imageUrl.value = response.image_url
-      ElMessage.success('Cập nhật ảnh thành công')
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      ElMessage.error('Không thể cập nhật ảnh')
-    } finally {
-      loading.value = false
-    }
-  }
-}
-
 const handleCancel = () => {
-  router.push({ name: 'plants' })
+  router.push('/admin/plants')
 }
 </script>
 
@@ -118,23 +139,6 @@ const handleCancel = () => {
     </div>
 
     <form v-else @submit.prevent="handleSubmit" class="edit-form">
-      <div class="image-section">
-        <img :src="imageUrl || '/placeholder-plant.jpg'" class="image-preview" alt="Plant Image">
-        <div class="image-upload">
-          <input 
-            ref="fileInput"
-            type="file" 
-            accept="image/jpeg,image/png,image/gif,image/webp" 
-            @change="handleImageUpload"
-            style="display: none;"
-          >
-          <button type="button" class="btn-upload" @click="triggerFileInput">
-            <i class="fas fa-upload"></i> Tải ảnh lên
-          </button>
-          <p class="upload-hint">Hỗ trợ: JPG, PNG, GIF, WEBP (Tối đa 5MB)</p>
-        </div>
-      </div>
-
       <div class="form-group">
         <label>Tên cây thuốc</label>
         <input v-model="plant.name" type="text" required>
@@ -163,10 +167,47 @@ const handleCancel = () => {
       <div class="form-group">
         <label>Loài cây</label>
         <select v-model="plant.species_id">
-          <option value="1">Cây thuốc</option>
-          <option value="2">Cây dược liệu</option>
-          <option value="3">Cây cảnh</option>
+          <option v-for="item in species" :key="item.species_id" :value="item.species_id">{{ item.name }}</option>
         </select>
+      </div>
+
+      <div class="form-group">
+        <label>Hình ảnh hiện tại</label>
+        <div v-if="plant.images.length" class="image-preview">
+          <div v-for="(image, index) in plant.images" :key="index" class="preview-item">
+            <img :src="image.url" :alt="'Image ' + (index + 1)">
+            <button 
+              type="button" 
+              class="remove-image" 
+              @click="removeExistingImage(index)"
+              :disabled="loading"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <label>Thêm hình ảnh mới (tối đa 5 ảnh)</label>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          @change="handleImageUpload"
+          :disabled="loading || (imageFiles.length + plant.images.length) >= 5"
+        />
+        <div v-if="imageFiles.length" class="image-preview">
+          <div v-for="(file, index) in imageFiles" :key="index" class="preview-item">
+            <img :src="createObjectURL(file)" :alt="'Preview ' + (index + 1)">
+            <button 
+              type="button" 
+              class="remove-image" 
+              @click="imageFiles.splice(index, 1)"
+              :disabled="loading"
+            >
+              ×
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="form-actions">
@@ -203,53 +244,6 @@ const handleCancel = () => {
   padding: 24px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.image-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.image-preview {
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
-
-.image-upload {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-upload {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
-}
-
-.btn-upload:hover {
-  background-color: #1976D2;
-}
-
-.upload-hint {
-  margin: 0;
-  font-size: 12px;
-  color: #666;
 }
 
 .form-group {
@@ -323,5 +317,54 @@ const handleCancel = () => {
   text-align: center;
   padding: 40px;
   color: #666;
+}
+
+.image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.preview-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.remove-image:hover {
+  background: rgba(255, 0, 0, 0.9);
+}
+
+.remove-image:disabled {
+  background: rgba(255, 0, 0, 0.5);
+  cursor: not-allowed;
 }
 </style> 

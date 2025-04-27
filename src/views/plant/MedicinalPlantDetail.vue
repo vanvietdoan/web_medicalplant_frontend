@@ -83,50 +83,48 @@ onMounted(() => {
       <!-- Main Content Grid -->
       <div class="main-content-grid">
         <!-- Plant Information Column -->
-        <div class="info-column">
-          <section class="info-section">
-            <h2><i class="fas fa-info-circle"></i> Mô tả</h2>
-            <div class="content-box">
-              <p>{{ plant.description }}</p>
-            </div>
-          </section>
+        <!-- Info Column -->
+<div class="info-column">
+  <section class="info-section">
+    <h2><i class="fas fa-seedling"></i> Thông tin cây thuốc</h2>
+    <div class="content-box">
+      <h3>Mô tả</h3>
+      <p>{{ plant.description }}</p>
 
-          <section class="info-section">
-            <h2><i class="fas fa-heart"></i> Công dụng</h2>
-            <div class="content-box">
-              <p>{{ plant.benefits }}</p>
-            </div>
-          </section>
+      <h3>Công dụng</h3>
+      <p>{{ plant.benefits }}</p>
 
-          <section class="info-section">
-            <h2><i class="fas fa-book-medical"></i> Hướng dẫn sử dụng</h2>
-            <div class="content-box">
-              <p>{{ plant.instructions }}</p>
-            </div>
-          </section>
+      <h3>Hướng dẫn sử dụng</h3>
+      <p>{{ plant.instructions }}</p>
 
-          <section class="info-section">
-            <h2><i class="fas fa-info"></i> Thông tin thêm</h2>
-            <div class="content-box metadata">
-              <div class="metadata-item">
-                <span class="label">ID:</span>
-                <span class="value">{{ plant.plant_id }}</span>
-              </div>
-              <div class="metadata-item">
-                <span class="label">Loài:</span>
-                <span class="value">{{ species?.name }}</span>
-              </div>
-              <div class="metadata-item">
-                <span class="label">Ngày tạo:</span>
-                <span class="value">{{ new Date(plant.created_at).toLocaleDateString('vi-VN') }}</span>
-              </div>
-              <div class="metadata-item">
-                <span class="label">Cập nhật lần cuối:</span>
-                <span class="value">{{ new Date(plant.updated_at).toLocaleDateString('vi-VN') }}</span>
-              </div>
-            </div>
-          </section>
+      <h3>Bệnh có thể điều trị</h3>
+      <div class="disease-list">
+        <div v-for="advice in advices" :key="advice.disease.disease_id" class="disease-item">
+          <i class="fas fa-disease"></i>
+          <router-link :to="`/disease/${advice.disease.disease_id}`" class="disease-link">
+            {{ advice.disease.name }}
+          </router-link>
         </div>
+      </div>
+
+      <div class="metadata">
+        <div class="metadata-item">
+          <span class="label">Loài:</span>
+          <span class="value">{{ species?.name }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="label">Ngày tạo:</span>
+          <span class="value">{{ new Date(plant.created_at).toLocaleDateString('vi-VN') }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="label">Cập nhật lần cuối:</span>
+          <span class="value">{{ new Date(plant.updated_at).toLocaleDateString('vi-VN') }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
 
         <!-- Expert Advice Column -->
         <div class="advice-column">
@@ -167,7 +165,7 @@ onMounted(() => {
           </section>
         </div>
       </div>
-    </div>
+    </div>x
   </div>
 </template>
 
@@ -440,5 +438,44 @@ onMounted(() => {
   .metadata {
     grid-template-columns: 1fr;
   }
+}
+
+/* Disease List Styles */
+.disease-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.disease-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f0f7f4;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.disease-item:hover {
+  background: #e0efe8;
+  transform: translateX(5px);
+}
+
+.disease-item i {
+  color: #008053;
+  font-size: 1.1rem;
+}
+
+.disease-link {
+  color: #008053;
+  text-decoration: none;
+  font-weight: 500;
+  flex: 1;
+}
+
+.disease-link:hover {
+  text-decoration: underline;
 }
 </style>
