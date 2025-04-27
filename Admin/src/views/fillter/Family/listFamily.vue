@@ -3,10 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { FamilyResponse } from '../../../models/Family'
+import type { OrderResponse } from '../../../models/Order'
 import familyService from '../../../services/fillter/family.service'
+import orderService from '../../../services/fillter/order.service'
 
 const router = useRouter()
 const families = ref<FamilyResponse[]>([])
+const orders = ref<OrderResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
@@ -17,7 +20,10 @@ const filteredFamilies = computed(() => {
     item.name.toLowerCase().includes(query)
   )
 })
-
+const getOrders = async () => {
+  const response = await orderService.getOrders()
+  orders.value = response
+}
 const formatDate = (date: string) => {
   if (!date) return ''
   const d = new Date(date)
@@ -66,6 +72,7 @@ const fetchFamilies = async () => {
 
 onMounted(() => {
   fetchFamilies()
+  getOrders()
 })
 </script>
 
@@ -94,6 +101,7 @@ onMounted(() => {
         <tr>
           <th>ID</th>
           <th>Tên</th>
+          <th>Bộ</th>
           <th>Ngày tạo</th>
           <th>Ngày cập nhật</th>
           <th>Thao tác</th>
@@ -103,6 +111,7 @@ onMounted(() => {
         <tr v-for="item in filteredFamilies" :key="item.family_id">
           <td>{{ item.family_id }}</td>
           <td>{{ item.name }}</td>
+          <td>{{ orders.find(order => order.order_id === item.order_id)?.name }}</td>
           <td>{{ formatDate(item.created_at) }}</td>
           <td>{{ formatDate(item.updated_at) }}</td>
           <td>

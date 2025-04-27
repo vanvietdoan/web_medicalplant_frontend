@@ -11,8 +11,7 @@ import ForgotPassword from '../views/auth/ForgotPassword.vue'
 import ChangePassword from '../views/auth/ChangePassword.vue'
 import Profile from '../views/profile/Profile.vue'
 import EditProfile from '../views/profile/EditProfile.vue'
-
-console.log('Router configuration loaded')
+import ManageAdvice from '../views/Advice/ManageAdvice.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,56 +22,70 @@ const router = createRouter({
       component: Home
     },
     {
+      path: '/profile/advice',
+      name: 'profile-advice',
+      component: ManageAdvice,
+      meta: { title: 'Quản lý lời khuyên' }
+    },
+    {
       path: '/plant',
       name: 'plant',
-      component: MedicinalPlants
+      component: MedicinalPlants,
+      meta: { title: 'Cây thuốc' }
     },
     {
       path: '/plant/:id',
       name: 'plant-detail',
-      component: MedicinalPlantDetail
+      component: MedicinalPlantDetail,
+      meta: { title: 'Chi tiết cây thuốc' }
     },
     {
       path: '/disease',
       name: 'disease',
-      component: CommonDiseases
+      component: CommonDiseases,
+      meta: { title: 'Bệnh thường gặp' }
     },
     {
       path: '/disease/:id',
       name: 'disease-detail',
-      component: DiseaseDetail
+      component: DiseaseDetail,
+      meta: { title: 'Chi tiết bệnh' }
     },
     {
       path: '/login',
       name: 'login',
-      component: Login
+      component: Login,
+      meta: { title: 'Đăng nhập' }
     },
     {
       path: '/register',
       name: 'register',
-      component: Register
+      component: Register,
+      meta: { title: 'Đăng ký' }
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: ForgotPassword
+      component: ForgotPassword,
+      meta: { title: 'Quên mật khẩu' }
     },  
     {
       path: '/change-password',
       name: 'change-password',
-      component: ChangePassword
+      component: ChangePassword,
+      meta: { title: 'Đổi mật khẩu' }
     },
     {
       path: '/profile',
       name: 'profile',
       component: Profile,
-      meta: { requiresAuth: true }
+      meta: { title: 'Trang cá nhân' }
     },
     {
       path: '/profile/edit',
       name: 'profile-edit',
       component: EditProfile,
-      meta: { requiresAuth: true }
+      meta: { title: 'Chỉnh sửa thông tin' }
     }
   ]
 })

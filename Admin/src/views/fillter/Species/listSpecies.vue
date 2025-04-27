@@ -3,13 +3,19 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { SpeciesResponse } from '../../../models/Species'
+import type { GenusResponse } from '../../../models/Genus'
 import speciesService from '../../../services/fillter/species.service'
+import genusService from '../../../services/fillter/genus.service'
 
 const router = useRouter()
 const species = ref<SpeciesResponse[]>([])
+const genuses = ref<GenusResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
-
+const getGenuses = async () => {
+  const response = await genusService.getGenuses()
+  genuses.value = response
+}
 const filteredSpecies = computed(() => {  
   if (!searchQuery.value) return species.value
   const query = searchQuery.value.toLowerCase()
@@ -67,6 +73,7 @@ const handleCreate = () => {
 
 onMounted(() => {
   fetchSpecies()
+  getGenuses()
 })
 </script>
 
@@ -98,7 +105,9 @@ onMounted(() => {
         <tr>
           <th>ID</th>
           <th>Tên</th>
+          <th>Chi</th>
           <th>Ngày tạo</th>
+          
           <th>Ngày cập nhật</th>
           <th>Thao tác</th>
         </tr>
@@ -107,6 +116,7 @@ onMounted(() => {
         <tr v-for="species in filteredSpecies" :key="species.species_id">
           <td>{{ species.species_id }}</td>
           <td>{{ species.name }}</td>
+          <td>{{ genuses.find(genus => genus.genus_id === species.genus_id)?.name }}</td>
           <td>{{ formatDate(species.created_at) }}</td>
           <td>{{ formatDate(species.updated_at) }}</td>
           <td>

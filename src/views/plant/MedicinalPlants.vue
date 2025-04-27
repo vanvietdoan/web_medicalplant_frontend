@@ -2,6 +2,13 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { plantService } from '../../services/plant.service';
+import divisionService from '../../services/fillter/division.service';
+import classService from '../../services/fillter/class.service';
+import orderService from '../../services/fillter/order.service';
+import familyService from '../../services/fillter/family.service';
+import genusService from '../../services/fillter/genus.service';
+import speciesService from '../../services/fillter/species.service';
+
 import type { Plant } from '../../models/Plant';
 
 const router = useRouter();
@@ -18,43 +25,42 @@ const selectedFamily = ref('');
 const selectedGenus = ref('');
 const selectedSpecies = ref('');
 
-// Mock data for filters
-const mockDivisions = ['Magnoliophyta', 'Pteridophyta', 'Bryophyta'];
-const mockClasses = ['Magnoliopsida', 'Liliopsida', 'Polypodiopsida'];
-const mockOrders = ['Apiales', 'Asterales', 'Lamiales'];
-const mockFamilies = ['Araliaceae', 'Asteraceae', 'Lamiaceae'];
-const mockGenera = ['Panax', 'Artemisia', 'Mentha'];
-const mockSpecies = ['Panax vietnamensis', 'Artemisia annua', 'Mentha piperita'];
+// Data states
+const divisions = ref<any[]>([]);
+const classes = ref<any[]>([]);
+const orders = ref<any[]>([]);
+const families = ref<any[]>([]);
+const genera = ref<any[]>([]);
+const species = ref<any[]>([]);
 
 // Computed properties for available filter options
 const availableClasses = computed(() => {
   if (!selectedDivision.value) return [];
-  return mockClasses;
+  return classes.value.filter(cls => cls.division_id === selectedDivision.value);
 });
 
 const availableOrders = computed(() => {
   if (!selectedClass.value) return [];
-  return mockOrders;
+  return orders.value.filter(order => order.class_id === selectedClass.value);
 });
 
 const availableFamilies = computed(() => {
   if (!selectedOrder.value) return [];
-  return mockFamilies;
+  return families.value.filter(family => family.order_id === selectedOrder.value);
 });
 
 const availableGenera = computed(() => {
   if (!selectedFamily.value) return [];
-  return mockGenera;
+  return genera.value.filter(genus => genus.family_id === selectedFamily.value);
 });
 
 const availableSpecies = computed(() => {
   if (!selectedGenus.value) return [];
-  return mockSpecies;
+  return species.value.filter(species => species.genus_id === selectedGenus.value);
 });
 
 // Filter change handlers
 const handleDivisionChange = () => {
-  console.log('Division changed to:', selectedDivision.value);
   selectedClass.value = '';
   selectedOrder.value = '';
   selectedFamily.value = '';
@@ -63,7 +69,6 @@ const handleDivisionChange = () => {
 };
 
 const handleClassChange = () => {
-  console.log('Class changed to:', selectedClass.value);
   selectedOrder.value = '';
   selectedFamily.value = '';
   selectedGenus.value = '';
@@ -71,21 +76,48 @@ const handleClassChange = () => {
 };
 
 const handleOrderChange = () => {
-  console.log('Order changed to:', selectedOrder.value);
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
 };
 
 const handleFamilyChange = () => {
-  console.log('Family changed to:', selectedFamily.value);
   selectedGenus.value = '';
   selectedSpecies.value = '';
 };
 
 const handleGenusChange = () => {
-  console.log('Genus changed to:', selectedGenus.value);
   selectedSpecies.value = '';
+};
+
+// Fetch filter data
+const fetchFilterData = async () => {
+  try {
+    const [
+      divisionsData,
+      classesData,
+      ordersData,
+      familiesData,
+      generaData,
+      speciesData
+    ] = await Promise.all([
+      divisionService.getDivisions(),
+      classService.getClasses(),
+      orderService.getOrders(),
+      familyService.getFamilies(),
+      genusService.getGenuses(),
+      speciesService.getSpecies()
+    ]);
+
+    divisions.value = divisionsData;
+    classes.value = classesData;
+    orders.value = ordersData;
+    families.value = familiesData;
+    genera.value = generaData;
+    species.value = speciesData;
+  } catch (error) {
+    console.error('Error fetching filter data:', error);
+  }
 };
 
 // Filtered plants based on search query and filters
@@ -133,6 +165,7 @@ const handlePlantClick = (plantId: number) => {
 onMounted(() => {
   console.log('MedicinalPlants component mounted')
   fetchPlants();
+  fetchFilterData();
 });
 </script>
 
@@ -158,10 +191,10 @@ onMounted(() => {
           <label>Ngành</label>
           <select v-model="selectedDivision" class="filter-select" @change="handleDivisionChange">
             <option value="">Chọn ngành</option>
-            <option v-for="division in mockDivisions" 
-                    :key="division" 
-                    :value="division">
-              {{ division }}
+            <option v-for="division in divisions" 
+                    :key="division.division_id" 
+                    :value="division.division_id">
+              {{ division.name }}
             </option>
           </select>
         </div>
@@ -170,8 +203,10 @@ onMounted(() => {
           <label>Lớp</label>
           <select v-model="selectedClass" class="filter-select" @change="handleClassChange">
             <option value="">Chọn lớp</option>
-            <option v-for="cls in availableClasses" :key="cls" :value="cls">
-              {{ cls }}
+            <option v-for="cls in availableClasses" 
+                    :key="cls.class_id" 
+                    :value="cls.class_id">
+              {{ cls.name }}
             </option>
           </select>
         </div>
@@ -180,8 +215,10 @@ onMounted(() => {
           <label>Bộ</label>
           <select v-model="selectedOrder" class="filter-select" @change="handleOrderChange">
             <option value="">Chọn bộ</option>
-            <option v-for="order in availableOrders" :key="order" :value="order">
-              {{ order }}
+            <option v-for="order in availableOrders" 
+                    :key="order.order_id" 
+                    :value="order.order_id">
+              {{ order.name }}
             </option>
           </select>
         </div>
@@ -190,8 +227,10 @@ onMounted(() => {
           <label>Họ</label>
           <select v-model="selectedFamily" class="filter-select" @change="handleFamilyChange">
             <option value="">Chọn họ</option>
-            <option v-for="family in availableFamilies" :key="family" :value="family">
-              {{ family }}
+            <option v-for="family in availableFamilies" 
+                    :key="family.family_id" 
+                    :value="family.family_id">
+              {{ family.name }}
             </option>
           </select>
         </div>
@@ -200,8 +239,10 @@ onMounted(() => {
           <label>Chi</label>
           <select v-model="selectedGenus" class="filter-select" @change="handleGenusChange">
             <option value="">Chọn chi</option>
-            <option v-for="genus in availableGenera" :key="genus" :value="genus">
-              {{ genus }}
+            <option v-for="genus in availableGenera" 
+                    :key="genus.genus_id" 
+                    :value="genus.genus_id">
+              {{ genus.name }}
             </option>
           </select>
         </div>
@@ -210,8 +251,10 @@ onMounted(() => {
           <label>Loài</label>
           <select v-model="selectedSpecies" class="filter-select">
             <option value="">Chọn loài</option>
-            <option v-for="species in availableSpecies" :key="species" :value="species">
-              {{ species }}
+            <option v-for="species in availableSpecies" 
+                    :key="species.species_id" 
+                    :value="species.species_id">
+              {{ species.name }}
             </option>
           </select>
         </div>
@@ -253,8 +296,9 @@ onMounted(() => {
 <style scoped>
 .plants-container {
   max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-top: 120px;
 }
 
 .plants-header {

@@ -3,7 +3,9 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import { adviceService } from '../../services/advice.service';
+import speciesService from '../../services/fillter/species.service';
 import type { Plant } from '../../models/Plant';
+import type { Species } from '../../models/Species';
 import type { Advice } from '../../models/Advice';
 
 const route = useRoute();
@@ -11,7 +13,7 @@ const plant = ref<Plant | null>(null);
 const advices = ref<Advice[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
-
+const species = ref<Species | null>(null);
 const fetchPlantDetails = async () => {
   console.log('Starting to fetch plant details...')
   try {
@@ -28,6 +30,14 @@ const fetchPlantDetails = async () => {
     ]);
     plant.value = plantResponse;
     advices.value = advicesResponse;
+    
+    // Lấy thông tin species sau khi có plant
+    if (plantResponse.species_id) {
+      const speciesResponse = await speciesService.getSpeciesById(plantResponse.species_id);
+      species.value = speciesResponse;
+      console.log('Species details:', speciesResponse);
+    }
+    
     console.log('Plant details fetched successfully:', plant.value)
   } catch (err) {
     console.error('Error in fetchPlantDetails:', err)
@@ -37,7 +47,6 @@ const fetchPlantDetails = async () => {
     console.log('Fetch plant details completed, loading:', loading.value)
   }
 };
-
 onMounted(() => {
   console.log('MedicinalPlantDetail component mounted')
   fetchPlantDetails();
@@ -105,7 +114,7 @@ onMounted(() => {
               </div>
               <div class="metadata-item">
                 <span class="label">Loài:</span>
-                <span class="value">{{ plant.species_id }}</span>
+                <span class="value">{{ species?.name }}</span>
               </div>
               <div class="metadata-item">
                 <span class="label">Ngày tạo:</span>

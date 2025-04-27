@@ -3,10 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { ClassResponse } from '../../../models/Class'
+import type { Division } from '../../../models/division'
 import classService from '../../../services/fillter/class.service'
+import divisionService from '../../../services/fillter/division.service'
 
 const router = useRouter()
 const classes = ref<ClassResponse[]>([])
+const divisions = ref<Division[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
@@ -17,6 +20,11 @@ const filteredClasses = computed(() => {
     item.name.toLowerCase().includes(query)
   )
 })
+const getDivisions = async () => {
+  const response = await divisionService.getDivisions()
+  divisions.value = response
+}
+
 
 const formatDate = (date: string) => {
   if (!date) return ''
@@ -66,6 +74,7 @@ const fetchClasses = async () => {
 
 onMounted(() => {
   fetchClasses()
+  getDivisions()
 })
 </script>
 
@@ -94,6 +103,7 @@ onMounted(() => {
         <tr>
           <th>ID</th>
           <th>Tên</th>
+          <th>Bộ</th>
           <th>Ngày tạo</th>
           <th>Ngày cập nhật</th>
           <th>Thao tác</th>
@@ -103,6 +113,7 @@ onMounted(() => {
         <tr v-for="item in filteredClasses" :key="item.class_id">
           <td>{{ item.class_id }}</td>
           <td>{{ item.name }}</td>
+          <td>{{ divisions.find((division: Division) => division.division_id === item.division_id)?.name }}</td>
           <td>{{ formatDate(item.created_at) }}</td>
           <td>{{ formatDate(item.updated_at) }}</td>
           <td>

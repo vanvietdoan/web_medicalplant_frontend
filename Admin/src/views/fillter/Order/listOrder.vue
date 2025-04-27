@@ -3,10 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { OrderResponse } from '../../../models/Order'
+import type { ClassResponse } from '../../../models/Class'
 import orderService from '../../../services/fillter/order.service'
+import classService from '../../../services/fillter/class.service'
 
 const router = useRouter()
 const orders = ref<OrderResponse[]>([])
+const classes = ref<ClassResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
@@ -17,6 +20,11 @@ const filteredOrders = computed(() => {
     item.name.toLowerCase().includes(query)
   )
 })
+const getClasses = async () => {
+  const response = await classService.getClasses()
+  classes.value = response
+}
+
 
 const formatDate = (date: string) => {
   if (!date) return ''
@@ -66,6 +74,7 @@ const fetchOrders = async () => {
 
 onMounted(() => {
   fetchOrders()
+  getClasses()
 })
 </script>
 
@@ -94,23 +103,25 @@ onMounted(() => {
         <tr>
           <th>ID</th>
           <th>Tên</th>
+          <th>Lớp</th>
           <th>Ngày tạo</th>
           <th>Ngày cập nhật</th>
           <th>Thao tác</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in filteredOrders" :key="item.order_id">
-          <td>{{ item.order_id }}</td>
-          <td>{{ item.name }}</td>
-          <td>{{ formatDate(item.created_at) }}</td>
-          <td>{{ formatDate(item.updated_at) }}</td>
+        <tr v-for="order in filteredOrders" :key="order.order_id">
+          <td>{{ order.order_id }}</td>
+          <td>{{ order.name }}</td>
+          <td>{{ classes.find(cls => cls.class_id === order.class_id)?.name }}</td>
+          <td>{{ formatDate(order.created_at) }}</td>
+          <td>{{ formatDate(order.updated_at) }}</td>
           <td>
             <div class="action-buttons">
-              <button @click="handleEdit(item)" class="btn-edit">
+              <button @click="handleEdit(order)" class="btn-edit">
                 <i class="fas fa-edit"></i>
               </button>
-              <button @click="handleDelete(item.class_id)" class="btn-delete">
+              <button @click="handleDelete(order.order_id)" class="btn-delete">
                 <i class="fas fa-trash"></i>
               </button>
             </div>

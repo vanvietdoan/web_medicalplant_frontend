@@ -3,13 +3,19 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { GenusResponse } from '../../../models/Genus'
+import type { FamilyResponse } from '../../../models/Family'
 import genusService from '../../../services/fillter/genus.service'
-
+import familyService from '../../../services/fillter/family.service'
 const router = useRouter()
 const genuses = ref<GenusResponse[]>([])
+const families = ref<FamilyResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
+const getFamilies = async () => {
+  const response = await familyService.getFamilies()
+  families.value = response
+}
 const filteredGenuses = computed(() => {
   if (!searchQuery.value) return genuses.value
   const query = searchQuery.value.toLowerCase()
@@ -66,6 +72,7 @@ const handleCreate = () => {
 
 onMounted(() => {
   fetchGenuses()
+  getFamilies()
 })
 </script>
 
@@ -94,23 +101,25 @@ onMounted(() => {
         <tr>
           <th>ID</th>
           <th>Tên</th>
+          <th>Họ</th>
           <th>Ngày tạo</th>
           <th>Ngày cập nhật</th>
           <th>Thao tác</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in filteredGenuses" :key="item.genus_id">
-          <td>{{ item.genus_id }}</td>
-          <td>{{ item.name }}</td>
-          <td>{{ formatDate(item.created_at) }}</td>
-          <td>{{ formatDate(item.updated_at) }}</td>
+        <tr v-for="genus in filteredGenuses" :key="genus.genus_id">
+          <td>{{ genus.genus_id }}</td>
+          <td>{{ genus.name }}</td>
+          <td>{{ families.find(family => family.family_id === genus.family_id)?.name }}</td>
+          <td>{{ formatDate(genus.created_at) }}</td>
+          <td>{{ formatDate(genus.updated_at) }}</td>
           <td>
             <div class="action-buttons">
-              <button @click="handleEdit(item)" class="btn-edit">
+              <button @click="handleEdit(genus)" class="btn-edit">
                 <i class="fas fa-edit"></i>
               </button>
-              <button @click="handleDelete(item.genus_id)" class="btn-delete">
+              <button @click="handleDelete(genus.genus_id)" class="btn-delete">
                 <i class="fas fa-trash"></i>
               </button>
             </div>

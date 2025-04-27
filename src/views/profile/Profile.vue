@@ -140,6 +140,12 @@ onMounted(async () => {
       </div>
 
       <div class="profile-actions">
+        <router-link to="/profile/advice" class="advice-btn">
+          <i class="fas fa-comment-dots"></i>
+          Quản lý lời khuyên
+        </router-link>
+        
+
         <button @click="router.push('/profile/edit')" class="edit-btn">
           <i class="fas fa-edit"></i>
           Chỉnh sửa

@@ -201,7 +201,7 @@ onMounted(() => {
 
     <form v-else @submit.prevent="handleSubmit" class="edit-form">
       <div class="avatar-section">
-        <img :src="user.avatar || '/placeholder-avatar.jpg'" class="avatar-preview" alt="Avatar">
+        <img :src="user.avatar" class="avatar-preview" alt="Avatar">
         <div class="avatar-upload">
           <input 
             ref="fileInput"

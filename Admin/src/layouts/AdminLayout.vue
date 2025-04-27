@@ -27,6 +27,11 @@ const handleLogout = () => {
         :default-active="$route.path"
         class="admin-menu"
       >
+      <el-menu-item index="/admin/statistics">
+          <el-icon><PieChart /></el-icon>
+          <span>Thống kê</span>
+        </el-menu-item>
+        
         <el-menu-item index="/admin/plants">
           <el-icon><Collection /></el-icon>
           <span>Cây thuốc</span>

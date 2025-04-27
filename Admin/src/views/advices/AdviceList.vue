@@ -4,7 +4,6 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { Advice } from '../../models/Advice'
 import { adviceService } from '../../services/advice.service'
-
 // Router setup
 const router = useRouter()
 
@@ -68,7 +67,20 @@ const fetchAdvices = async () => {
   try {
     loading.value = true
     const response = await adviceService.getAdvices()
-    advices.value = response
+    console.log('Advice API Response:', response)
+    
+    // Handle Proxy-wrapped Array
+    if (response && typeof response === 'object') {
+      // Convert Proxy to regular array
+      advices.value = Array.from(response)
+    } else {
+      console.error('Unexpected data structure:', response)
+      ElMessage.error('Dữ liệu không đúng định dạng')
+      return
+    }
+    
+    console.log('Advices data after assignment:', advices.value)
+    console.log('Number of advices:', advices.value.length)
   } catch (error) {
     console.error('Error fetching advices:', error)
     ElMessage.error('Không thể tải danh sách lời khuyên')
@@ -80,6 +92,7 @@ const fetchAdvices = async () => {
 // Lifecycle hooks
 onMounted(() => {
   fetchAdvices()
+  //console.log("advices in advice list:",Response)
 })
 
 onUnmounted(() => {
@@ -130,15 +143,15 @@ onUnmounted(() => {
         <tr v-for="advice in filteredAdvices" :key="advice.advice_id">
           <td>{{ advice.advice_id }}</td>
           <td>{{ advice.title }}</td>
-          <td>{{ advice.plant.name }}</td>
-          <td>{{ advice.disease.name }}</td>
+          <td>{{ advice.plant?.name || 'Không có' }}</td>
+          <td>{{ advice.disease?.name || 'Không có' }}</td>
           <td>
             <div class="user-info">
-              <span class="name">{{ advice.user.full_name }}</span>
-              <span class="title">{{ advice.user.title }}</span>
+              <span class="name">{{ advice.user?.full_name || 'Không có' }}</span>
+              <span class="title">{{ advice.user?.title || '' }}</span>
             </div>
           </td>
-          <td>{{ new Date(advice.created_at).toLocaleDateString() }}</td>
+          <td>{{ advice.created_at ? new Date(advice.created_at).toLocaleDateString() : 'Không có' }}</td>
           <td>
             <div class="action-buttons">
               <button @click="handleEdit(advice)" class="btn-edit">

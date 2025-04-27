@@ -3,10 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { Plant } from '../../models/Plant'
+import type { Species } from '../../models/Species'
 import { plantService } from '../../services/plant.service'
+import speciesService from '../../services/fillter/species.service'
 
 const router = useRouter()
 const plants = ref<Plant[]>([])
+const species = ref<Species[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
@@ -18,6 +21,10 @@ const filteredPlants = computed(() => {
     plant.english_name.toLowerCase().includes(query)
   )
 })
+const getSpecies = async () => {
+  const response = await speciesService.getSpecies()
+  species.value = response
+}
 
 const formatDate = (date: string) => {
   if (!date) return ''
@@ -77,6 +84,7 @@ const handleCreate = () => {
 
 onMounted(() => {
   fetchPlants()
+  getSpecies()
 })
 </script>
 
@@ -115,11 +123,7 @@ onMounted(() => {
           <td>{{ plant.plant_id }}</td>
           <td>{{ plant.name }}</td>
           <td>{{ plant.english_name }}</td>
-          <td>
-            <span class="species">
-              {{ plant.species_id === 1 ? 'Cây thuốc' : plant.species_id === 2 ? 'Cây dược liệu' : 'Cây cảnh' }}
-            </span>
-          </td>
+          <td>{{ species.find((species: Species) => species.species_id === plant.species_id)?.name }}</td>
           <td>
             <div class="action-buttons">
               <button @click="handleEdit(plant)" class="btn-edit">

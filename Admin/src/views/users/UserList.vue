@@ -79,8 +79,6 @@ const fetchUsers = async () => {
     loading.value = true
     const response = await userService.getUsers()
     console.log('Users API Response:', response)
-    console.log('Response data type:', typeof response.data)
-    console.log('Response data structure:', JSON.stringify(response.data, null, 2))
     
     // Ensure we're assigning the correct data structure
     if (Array.isArray(response.data)) {
@@ -143,6 +141,7 @@ onMounted(() => {
       <thead>
         <tr>
           <th>ID</th>
+          <th>Ảnh đại diện</th>
           <th>Tên</th>
           <th>Email</th>
           <th>Trạng thái</th>
@@ -152,6 +151,7 @@ onMounted(() => {
       <tbody>
         <tr v-for="user in filteredUsers" :key="user.user_id">
           <td>{{ user.user_id }}</td>
+          <td><img :src="user.avatar" class="avatar-preview" alt="Ảnh đại diện"></td>
           <td>{{ user.full_name }}</td>
           <td>{{ user.email }}</td>
           <td>
@@ -301,11 +301,12 @@ onMounted(() => {
 }
 
 .avatar-preview {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
+  width: 50px;
+  height: 50px;
   object-fit: cover;
-  margin-bottom: 10px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto;
 }
 
 .avatar-upload {

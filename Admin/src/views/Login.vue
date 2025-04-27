@@ -58,9 +58,9 @@ const handleLogin = async () => {
   <div class="login-container">
     <el-card class="login-card">
       <div class="logo">
-        <img src="../assets/logo.svg" alt="Logo">
+        <img src="../assets/logo.png" alt="Logo">
       </div>
-      <h2>Đăng nhập admin quản lý cây thuốc</h2>
+      <h2>Admin quản lý cây thuốc</h2>
       <el-form
         ref="loginForm"
         :model="formData"
@@ -84,9 +84,9 @@ const handleLogin = async () => {
             show-password
           />
         </el-form-item>
-        <el-form-item>
+        <!-- <el-form-item>
           <el-button type="text" class="forgot-password">Quên mật khẩu?</el-button>
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item>
           <el-button type="primary" native-type="submit" :loading="loading" class="login-button">
             Đăng nhập
@@ -112,7 +112,7 @@ const handleLogin = async () => {
     .logo {
       text-align: center;
       margin-bottom: 20px;
-      
+      margin-top: 20px;
       img {
         height: 60px;
       }

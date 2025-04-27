@@ -33,191 +33,239 @@ import createOrder from '../views/fillter/Order/createOrder.vue'
 import createFamily from '../views/fillter/Family/createFamily.vue'
 import createGenus from '../views/fillter/Genus/createGenus.vue'
 import createSpecies from '../views/fillter/Species/createSpecies.vue'
+import listStatistics from '../views/statistics/listStatistics.vue'
+import chartStatistics from '../views/statistics/chartStatistics.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
       name: 'login',
-      component: Login
+      component: Login,
+      meta: { requiresAuth: false }
     },
     {
       path: '/admin',
       component: AdminLayout,
+      meta: { requiresAuth: true },
       children: [
         {
           path: '',
-          redirect: '/admin/plants'
+          redirect: '/admin/statistics'
+        },
+        {
+          path: 'statistics',
+          name: 'statistics',
+          component: listStatistics,
+          meta: { title: 'Thống kê' }
+        },
+        {
+          path: 'statistics/:type',
+          name: 'chart-statistics',
+          component: chartStatistics,
+          props: true,
+          meta: { title: 'Biểu đồ thống kê' }
         },
         {
           path: 'plants',
           name: 'plants',
-          component: PlantList
+          component: PlantList,
+          meta: { title: 'Quản lý cây thuốc' }
         },
         {
           path: 'plants/create',
           name: 'plant-create',
-          component: CreatePlant
+          component: CreatePlant,
+          meta: { title: 'Thêm cây thuốc' }
         },
         {
           path: 'plants/:id/edit',
           name: 'plant-edit',
           component: EditPlant,
-          props: true
+          props: true,
+          meta: { title: 'Sửa cây thuốc' }
         },
         {
           path: 'diseases',
           name: 'diseases',
-          component: DiseaseList
+          component: DiseaseList,
+          meta: { title: 'Quản lý bệnh' }
         },
         {
           path: 'diseases/create',
           name: 'disease-create',
-          component: CreateDisease
+          component: CreateDisease,
+          meta: { title: 'Thêm bệnh' }
         },
         {
           path: 'diseases/:id/edit',
           name: 'disease-edit',
           component: EditDisease,
-          props: true
+          props: true,
+          meta: { title: 'Sửa bệnh' }
         },
         {
           path: 'comments',
           name: 'comments',
-          component: CommentList
+          component: CommentList,
+          meta: { title: 'Quản lý bình luận' }
         },
         {
           path: 'users',
           name: 'users',
-          component: UserList
+          component: UserList,
+          meta: { title: 'Quản lý người dùng' }
         },
         {
           path: 'users/:id/edit',
           name: 'user-edit',
           component: UserEdit,
-          props: true
+          props: true,
+          meta: { title: 'Sửa người dùng' }
         },
         {
           path: 'users/create',
           name: 'user-create',
-          component: UserCreate
+          component: UserCreate,
+          meta: { title: 'Thêm người dùng' }
         },
         {
           path: 'advices',
           name: 'advices',
-          component: AdviceList
+          component: AdviceList,
+          meta: { title: 'Quản lý lời khuyên' }
         },
         {
           path: 'advices/create',
           name: 'advice-create',
-          component: AdviceCreate
+          component: AdviceCreate,
+          meta: { title: 'Thêm lời khuyên' }
         },
         {
           path: 'advices/:id/edit',
           name: 'advice-edit',
           component: AdviceEdit,
-          props: true
+          props: true,
+          meta: { title: 'Sửa lời khuyên' }
         },
         {
           path: 'filter',
-          
+          meta: { title: 'Quản lý phân loại' },
           children: [
             {
               path: 'division',
               name: 'listDivision',
-              component: listDivision
+              component: listDivision,
+              meta: { title: 'Quản lý ngành' }
             },
             {
               path: 'division/create',
               name: 'createDivision',
-              component: CreateDivision
+              component: CreateDivision,
+              meta: { title: 'Thêm ngành' }
             },
             {
               path: 'division/:id/edit',
               name: 'editDivision',
               component: editDivision,
-              props: true
+              props: true,
+              meta: { title: 'Sửa ngành' }
             },
             {
               path: 'class',
               name: 'listClass',
-              component: listClass
+              component: listClass,
+              meta: { title: 'Quản lý lớp' }
             },
             {
               path: 'class/create',
               name: 'createClass',
-              component: createClass
+              component: createClass,
+              meta: { title: 'Thêm lớp' }
             },
             {
               path: 'class/:id/edit',
               name: 'editClass',
               component: editClass,
-              props: true
+              props: true,
+              meta: { title: 'Sửa lớp' }
             },
-            
             {
               path: 'order',
               name: 'listOrder',
-              component: listOrder
+              component: listOrder,
+              meta: { title: 'Quản lý bộ' }
             },
             {
               path: 'order/create',
               name: 'createOrder',
-              component: createOrder
+              component: createOrder,
+              meta: { title: 'Thêm bộ' }
             },
             {
               path: 'order/:id/edit',
               name: 'editOrder',
               component: editOrder,
-              props: true
+              props: true,
+              meta: { title: 'Sửa bộ' }
             },
             {
               path: 'family',
               name: 'listFamily',
-              component: listFamily
+              component: listFamily,
+              meta: { title: 'Quản lý họ' }
             },
             {
               path: 'family/create',
               name: 'createFamily',
-              component: createFamily
+              component: createFamily,
+              meta: { title: 'Thêm họ' }
             },
             {
               path: 'family/:id/edit',
               name: 'editFamily',
               component: editFamily,
-              props: true
+              props: true,
+              meta: { title: 'Sửa họ' }
             },
             {
               path: 'genus',
               name: 'listGenus',
-              component: listGenus
+              component: listGenus,
+              meta: { title: 'Quản lý chi' }
             },
             {
               path: 'genus/create',
               name: 'createGenus',
-              component: createGenus
+              component: createGenus,
+              meta: { title: 'Thêm chi' }
             },
             {
               path: 'genus/:id/edit',
               name: 'editGenus',
               component: editGenus,
-              props: true
+              props: true,
+              meta: { title: 'Sửa chi' }
             },
             {
               path: 'species',
               name: 'listSpecies',
-              component: listSpecies
+              component: listSpecies,
+              meta: { title: 'Quản lý loài' }
             },
             {
               path: 'species/create',
               name: 'createSpecies',
-              component: createSpecies
+              component: createSpecies,
+              meta: { title: 'Thêm loài' }
             },
             {
               path: 'species/:id/edit',
               name: 'editSpecies',
               component: editSpecies,
-              props: true
+              props: true,
+              meta: { title: 'Sửa loài' }
             }
           ]
         }
@@ -229,6 +277,9 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach((to, _from, next) => {
   const isAuthenticated = localStorage.getItem('token')
+  
+  // Update document title
+  document.title = to.meta.title ? `${to.meta.title} - Admin` : 'Admin'
   
   if (to.path === '/') {
     if (isAuthenticated) {

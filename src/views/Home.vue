@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
       <section class="new-plants">
         <div class="section-header">
           <h2>Cây Thuốc Mới Phát Hiện</h2>
-          <router-link to="/medicinal-plants" class="view-all">Xem tất cả</router-link>
+          <router-link to="/plant" class="view-all">Xem tất cả</router-link>
         </div>
         
         <div v-if="loadingNewPlants" class="loading">

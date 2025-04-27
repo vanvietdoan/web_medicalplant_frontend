@@ -6,6 +6,7 @@ export interface IAdviceService {
   getAdviceById(id: number): Promise<Advice>;
   getAdvicesByPlant(plantId: number): Promise<Advice[]>;
   getAdviceByDiseaseID(diseaseId: number): Promise<Advice[]>;
+  getAdvicesByUser(userId: number): Promise<Advice[]>;
   deleteAdvice(id: number): Promise<void>;
   createAdvice(data: {
     id_advice: number;
@@ -63,6 +64,18 @@ class AdviceService extends BaseService implements IAdviceService {
       return response
     } catch (error) {
       console.error(`Error fetching advices for disease ID ${diseaseId}:`, error)
+      throw error
+    }
+  }
+
+  async getAdvicesByUser(userId: number): Promise<Advice[]> {
+    console.log(`Fetching advices for user ID: ${userId}...`)
+    try {
+      const response = await this.get<Advice[]>(`/advice/user/${userId}`)
+      console.log('User advices response:', response)
+      return response
+    } catch (error) {
+      console.error(`Error fetching advices for user ID ${userId}:`, error)
       throw error
     }
   }
