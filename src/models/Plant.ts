@@ -9,6 +9,10 @@ export interface Plant {
   species_id: number;
   created_at: string;
   updated_at: string;
+  images: {
+    picture_id: number;
+    url: string;
+  }[];
 }
 
 export interface PlantResponse {

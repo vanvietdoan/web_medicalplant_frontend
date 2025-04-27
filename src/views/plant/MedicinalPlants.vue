@@ -206,6 +206,14 @@ const handlePlantClick = (plantId: number) => {
   router.push(`/plant/${plantId}`);
 };
 
+// Add computed property for plant image
+const getPlantImage = (plant: Plant) => {
+  if (plant.images && plant.images.length > 0) {
+    return plant.images[0].url;
+  }
+  return '/images/plant/default-plant.jpg'; // Fallback image
+};
+
 onMounted(() => {
   console.log('MedicinalPlants component mounted')
   fetchPlants();
@@ -322,7 +330,7 @@ onMounted(() => {
       <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card" @click="handlePlantClick(plant.plant_id)">
         <div class="plant-info">
           <h3>{{ plant.name }}</h3>
-          <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
+          <img :src="getPlantImage(plant)" :alt="plant.name" class="plant-image">
           <p class="english-name">{{ plant.english_name }}</p>
           <p class="description">{{ plant.description }}</p>
         </div>
@@ -465,42 +473,71 @@ onMounted(() => {
 
 .plant-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .plant-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .plant-info {
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .plant-info h3 {
   color: #008053;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.plant-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  transition: transform 0.3s;
+}
+
+.plant-card:hover .plant-image {
+  transform: scale(1.05);
 }
 
 .english-name {
   color: #666;
   font-style: italic;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .description {
-  color: #333;
+  color: #444;
   line-height: 1.5;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .plant-footer {
   padding: 1rem 1.5rem;
   background-color: #f8f9fa;
   border-top: 1px solid #eee;
+  margin-top: auto;
 }
 
 .benefits {
@@ -509,6 +546,7 @@ onMounted(() => {
   gap: 0.5rem;
   color: #008053;
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .benefits i {
