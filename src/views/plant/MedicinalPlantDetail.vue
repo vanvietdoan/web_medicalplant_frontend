@@ -14,6 +14,8 @@ const advices = ref<Advice[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const species = ref<Species | null>(null);
+const currentImageIndex = ref(0);
+
 const fetchPlantDetails = async () => {
   console.log('Starting to fetch plant details...')
   try {
@@ -47,6 +49,19 @@ const fetchPlantDetails = async () => {
     console.log('Fetch plant details completed, loading:', loading.value)
   }
 };
+
+const nextImage = () => {
+  if (plant.value && currentImageIndex.value < plant.value.images.length - 1) {
+    currentImageIndex.value++;
+  }
+};
+
+const prevImage = () => {
+  if (plant.value && currentImageIndex.value > 0) {
+    currentImageIndex.value--;
+  }
+};
+
 onMounted(() => {
   console.log('MedicinalPlantDetail component mounted')
   fetchPlantDetails();
@@ -71,8 +86,37 @@ onMounted(() => {
     <div v-else-if="plant" class="plant-detail">
       <!-- Hero Section -->
       <section class="hero-section">
-        <div class="hero-image">
-          <img src="/images/plant/tia-to.webp" :alt="plant.name">
+        <div class="hero-gallery">
+          <div class="main-image">
+            <img :src="plant.images[currentImageIndex]?.url" :alt="plant.name">
+            <button 
+              v-if="plant.images.length > 1"
+              class="nav-button prev" 
+              @click="prevImage"
+              :disabled="currentImageIndex === 0"
+            >
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button 
+              v-if="plant.images.length > 1"
+              class="nav-button next" 
+              @click="nextImage"
+              :disabled="currentImageIndex === plant.images.length - 1"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="thumbnail-list" v-if="plant.images.length > 1">
+            <div 
+              v-for="(image, index) in plant.images" 
+              :key="image.picture_id"
+              class="thumbnail"
+              :class="{ active: currentImageIndex === index }"
+              @click="currentImageIndex = index"
+            >
+              <img :src="image.url" :alt="`${plant.name} - ảnh ${index + 1}`">
+            </div>
+          </div>
         </div>
         <div class="hero-content">
           <h1>{{ plant.name }}</h1>
@@ -165,7 +209,7 @@ onMounted(() => {
           </section>
         </div>
       </div>
-    </div>x
+    </div>
   </div>
 </template>
 
@@ -228,16 +272,110 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
-.hero-image {
-  position: absolute;
-  width: 100%;
-  height: 100%;
+.hero-gallery {
+  position: relative;
+  height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: #f8f9fa;
 }
 
-.hero-image img {
+.main-image {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #008053;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.nav-button:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-button.prev {
+  left: 1rem;
+}
+
+.nav-button.next {
+  right: 1rem;
+}
+
+.thumbnail-list {
+  position: absolute;
+  bottom: 1rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  justify-content: center;
+}
+
+.thumbnail-list::-webkit-scrollbar {
+  display: none;
+}
+
+.thumbnail {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  background: white;
+}
+
+.thumbnail.active {
+  border-color: #008053;
+  transform: scale(1.1);
+}
+
+.thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.thumbnail:hover {
+  transform: scale(1.1);
 }
 
 .hero-content {
@@ -437,6 +575,20 @@ onMounted(() => {
 
   .metadata {
     grid-template-columns: 1fr;
+  }
+
+  .hero-gallery {
+    height: 300px;
+  }
+
+  .thumbnail {
+    width: 60px;
+    height: 45px;
+  }
+
+  .nav-button {
+    width: 32px;
+    height: 32px;
   }
 }
 

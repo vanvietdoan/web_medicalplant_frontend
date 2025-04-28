@@ -12,6 +12,7 @@ const disease = ref<Diseases | null>(null);
 const advices = ref<Advice[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+const currentImageIndex = ref(0);
 
 const fetchDiseaseDetail = async () => {
   try {
@@ -22,13 +23,28 @@ const fetchDiseaseDetail = async () => {
       diseasesService.getDiseaseById(diseaseId),
       adviceService.getAdviceByDiseaseID(diseaseId)
     ]);
-    disease.value = diseaseResponse;
+    disease.value = {
+      ...diseaseResponse,
+      images: diseaseResponse.images || []
+    };
     advices.value = advicesResponse;
   } catch (err) {
     error.value = 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.';
     console.error('Error fetching disease details:', err);
   } finally {
     isLoading.value = false;
+  }
+};
+
+const nextImage = () => {
+  if (disease.value && currentImageIndex.value < disease.value.images.length - 1) {
+    currentImageIndex.value++;
+  }
+};
+
+const prevImage = () => {
+  if (disease.value && currentImageIndex.value > 0) {
+    currentImageIndex.value--;
   }
 };
 
@@ -58,8 +74,45 @@ onMounted(() => {
     <div v-else-if="disease" class="disease-content">
       <!-- Hero Section -->
       <section class="hero-section">
-        <div class="hero-image">
-          <img src="/images/diseases/dau-dau-set-danh-1722590273321485717321.webp" :alt="disease.name">
+        <div class="hero-gallery">
+          <div class="main-image">
+            <img 
+              v-if="disease?.images?.length > 0"
+              :src="disease.images[currentImageIndex]?.url" 
+              :alt="disease.name"
+            >
+            <div v-else class="no-image">
+              <i class="fas fa-image"></i>
+              <p>Không có hình ảnh</p>
+            </div>
+            <button 
+              v-if="disease?.images?.length > 1"
+              class="nav-button prev" 
+              @click="prevImage"
+              :disabled="currentImageIndex === 0"
+            >
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button 
+              v-if="disease?.images?.length > 1"
+              class="nav-button next" 
+              @click="nextImage"
+              :disabled="currentImageIndex === disease.images.length - 1"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="thumbnail-list" v-if="disease?.images?.length > 1">
+            <div 
+              v-for="(image, index) in disease.images" 
+              :key="image.picture_id"
+              class="thumbnail"
+              :class="{ active: currentImageIndex === index }"
+              @click="currentImageIndex = index"
+            >
+              <img :src="image.url" :alt="`${disease.name} - ảnh ${index + 1}`">
+            </div>
+          </div>
         </div>
         <div class="hero-content">
           <h1>{{ disease.name }}</h1>
@@ -103,8 +156,7 @@ onMounted(() => {
             <h2><i class="fas fa-leaf"></i> Cây thuốc điều trị</h2>
             <div class="plants-grid">
               <div class="plant-info">
-              <div v-for="advice in advices" :key="advice.plant.plant_id" class="plant-card"> 
-               
+                <div v-for="advice in advices" :key="advice.plant.plant_id" class="plant-card"> 
                   <router-link :to="`/plant/${advice.plant.plant_id}`"> {{ advice.plant.name }}</router-link>
                 </div>
               </div>
@@ -202,19 +254,110 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
-.hero-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
+.hero-gallery {
+  position: relative;
+  height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: #f8f9fa;
 }
 
-.hero-image img {
+.main-image {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #008053;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.nav-button:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-button.prev {
+  left: 1rem;
+}
+
+.nav-button.next {
+  right: 1rem;
+}
+
+.thumbnail-list {
+  position: absolute;
+  bottom: 1rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  justify-content: center;
+}
+
+.thumbnail-list::-webkit-scrollbar {
+  display: none;
+}
+
+.thumbnail {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  background: white;
+}
+
+.thumbnail.active {
+  border-color: #008053;
+  transform: scale(1.1);
+}
+
+.thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.thumbnail:hover {
+  transform: scale(1.1);
 }
 
 .hero-content {

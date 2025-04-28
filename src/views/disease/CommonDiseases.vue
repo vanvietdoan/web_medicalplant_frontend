@@ -107,7 +107,15 @@ onMounted(() => {
             <h3>{{ disease.name }}</h3>
           </div>
           <div class="header-image">
-            <img src="/images/diseases/dau-dau-set-danh-1722590273321485717321.webp" :alt="disease.name">
+            <img 
+              v-if="disease.images && disease.images.length > 0"
+              :src="disease.images[0].url" 
+              :alt="disease.name"
+            >
+            <div v-else class="no-image">
+              <i class="fas fa-image"></i>
+              <p>Không có hình ảnh</p>
+            </div>
           </div>
         </div>
 

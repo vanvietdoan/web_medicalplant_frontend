@@ -4,9 +4,9 @@ export interface IDiseases {
     description: string;
     symptoms: string;
     instructions: string;
-    pictures: {
-        name: string;
-        picture: string;
+    images: {
+        picture_id: number;
+        url: string;
     }[];
     medicinal_plants: {
         plant_id: number;
@@ -35,9 +35,9 @@ export class Diseases implements IDiseases {
     description: string;
     symptoms: string;
     instructions: string;
-    pictures: {
-        name: string;
-        picture: string;
+    images: {
+        picture_id: number;
+        url: string;
     }[];
     medicinal_plants: {
         plant_id: number;
@@ -65,7 +65,7 @@ export class Diseases implements IDiseases {
         this.description = data.description;
         this.symptoms = data.symptoms;
         this.instructions = data.instructions;
-        this.pictures = data.pictures;
+        this.images = data.images;
         this.medicinal_plants = data.medicinal_plants;
         this.advice_comments = data.advice_comments;
         this.created_at = data.created_at;
