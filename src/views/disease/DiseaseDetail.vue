@@ -59,6 +59,13 @@ const handleSuggestAdvice = () => {
   });
 };
 
+const handleEditAdvice = (adviceId: number) => {
+  router.push({
+    path: `/profile/advice/${adviceId}/edit`,
+    query: { disease_id: route.params.id }
+  });
+};
+
 onMounted(() => {
   const user = authService.getCurrentUser();
   isLoggedIn.value = !!user;
@@ -201,6 +208,14 @@ onMounted(() => {
                   <h3>{{ advice.title }}</h3>
                   <div class="advice-meta">
                     <span class="date">{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
+                    <button 
+                      v-if="currentUser && currentUser.id === advice.user.user_id"
+                      @click="handleEditAdvice(advice.advice_id)"
+                      class="edit-btn"
+                    >
+                      <i class="fas fa-edit"></i>
+                      Chỉnh sửa
+                    </button>
                   </div>
                 </div>
                 
@@ -688,6 +703,70 @@ onMounted(() => {
 .update-content strong {
   color: #2c3e50;
   margin-right: 0.5rem;
+}
+
+.create-advice-btn {
+  padding: 0.75rem 1.5rem;
+  background: #008053;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-advice-btn:hover {
+  background: #006040;
+  transform: translateY(-2px);
+}
+
+.create-advice-btn i {
+  font-size: 1.1rem;
+}
+
+.empty-advice {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.empty-advice i {
+  font-size: 3rem;
+  color: #008053;
+  margin-bottom: 1rem;
+}
+
+.empty-advice p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.edit-btn {
+  padding: 0.5rem 1rem;
+  background: #008053;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+
+.edit-btn:hover {
+  background: #006040;
+  transform: translateY(-2px);
+}
+
+.edit-btn i {
+  font-size: 1rem;
 }
 
 @media (max-width: 1024px) {

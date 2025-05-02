@@ -47,6 +47,7 @@ const router = createRouter({
       component: CreateAdvice,
       meta: { title: 'Tạo lời khuyên' }
     },
+    
     {
       path: '/disease',
       name: 'disease',
@@ -65,6 +66,7 @@ const router = createRouter({
       component: CreateAdvice,
       meta: { title: 'Tạo lời khuyên' }
     },
+    
     {
       path: '/login',
       name: 'login',
@@ -109,7 +111,7 @@ const router = createRouter({
     },
     { 
       path: '/profile/advice/:id/edit',
-      name: 'advice-edit',
+      name: 'user-advice-edit',
       component: EditAdvice,
       meta: { title: 'Chỉnh sửa lời khuyên' }
     },

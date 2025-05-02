@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import { adviceService } from '../../services/advice.service';
 import speciesService from '../../services/fillter/species.service';
+import { authService } from '../../services/auth.service';
 import type { Plant } from '../../models/Plant';
 import type { Species } from '../../models/Species';
 import type { Advice } from '../../models/Advice';
@@ -16,6 +17,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const species = ref<Species | null>(null);
 const currentImageIndex = ref(0);
+const currentUser = ref(authService.getCurrentUser());
 
 const fetchPlantDetails = async () => {
   console.log('Starting to fetch plant details...')
@@ -68,6 +70,14 @@ const handleCreateAdvice = () => {
   router.push({
     path: '/plant/create-advice',
     
+    query: { plant_id: route.params.id }
+  });
+};
+
+const handleEditAdvice = (adviceId: number) => {
+  console.log('handleEditAdvice called with adviceId:', adviceId)
+  router.push({
+    path :`/profile/advice/${adviceId}/edit`,
     query: { plant_id: route.params.id }
   });
 };
@@ -131,10 +141,6 @@ onMounted(() => {
         <div class="hero-content">
           <h1>{{ plant.name }}</h1>
           <p class="english-name">{{ plant.english_name }}</p>
-          <button @click="handleCreateAdvice" class="create-advice-btn">
-            <i class="fas fa-plus"></i>
-            Tạo lời khuyên cho cây này
-          </button>
         </div>
       </section>
 
@@ -186,15 +192,34 @@ onMounted(() => {
 
         <!-- Expert Advice Column -->
         <div class="advice-column">
-          <section v-if="advices.length > 0" class="advice-section">
-            <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
-            <div class="advice-list">
+          <section class="advice-section">
+            <div class="advice-header">
+              <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
+              <button @click="handleCreateAdvice" class="create-advice-btn">
+                <i class="fas fa-plus"></i>
+                Tạo lời khuyên cho cây này
+              </button>
+            </div>
+            <div v-if="advices.length === 0" class="empty-advice">
+              <i class="fas fa-comment-slash"></i>
+              <p>Chưa có lời khuyên nào cho cây này</p>
+            </div>
+            <div v-else class="advice-list">
               <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
                 <div class="advice-header">
                   <h3>{{ advice.title }}</h3>
+                  
                   <div class="advice-meta">
                     <i class="fas fa-calendar"></i>
                     <span>{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
+                    <button 
+                      v-if="currentUser && currentUser.id === advice.user.user_id"
+                      @click="handleEditAdvice(advice.advice_id)"
+                      class="edit-btn"
+                    >
+                      <i class="fas fa-edit"></i>
+                      Chỉnh sửa
+                    </button>
                   </div>
                 </div>
                 
@@ -499,13 +524,17 @@ onMounted(() => {
 }
 
 .advice-header {
-  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
-.advice-header h3 {
-  color: #008053;
-  margin: 0 0 0.5rem;
-  font-size: 1.2rem;
+.advice-header h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .advice-meta {
@@ -649,11 +678,10 @@ onMounted(() => {
 }
 
 .create-advice-btn {
-  margin-top: 1rem;
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.2);
+  background: #008053;
   color: white;
-  border: 2px solid white;
+  border: none;
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
@@ -664,12 +692,52 @@ onMounted(() => {
 }
 
 .create-advice-btn:hover {
-  background: white;
-  color: #008053;
+  background: #006040;
   transform: translateY(-2px);
 }
 
 .create-advice-btn i {
   font-size: 1.1rem;
+}
+
+.empty-advice {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.empty-advice i {
+  font-size: 3rem;
+  color: #008053;
+  margin-bottom: 1rem;
+}
+
+.empty-advice p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.edit-btn {
+  padding: 0.5rem 1rem;
+  background: #008053;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+
+.edit-btn:hover {
+  background: #006040;
+  transform: translateY(-2px);
+}
+
+.edit-btn i {
+  font-size: 1rem;
 }
 </style>

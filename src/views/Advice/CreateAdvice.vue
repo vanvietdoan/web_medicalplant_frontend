@@ -27,6 +27,7 @@ const handleSubmit = async () => {
     
     if (!currentUser) {
       ElMessage.error('Vui lòng đăng nhập để tạo lời khuyên')
+      router.push('/login')
       return
     }
 
@@ -45,12 +46,23 @@ const handleSubmit = async () => {
       user_id: currentUser.id
     }
 
+    console.log('submitData:', submitData)
     // Call API to create advice
     const response = await adviceService.createAdvice(submitData)
     
     if (response) {
       ElMessage.success('Tạo lời khuyên thành công')
-      router.push('/profile/advice')
+      // Redirect based on source
+      const plantId = Number(route.query.plant_id)
+      const diseaseId = Number(route.query.disease_id)
+
+      if (plantId && !isNaN(plantId)) {
+        router.push(`/plant/${plantId}`)
+      } else if (diseaseId && !isNaN(diseaseId)) {
+        router.push(`/disease/${diseaseId}`)
+      } else {
+        router.push('/profile/advice')
+      }
     } else {
       throw new Error('Không thể tạo lời khuyên')
     }

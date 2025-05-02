@@ -23,13 +23,13 @@ const diseases = ref<{ disease_id: number; name: string }[]>([])
 const handleSubmit = async () => {
   try {
     loading.value = true
-    
-    // Get advice ID from route params
-    const adviceId = Number(route.params.id)
     const currentUser = authService.getCurrentUser()
+    const adviceId = Number(route.params.id)
+    
     
     if (!currentUser) {
-      ElMessage.error('Vui lòng đăng nhập để cập nhật lời khuyên')
+      ElMessage.error('Vui lòng đăng nhập để chỉnh sửa lời khuyên')
+      router.push('/login')
       return
     }
 
@@ -54,7 +54,17 @@ const handleSubmit = async () => {
     
     if (response) {
       ElMessage.success('Cập nhật lời khuyên thành công')
-      router.push('/profile/advice')
+      // Redirect based on source
+      const plantId = Number(route.query.plant_id)
+      const diseaseId = Number(route.query.disease_id)
+
+      if (plantId && !isNaN(plantId)) {
+        router.push(`/plant/${plantId}`)
+      } else if (diseaseId && !isNaN(diseaseId)) {
+        router.push(`/disease/${diseaseId}`)
+      } else {
+        router.push('/profile/advice')
+      }
     } else {
       throw new Error('Không thể cập nhật lời khuyên')
     }
@@ -112,7 +122,16 @@ const fetchAdviceData = async () => {
 }
 
 const handleCancel = () => {
-  router.push('/profile/advice')
+  const plantId = Number(route.query.plant_id)
+  const diseaseId = Number(route.query.disease_id)
+
+  if (plantId && !isNaN(plantId)) {
+    router.push(`/plant/${plantId}`)
+  } else if (diseaseId && !isNaN(diseaseId)) {
+    router.push(`/disease/${diseaseId}`)
+  } else {
+    router.push('/profile/advice')
+  }
 }
 
 onMounted(async () => {
