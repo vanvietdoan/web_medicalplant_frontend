@@ -5,6 +5,7 @@ import MedicinalPlants from '../views/plant/MedicinalPlants.vue'
 import MedicinalPlantDetail from '../views/plant/MedicinalPlantDetail.vue'
 import CommonDiseases from '../views/disease/CommonDiseases.vue'
 import DiseaseDetail from '../views/disease/DiseaseDetail.vue'
+import CreateAdvice from '../views/Advice/CreateAdvice.vue'
 import Login from '../views/auth/Login.vue'
 import Register from '../views/auth/Register.vue'
 import ForgotPassword from '../views/auth/ForgotPassword.vue'
@@ -12,7 +13,8 @@ import ChangePassword from '../views/auth/ChangePassword.vue'
 import Profile from '../views/profile/Profile.vue'
 import EditProfile from '../views/profile/EditProfile.vue'
 import ManageAdvice from '../views/Advice/ManageAdvice.vue'
-
+import VisitProfile from '../views/profile/VisitProfile.vue'
+import EditAdvice from '../views/Advice/EditAdvice.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -40,6 +42,12 @@ const router = createRouter({
       meta: { title: 'Chi tiết cây thuốc' }
     },
     {
+      path: '/plant/create-advice',
+      name: 'plant-advice-create',
+      component: CreateAdvice,
+      meta: { title: 'Tạo lời khuyên' }
+    },
+    {
       path: '/disease',
       name: 'disease',
       component: CommonDiseases,
@@ -50,6 +58,12 @@ const router = createRouter({
       name: 'disease-detail',
       component: DiseaseDetail,
       meta: { title: 'Chi tiết bệnh' }
+    },
+    {
+      path: '/disease/create-advice',
+      name: 'disease-advice-create',
+      component: CreateAdvice,
+      meta: { title: 'Tạo lời khuyên' }
     },
     {
       path: '/login',
@@ -86,7 +100,25 @@ const router = createRouter({
       name: 'profile-edit',
       component: EditProfile,
       meta: { title: 'Chỉnh sửa thông tin' }
-    }
+    },
+    {
+      path: '/profile/:id',
+      name: 'profile-visit',
+      component: VisitProfile,
+      meta: { title: 'Trang cá nhân' }
+    },
+    { 
+      path: '/profile/advice/:id/edit',
+      name: 'advice-edit',
+      component: EditAdvice,
+      meta: { title: 'Chỉnh sửa lời khuyên' }
+    },
+    {
+      path: '/profile/advice/create',
+      name: 'user-advice-create',
+      component: CreateAdvice,
+      meta: { title: 'Tạo lời khuyên' }
+    } 
   ]
 })
 

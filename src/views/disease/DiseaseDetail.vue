@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { diseasesService } from '../../services/diseases.service';
 import { adviceService } from '../../services/advice.service';
+import { authService } from '../../services/auth.service';
 import type { Diseases } from '../../models/Diseases';
 import type { Advice } from '../../models/Advice';
 import type { IAdviceService } from '../../services/advice.service';
 
 const route = useRoute();
+const router = useRouter();
 const disease = ref<Diseases | null>(null);
 const advices = ref<Advice[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 const currentImageIndex = ref(0);
+const isLoggedIn = ref(false);
+const currentUser = ref<any>(null);
 
 const fetchDiseaseDetail = async () => {
   try {
@@ -48,7 +52,17 @@ const prevImage = () => {
   }
 };
 
+const handleSuggestAdvice = () => {
+  router.push({
+    path: '/disease/create-advice',
+    query: { disease_id: route.params.id }
+  });
+};
+
 onMounted(() => {
+  const user = authService.getCurrentUser();
+  isLoggedIn.value = !!user;
+  currentUser.value = user;
   fetchDiseaseDetail();
 });
 </script>
@@ -166,9 +180,22 @@ onMounted(() => {
 
         <!-- Advice Comments Column -->
         <div class="advice-column">
-          <section v-if="advices.length > 0" class="section comments-section">
-            <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
-            <div class="advice-list">
+          <section class="section comments-section">
+            <div class="section-header">
+              <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
+              <button 
+                v-if="isLoggedIn" 
+                @click="handleSuggestAdvice" 
+                class="suggest-button"
+              >
+                <i class="fas fa-lightbulb"></i> Đề xuất lời khuyên
+              </button>
+            </div>
+            
+            <div v-if="advices.length === 0" class="no-advice">
+              <p>Chưa có lời khuyên nào cho bệnh này.</p>
+            </div>
+            <div v-else class="advice-list">
               <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
                 <div class="advice-header">
                   <h3>{{ advice.title }}</h3>
@@ -191,7 +218,9 @@ onMounted(() => {
                   
                   <div class="user-info">
                     <i class="fas fa-user-md"></i>
-                    <span class="user-name">{{ advice.user.full_name }}</span>
+                    <router-link :to="`/profile/${advice.user.user_id}`">
+                      <span class="user-name">{{ advice.user.full_name }}</span>
+                    </router-link>
                     <span class="user-title">({{ advice.user.title }})</span>
                   </div>
                 </div>
@@ -496,6 +525,43 @@ onMounted(() => {
 /* Comments Section */
 .comments-section {
   margin-top: 0;
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.section-header h2 i {
+  color: #008053;
+  margin-right: 0.5rem;
+}
+
+.no-advice {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.no-advice p {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
 .advice-list {
@@ -509,6 +575,12 @@ onMounted(() => {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.advice-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .advice-header {
@@ -530,6 +602,7 @@ onMounted(() => {
 .advice-content {
   margin-bottom: 1rem;
   line-height: 1.6;
+  color: #444;
 }
 
 .advice-footer {
@@ -547,13 +620,21 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.plant-info a {
+.plant-info a, .user-info a {
   color: #008053;
   text-decoration: none;
 }
 
-.plant-info a:hover {
+.plant-info a:hover, .user-info a:hover {
   text-decoration: underline;
+}
+
+.plant-info i {
+  color: #67C23A;
+}
+
+.user-info i {
+  color: #409EFF;
 }
 
 .user-name {
@@ -562,6 +643,29 @@ onMounted(() => {
 
 .user-title {
   color: #666;
+}
+
+.suggest-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #008053;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.suggest-button:hover {
+  background: #006c46;
+  transform: translateY(-2px);
+}
+
+.suggest-button i {
+  font-size: 1.1rem;
 }
 
 /* Update Section */

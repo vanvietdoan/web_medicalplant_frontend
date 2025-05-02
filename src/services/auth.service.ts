@@ -1,4 +1,4 @@
-import type { Login, AuthResponse,  RegisterUser } from '../models/User';
+import type { Login, AuthResponse,  RegisterUser, User } from '../models/User';
 import BaseService from './base.service';
 import { userService } from './user.service';   
 
@@ -61,6 +61,9 @@ class AuthService extends BaseService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+  getUserById(id: string): Promise<User> {
+    return this.get<User>(`/users/${id}`);
   }
 
 }

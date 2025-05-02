@@ -18,8 +18,9 @@ const fetchUserAdvices = async () => {
     if (!currentUser?.id) {
       throw new Error('Vui lòng đăng nhập để xem lời khuyên');
     }
-    advices.value = await adviceService.getAdvicesByUser(currentUser.id);
-    console.log('User advices:', advices.value);
+    const response = await adviceService.getAdvicesByUser(currentUser.id);
+    advices.value = response;
+    console.log('Advices loaded:', advices.value);
   } catch (err) {
     console.error('Error fetching user advices:', err);
     error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách lời khuyên';
@@ -29,10 +30,18 @@ const fetchUserAdvices = async () => {
 };
 
 const handleEditAdvice = (adviceId: number) => {
+  if (!adviceId) {
+    console.error('Invalid advice ID');
+    return;
+  }
   router.push(`/profile/advice/${adviceId}/edit`);
 };
 
 const handleDeleteAdvice = async (adviceId: number) => {
+  if (!adviceId) {
+    console.error('Invalid advice ID');
+    return;
+  }
   if (confirm('Bạn có chắc chắn muốn xóa lời khuyên này?')) {
     try {
       await adviceService.deleteAdvice(adviceId);

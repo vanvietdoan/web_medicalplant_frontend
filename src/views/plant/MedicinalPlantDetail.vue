@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import { adviceService } from '../../services/advice.service';
 import speciesService from '../../services/fillter/species.service';
@@ -9,6 +9,7 @@ import type { Species } from '../../models/Species';
 import type { Advice } from '../../models/Advice';
 
 const route = useRoute();
+const router = useRouter();
 const plant = ref<Plant | null>(null);
 const advices = ref<Advice[]>([]);
 const loading = ref(true);
@@ -60,6 +61,15 @@ const prevImage = () => {
   if (plant.value && currentImageIndex.value > 0) {
     currentImageIndex.value--;
   }
+};
+
+const handleCreateAdvice = () => {
+  console.log('handleCreateAdvice called with plant_id:', route.params.id)
+  router.push({
+    path: '/plant/create-advice',
+    
+    query: { plant_id: route.params.id }
+  });
 };
 
 onMounted(() => {
@@ -121,6 +131,10 @@ onMounted(() => {
         <div class="hero-content">
           <h1>{{ plant.name }}</h1>
           <p class="english-name">{{ plant.english_name }}</p>
+          <button @click="handleCreateAdvice" class="create-advice-btn">
+            <i class="fas fa-plus"></i>
+            Tạo lời khuyên cho cây này
+          </button>
         </div>
       </section>
 
@@ -199,7 +213,10 @@ onMounted(() => {
                   <div class="expert-info">
                     <i class="fas fa-user-md"></i>
                     <div class="expert-details">
-                      <span class="name">{{ advice.user.full_name }}</span>
+                      
+                      <router-link :to="`/profile/${advice.user.user_id}`">
+                        <span class="name">{{ advice.user.full_name }}</span>
+                      </router-link>
                       <span class="title">{{ advice.user.title }}</span>
                     </div>
                   </div>
@@ -629,5 +646,30 @@ onMounted(() => {
 
 .disease-link:hover {
   text-decoration: underline;
+}
+
+.create-advice-btn {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-advice-btn:hover {
+  background: white;
+  color: #008053;
+  transform: translateY(-2px);
+}
+
+.create-advice-btn i {
+  font-size: 1.1rem;
 }
 </style>

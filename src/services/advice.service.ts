@@ -9,7 +9,6 @@ export interface IAdviceService {
   getAdvicesByUser(userId: number): Promise<Advice[]>;
   deleteAdvice(id: number): Promise<void>;
   createAdvice(data: {
-    id_advice: number;
     title: string;
     content: string;
     plant_id: number;
@@ -92,7 +91,6 @@ class AdviceService extends BaseService implements IAdviceService {
   }
 
   async createAdvice(data: {
-    id_advice: number;
     title: string;
     content: string;
     plant_id: number;

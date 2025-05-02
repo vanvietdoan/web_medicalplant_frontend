@@ -18,6 +18,14 @@ export interface Advice {
         title: string;
     };
 }
+export interface AdviceCreate {
+   
+    title: string;
+    content: string;
+    plant_id: number;
+    disease_id: number;
+    user_id: number;
+}
 
 export class Advice implements Advice {
     advice_id: number;
