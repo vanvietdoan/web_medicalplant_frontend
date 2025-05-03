@@ -82,4 +82,9 @@ export class Advice implements Advice {
             updated_at: ''
         }
     }
+
 } 
+export interface UserAdviceCount {
+    user_id: number
+    total_advice: number
+}

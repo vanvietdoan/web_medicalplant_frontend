@@ -1,4 +1,4 @@
-import type { Advice } from '../models/Advice'
+import type { Advice, UserAdviceCount } from '../models/Advice'
 import BaseService from './base.service'
 
 export interface IAdviceService {
@@ -16,6 +16,7 @@ export interface IAdviceService {
     user_id: number;
   }): Promise<Advice>;
   updateAdvice(id: number, data: Partial<Advice>): Promise<Advice>;
+  getListUsetIDMostAdvice(): Promise<UserAdviceCount[]>;
 }
 
 class AdviceService extends BaseService implements IAdviceService {
@@ -42,6 +43,7 @@ class AdviceService extends BaseService implements IAdviceService {
       throw error
     }
   }
+  
 
   async getAdvicesByPlant(plantId: number): Promise<Advice[]> {
     console.log(`Fetching advices for plant ID: ${plantId}...`)
@@ -117,6 +119,16 @@ class AdviceService extends BaseService implements IAdviceService {
       throw error
     }
   }
+  async getListUsetIDMostAdvice(): Promise<UserAdviceCount[]> {
+    try {
+      const response = await this.get<UserAdviceCount[]>('/advice/user/most-advice')
+      return response
+    } catch (error) {
+      console.error('Error fetching list user ID most advice:', error)
+      throw error
+    }
+  }
 }
+
 
 export const adviceService = new AdviceService() 

@@ -3,11 +3,17 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { plantService } from '../services/plant.service';
 import type { Plant } from '../models/Plant';
 import { useRouter } from 'vue-router';
+import { adviceService } from '../services/advice.service';
+import { userService } from '../services/user.service';
+import type { User } from '../models/User';
+import type { UserAdviceCount } from '../models/Advice';
 
 const router = useRouter();
 
 // Hero Slider
 const currentSlide = ref(0);
+const listUserMostAdvice = ref<UserAdviceCount[]>([]);
+const userDetails = ref<User[]>([]);
 const slides = ref([
   {
     title: 'Khám Phá Thế Giới Cây Thuốc Việt Nam',
@@ -70,8 +76,9 @@ const prevSlide = () => {
 // Cây thuốc mới phát hiện
 const newPlants = ref<Plant[]>([]);
 const loadingNewPlants = ref(true);
+const loadingUserMostAdvice = ref(true);
 const errorNewPlants = ref<string | null>(null);
-
+const errorUserMostAdvice = ref<string | null>(null);
 // Cây có nhiều công dụng
 const multiUsePlants = ref<Plant[]>([]);
 const loadingMultiUsePlants = ref(true);
@@ -123,20 +130,39 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// Add new function to handle view all click
-const handleViewAllMultiUseClick = () => {
-  router.push({
-    path: '/medicinal-plants',
-    query: { filter: 'multiUse' }
-  });
+const fetchListUserIDMostAdvice = async () => {
+  console.log('Fetching newest plants for home page...');
+  try {
+    loadingUserMostAdvice.value = true;
+    errorUserMostAdvice.value = null;
+    const userAdviceCount = await adviceService.getListUsetIDMostAdvice();
+    console.log("userAdviceCount", userAdviceCount);
+    listUserMostAdvice.value = userAdviceCount.slice(0, 6);
+    console.log("listUserMostAdvice.value", listUserMostAdvice.value);
+    // Fetch user details for each user
+    const userPromises = listUserMostAdvice.value.map(user => 
+    //console.log(user.user_id),
+      userService.getUserById(user.user_id)
+    );
+    console.log(userPromises);
+    userDetails.value = await Promise.all(userPromises);
+    
+    console.log('List user ID most advice fetched successfully:', userDetails.value);
+  } catch (err) {
+    console.error('Error fetching list user ID most advice:', err);
+    errorUserMostAdvice.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách chuyên gia';
+  } finally {
+    loadingUserMostAdvice.value = false;
+    console.log('Fetch list user ID most advice completed, loading:', loadingUserMostAdvice.value);
+  }
 };
 
 onMounted(() => {
-  
   console.log('Home component mounted');
   fetchNewestPlants();
   fetchMultiUsePlants();
   startSlideInterval();
+  fetchListUserIDMostAdvice();
 });
 
 onBeforeUnmount(() => {
@@ -257,6 +283,47 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </section>
+      <section class="user-most-advice">
+        <div class="section-header">
+          <h2>Chuyên Gia Có Nhiều Đóng Góp</h2>
+        </div>
+        <div v-if="loadingUserMostAdvice" class="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Đang tải danh sách chuyên gia...</p>
+        </div>
+        <div v-else-if="errorUserMostAdvice" class="error">
+          <i class="fas fa-exclamation-circle"></i>
+          <p>{{ errorUserMostAdvice }}</p>
+          <button @click="fetchListUserIDMostAdvice" class="retry-btn">
+            <i class="fas fa-redo"></i> Thử lại
+          </button>
+        </div>
+        <div v-else class="user-list">
+          <router-link 
+            v-for="(user, index) in userDetails" 
+            :key="user.user_id" 
+            :to="`/profile/${user.user_id}`"
+            class="user-card"
+          >
+            <img 
+              :src="user.avatar || '/images/default-avatar.png'" 
+              :alt="user.full_name" 
+              class="user-avatar"
+              @error="(e) => (e.target as HTMLImageElement).src = '/images/default-avatar.png'"
+            >
+            <div class="user-info">
+              <h3>{{ user.full_name }}</h3>
+              <p class="title">{{ user.title }}</p>
+              <p class="advice-count">
+                <i class="fas fa-comment-medical"></i>
+                {{ listUserMostAdvice[index].total_advice }} lời khuyên
+              </p>
+            </div>
+          </router-link>
+        </div>
+      </section>
+      <section class="user-most-advice"></section>
+
     </div>
   </div>
 </template>
@@ -572,5 +639,70 @@ section {
   .section-header h2 {
     font-size: 1.5rem;
   }
+}
+
+.user-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.user-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.user-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.user-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+  border: 3px solid #008053;
+}
+
+.user-info {
+  text-align: center;
+}
+
+.user-info h3 {
+  color: #008053;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.user-info .title {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.advice-count {
+  color: #008053;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.advice-count i {
+  color: #42b883;
 }
 </style>
