@@ -134,6 +134,28 @@ const handleCancel = () => {
   }
 }
 
+const handleDelete = async () => {
+  const adviceId = Number(route.params.id)
+  if (confirm('Bạn có chắc chắn muốn xóa lời khuyên này?')) {
+    try {
+      await adviceService.deleteAdvice(adviceId);
+    } catch (err) {
+      console.error('Error deleting advice:', err);
+      alert('Có lỗi xảy ra khi xóa lời khuyên');
+    }
+  }
+  const plantId = Number(route.query.plant_id)
+  const diseaseId = Number(route.query.disease_id)
+
+  if (plantId && !isNaN(plantId)) {
+    router.push(`/plant/${plantId}`)
+  } else if (diseaseId && !isNaN(diseaseId)) {
+    router.push(`/disease/${diseaseId}`)
+  } else {
+    router.push('/profile/advice')
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     fetchOptions(),
@@ -208,6 +230,10 @@ onMounted(async () => {
         <button type="submit" class="btn-save" :disabled="loading">
           <i class="fas fa-save"></i>
           {{ loading ? 'Đang lưu...' : 'Lưu thay đổi' }}
+        </button>
+        <button type="button" class="btn-delete" @click="handleDelete">
+          <i class="fas fa-trash"></i>
+          Xóa
         </button>
         <button type="button" class="btn-cancel" @click="handleCancel">
           <i class="fas fa-times"></i>
@@ -305,7 +331,8 @@ onMounted(async () => {
 }
 
 .btn-save,
-.btn-cancel {
+.btn-cancel,
+.btn-delete {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 4px;
@@ -332,6 +359,16 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
 .btn-cancel {
   background: #9e9e9e;
   color: white;
@@ -356,9 +393,10 @@ onMounted(async () => {
   }
 
   .btn-save,
-  .btn-cancel {
+  .btn-cancel,
+  .btn-delete {
     width: 100%;
     justify-content: center;
   }
 }
-</style> 
+</style>
