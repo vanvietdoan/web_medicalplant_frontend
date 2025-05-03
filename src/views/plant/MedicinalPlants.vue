@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import divisionService from '../../services/fillter/division.service';
 import classService from '../../services/fillter/class.service';
@@ -12,6 +12,7 @@ import speciesService from '../../services/fillter/species.service';
 import type { Plant } from '../../models/Plant';
 
 const router = useRouter();
+const route = useRoute();
 const plants = ref<Plant[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -162,10 +163,13 @@ const fetchFilteredPlants = async () => {
     // Get base plants based on filters
     let basePlants;
     if (selectedFilter.value === 'newest') {
+      console.log('Fetching newest plants...');
       basePlants = await plantService.getNewePlants();
     } else if (selectedFilter.value === 'multiUse') {
+      console.log('Fetching multi-use plants...');
       basePlants = await plantService.getMultiUsePlants();
     } else {
+      console.log('Fetching all plants...');
       basePlants = await plantService.getPlants();
     }
 
@@ -263,11 +267,38 @@ watch(searchQuery, async () => {
   await fetchFilteredPlants();
 });
 
+// Add new function to handle view all click
+// Update onMounted to handle route parameters
 onMounted(() => {
-  console.log('MedicinalPlants component mounted')
-  fetchPlants();
+  console.log('MedicinalPlants component mounted');
+  // Check for filter in route path
+  const path = route.path;
+  if (path.includes('/newest')) {
+    selectedFilter.value = 'newest';
+    fetchFilteredPlants();
+  } else if (path.includes('/multiUse')) {
+    selectedFilter.value = 'multiUse';
+    fetchFilteredPlants();
+  } else {
+    fetchPlants();
+  }
   fetchFilterData();
 });
+
+// Add watch for route changes
+watch(() => route.path, (newPath) => {
+  console.log('Route path changed:', newPath);
+  if (newPath.includes('/newest')) {
+    selectedFilter.value = 'newest';
+    fetchFilteredPlants();
+  } else if (newPath.includes('/multiUse')) {
+    selectedFilter.value = 'multiUse';
+    fetchFilteredPlants();
+  } else {
+    selectedFilter.value = '';
+    fetchPlants();
+  }
+}, { immediate: true });
 </script>
 
 <template>
@@ -687,6 +718,22 @@ onMounted(() => {
 
 .benefits i {
   color: #42b883;
+}
+
+.view-all {
+  color: #008053;
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.view-all:hover {
+  color: #006040;
+  transform: translateX(5px);
 }
 
 @media (max-width: 768px) {

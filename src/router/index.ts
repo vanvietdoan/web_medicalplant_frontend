@@ -36,6 +36,18 @@ const router = createRouter({
       meta: { title: 'Cây thuốc' }
     },
     {
+      path: '/plant/newest',
+      name: 'plant-newest',
+      component: MedicinalPlants,
+      meta: { title: 'Cây thuốc mới nhất' }
+    },
+    {
+      path: '/plant/multiUse',
+      name: 'plant-multiUse',
+      component: MedicinalPlants,
+      meta: { title: 'Cây thuốc đa công dụng' }
+    },
+    {
       path: '/plant/:id',
       name: 'plant-detail',
       component: MedicinalPlantDetail,
@@ -120,7 +132,7 @@ const router = createRouter({
       name: 'user-advice-create',
       component: CreateAdvice,
       meta: { title: 'Tạo lời khuyên' }
-    } 
+    },
   ]
 })
 

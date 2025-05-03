@@ -2,6 +2,9 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { plantService } from '../services/plant.service';
 import type { Plant } from '../models/Plant';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 // Hero Slider
 const currentSlide = ref(0);
@@ -120,6 +123,14 @@ const formatDate = (dateString: string) => {
   });
 };
 
+// Add new function to handle view all click
+const handleViewAllMultiUseClick = () => {
+  router.push({
+    path: '/medicinal-plants',
+    query: { filter: 'multiUse' }
+  });
+};
+
 onMounted(() => {
   
   console.log('Home component mounted');
@@ -157,7 +168,7 @@ onBeforeUnmount(() => {
       <section class="new-plants">
         <div class="section-header">
           <h2>Cây Thuốc Mới Phát Hiện</h2>
-          <router-link to="/plant" class="view-all">Xem tất cả</router-link>
+          <router-link to="/plant/newest" class="view-all">Xem tất cả</router-link>
         </div>
         
         <div v-if="loadingNewPlants" class="loading">
@@ -204,7 +215,7 @@ onBeforeUnmount(() => {
       <section class="multi-use-plants">
         <div class="section-header">
           <h2>Cây Thuốc Đa Công Dụng</h2>
-          <router-link to="/medicinal-plants" class="view-all">Xem tất cả</router-link>
+          <router-link to="/plant/multiUse" class="view-all">Xem tất cả</router-link>
         </div>
         
         <div v-if="loadingMultiUsePlants" class="loading">
@@ -382,6 +393,7 @@ section {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .view-all:hover {
