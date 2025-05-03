@@ -16,6 +16,7 @@ export interface Advice {
         user_id: number;
         full_name: string;
         title: string;
+        avatar?: string;
     };
 }
 export interface AdviceCreate {
@@ -45,6 +46,7 @@ export class Advice implements Advice {
         user_id: number;
         full_name: string;
         title: string;
+        avatar?: string;
     };
 
     constructor(data: Advice) {

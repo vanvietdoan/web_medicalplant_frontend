@@ -24,6 +24,7 @@ const selectedOrder = ref('');
 const selectedFamily = ref('');
 const selectedGenus = ref('');
 const selectedSpecies = ref('');
+const selectedFilter = ref('');
 
 // Data states
 const divisions = ref<any[]>([]);
@@ -72,7 +73,7 @@ const filteredPlants = computed(() => {
       plant.description.toLowerCase().includes(query)
     );
   }
-  
+
   return result;
 });
 
@@ -116,7 +117,26 @@ const handleSpeciesChange = async () => {
   await fetchFilteredPlants();
 };
 
-// Fetch filtered plants based on selected filters
+// Add new filter handler
+const handleFilterChange = async (filterType: string) => {
+  selectedFilter.value = filterType;
+  await fetchFilteredPlants();
+};
+
+// Add new function to clear all filters
+const clearAllFilters = async () => {
+  selectedFilter.value = '';
+  selectedDivision.value = '';
+  selectedClass.value = '';
+  selectedOrder.value = '';
+  selectedFamily.value = '';
+  selectedGenus.value = '';
+  selectedSpecies.value = '';
+  searchQuery.value = '';
+  await fetchFilteredPlants();
+};
+
+// Update fetchFilteredPlants function
 const fetchFilteredPlants = async () => {
   try {
     loading.value = true;
@@ -124,7 +144,7 @@ const fetchFilteredPlants = async () => {
     
     let query = '';
     
-    // Priority order: speciesId > genusId > familyId > orderId > classId > divisionId
+    // Handle taxonomy filters
     if (selectedSpecies.value) {
       query = `speciesId=${selectedSpecies.value}`;
     } else if (selectedGenus.value) {
@@ -139,14 +159,38 @@ const fetchFilteredPlants = async () => {
       query = `divisionId=${selectedDivision.value}`;
     }
 
-    // If no filter, get all plants
-    if (!query) {
-      plants.value = await plantService.getPlants();
+    // Get base plants based on filters
+    let basePlants;
+    if (selectedFilter.value === 'newest') {
+      basePlants = await plantService.getNewePlants();
+    } else if (selectedFilter.value === 'multiUse') {
+      basePlants = await plantService.getMultiUsePlants();
     } else {
-      plants.value = await plantService.getPlantSearch(query);
+      basePlants = await plantService.getPlants();
+    }
+
+    // Apply taxonomy filter if exists
+    if (query) {
+      const filteredPlants = await plantService.getPlantSearch(query);
+      // Filter the base plants to only include those that match the taxonomy filter
+      plants.value = basePlants.filter(basePlant => 
+        filteredPlants.some(filteredPlant => filteredPlant.plant_id === basePlant.plant_id)
+      );
+    } else {
+      plants.value = basePlants;
+    }
+
+    // Apply search filter if there's a search query
+    if (searchQuery.value) {
+      const searchQueryLower = searchQuery.value.toLowerCase();
+      plants.value = plants.value.filter(plant => 
+        plant.name.toLowerCase().includes(searchQueryLower) || 
+        plant.english_name.toLowerCase().includes(searchQueryLower) ||
+        plant.description.toLowerCase().includes(searchQueryLower)
+      );
     }
     
-    console.log('Filtered plants with query:', query, plants.value);
+    console.log('Filtered plants:', plants.value);
   } catch (err) {
     console.error('Error in fetchFilteredPlants:', err);
     error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách cây thuốc';
@@ -214,6 +258,11 @@ const getPlantImage = (plant: Plant) => {
   return '/images/plant/default-plant.jpg'; // Fallback image
 };
 
+// Add watch for search query
+watch(searchQuery, async () => {
+  await fetchFilteredPlants();
+});
+
 onMounted(() => {
   console.log('MedicinalPlants component mounted')
   fetchPlants();
@@ -238,6 +287,34 @@ onMounted(() => {
           class="search-input"
         >
       </div>
+      
+      <div class="filter-buttons">
+        <button 
+          class="filter-btn" 
+          :class="{ active: selectedFilter === 'newest' }"
+          @click="handleFilterChange('newest')"
+        >
+          <i class="fas fa-clock"></i>
+          Cây thuốc mới nhất
+        </button>
+        <button 
+          class="filter-btn" 
+          :class="{ active: selectedFilter === 'multiUse' }"
+          @click="handleFilterChange('multiUse')"
+        >
+          <i class="fas fa-leaf"></i>
+          Cây thuốc có nhiều công dụng
+        </button>
+        <button 
+          class="filter-btn cancel-btn"
+          @click="clearAllFilters"
+          v-if="selectedFilter || selectedDivision || selectedClass || selectedOrder || selectedFamily || selectedGenus || selectedSpecies || searchQuery"
+        >
+          <i class="fas fa-times"></i>
+          Hủy bộ lọc
+        </button>
+      </div>
+
       <div class="filters">
         <div class="filter-group">
           <label>Ngành</label>
@@ -401,6 +478,65 @@ onMounted(() => {
 .search-input:focus {
   outline: none;
   border-color: #008053;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn i {
+  color: #008053;
+}
+
+.filter-btn:hover {
+  background: #f8f9fa;
+  border-color: #008053;
+  color: #008053;
+}
+
+.filter-btn.active {
+  background: #008053;
+  border-color: #008053;
+  color: white;
+}
+
+.filter-btn.active i {
+  color: white;
+}
+
+.filter-btn.cancel-btn {
+  background-color: #f8f9fa;
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.filter-btn.cancel-btn i {
+  color: #dc3545;
+}
+
+.filter-btn.cancel-btn:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.filter-btn.cancel-btn:hover i {
+  color: white;
 }
 
 .filters {

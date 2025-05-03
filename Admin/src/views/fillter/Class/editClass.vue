@@ -30,9 +30,15 @@ const fetchClass = async (id: number) => {
   try {
     loading.value = true;
     const classData = await classService.getClassById(id);
+    console.log("classData:", classData);
+    
+    if (!classData) {
+      throw new Error('Class data is undefined');
+    }
+
     formData.value = {
-      name: classData.name,
-      division_id: classData.division_id.toString()
+      name: classData.name || '',
+      division_id: classData.division_id ? classData.division_id.toString() : ''
     };
   } catch (error) {
     console.error('Error fetching class:', error);
@@ -59,6 +65,7 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   const id = Number(route.params.id);
+  console.log("id class:", id);
   if (id) {
     fetchClass(id);
   }

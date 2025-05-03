@@ -38,9 +38,14 @@ const fetchPlantDetails = async () => {
     
     // Lấy thông tin species sau khi có plant
     if (plantResponse.species_id) {
-      const speciesResponse = await speciesService.getSpeciesById(plantResponse.species_id);
-      species.value = speciesResponse;
-      console.log('Species details:', speciesResponse);
+      try {
+        const speciesResponse = await speciesService.getSpeciesById(plantResponse.species_id);
+        species.value = speciesResponse;
+        console.log('Species details:', speciesResponse);
+      } catch (err) {
+        console.warn('Species not found, setting to null:', err);
+        species.value = null;
+      }
     }
     
     console.log('Plant details fetched successfully:', plant.value)
@@ -174,7 +179,7 @@ onMounted(() => {
       <div class="metadata">
         <div class="metadata-item">
           <span class="label">Loài:</span>
-          <span class="value">{{ species?.name }}</span>
+          <span class="value">{{ species?.name || 'Chưa xác định' }}</span>
         </div>
         <div class="metadata-item">
           <span class="label">Ngày tạo:</span>
@@ -236,13 +241,18 @@ onMounted(() => {
                   </div>
                   
                   <div class="expert-info">
-                    <i class="fas fa-user-md"></i>
                     <div class="expert-details">
-                      
-                      <router-link :to="`/profile/${advice.user.user_id}`">
-                        <span class="name">{{ advice.user.full_name }}</span>
-                      </router-link>
-                      <span class="title">{{ advice.user.title }}</span>
+                      <img 
+                        :src="advice.user.avatar || '/default-avatar.png'" 
+                        :alt="advice.user.full_name"
+                        class="expert-avatar"
+                      >
+                      <div class="expert-info-text">
+                        <router-link :to="`/profile/${advice.user.user_id}`">
+                          <span class="name">{{ advice.user.full_name }}</span>
+                        </router-link>
+                        <span class="title">{{ advice.user.title }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -578,17 +588,34 @@ onMounted(() => {
 
 .expert-details {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
-.expert-details .name {
+.expert-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.expert-info-text .name {
   font-weight: 500;
   color: #2c3e50;
+  text-decoration: none;
 }
 
-.expert-details .title {
+.expert-info-text .title {
   font-size: 0.9rem;
   color: #666;
+  font-style: italic;
+}
+
+.expert-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 0.75rem;
 }
 
 /* Responsive Design */

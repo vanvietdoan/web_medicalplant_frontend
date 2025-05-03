@@ -80,7 +80,8 @@ const fetchNewestPlants = async () => {
   try {
     loadingNewPlants.value = true;
     errorNewPlants.value = null;
-    newPlants.value = await plantService.getNewestPlants(10);
+    const allPlants = await plantService.getNewePlants();
+    newPlants.value = allPlants.slice(0, 6);
     console.log('Newest plants fetched successfully:', newPlants.value);
   } catch (err) {
     console.error('Error fetching newest plants:', err);
@@ -97,7 +98,8 @@ const fetchMultiUsePlants = async () => {
   try {
     loadingMultiUsePlants.value = true;
     errorMultiUsePlants.value = null;
-    multiUsePlants.value = await plantService.getPlantsWithMostBenefits(10);
+    const allPlants = await plantService.getMultiUsePlants();
+    multiUsePlants.value = allPlants.slice(0, 6);
     console.log('Multi-use plants fetched successfully:', multiUsePlants.value);
   } catch (err) {
     console.error('Error fetching multi-use plants:', err);
@@ -175,7 +177,16 @@ onBeforeUnmount(() => {
           <div v-for="plant in newPlants" :key="plant.plant_id" class="plant-card">
             <div class="card-content">
               <h3>{{ plant.name }}</h3>
-              <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
+              <img 
+                v-if="plant.images && plant.images.length > 0"
+                :src="plant.images[0].url" 
+                :alt="plant.name" 
+                class="plant-image"
+              >
+              <div v-else class="no-image">
+                <i class="fas fa-image"></i>
+                <p>Không có hình ảnh</p>
+              </div>
               <p class="english-name">{{ plant.english_name }}</p>
               <p class="description">{{ plant.description }}</p>
               <div class="discovery-date">
@@ -213,7 +224,16 @@ onBeforeUnmount(() => {
           <div v-for="plant in multiUsePlants" :key="plant.plant_id" class="plant-card">
             <div class="card-content">
               <h3>{{ plant.name }}</h3>
-              <img src="/images/plant/tia-to.webp" alt="Plant Image" class="plant-image">
+              <img 
+                v-if="plant.images && plant.images.length > 0"
+                :src="plant.images[0].url" 
+                :alt="plant.name" 
+                class="plant-image"
+              >
+              <div v-else class="no-image">
+                <i class="fas fa-image"></i>
+                <p>Không có hình ảnh</p>
+              </div>
               <p class="english-name">{{ plant.english_name }}</p>
               <p class="description">{{ plant.description }}</p>
               <div class="benefits-count">
@@ -491,6 +511,29 @@ section {
   background-color: #f8f9fa;
   border-radius: 8px;
   padding: 2rem;
+}
+
+.no-image {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  color: #666;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.no-image i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #008053;
+}
+
+.no-image p {
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 @media (max-width: 768px) {

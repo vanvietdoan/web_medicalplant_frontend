@@ -103,7 +103,7 @@ onMounted(() => {
         <tr>
           <th>ID</th>
           <th>Tên</th>
-          <th>Bộ</th>
+          <th>Ngành</th>
           <th>Ngày tạo</th>
           <th>Ngày cập nhật</th>
           <th>Thao tác</th>
@@ -113,7 +113,7 @@ onMounted(() => {
         <tr v-for="item in filteredClasses" :key="item.class_id">
           <td>{{ item.class_id }}</td>
           <td>{{ item.name }}</td>
-          <td>{{ divisions.find((division: Division) => division.division_id === item.division_id)?.name }}</td>
+          <td>{{ divisions.find(division => division.division_id == item.division_id)?.name }}</td>
           <td>{{ formatDate(item.created_at) }}</td>
           <td>{{ formatDate(item.updated_at) }}</td>
           <td>

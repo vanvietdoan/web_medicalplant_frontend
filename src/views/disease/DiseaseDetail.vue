@@ -156,14 +156,7 @@ onMounted(() => {
           </section>
 
           <!-- Last Updated Section -->
-          <section class="section update-section">
-            <h2><i class="fas fa-clock"></i> Thông tin cập nhật</h2>
-            <div class="update-content">
-              <p><strong>Ngày tạo:</strong> {{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</p>
-              <p><strong>Lần cập nhật cuối:</strong> {{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</p>
-            </div>
-          </section>
-
+          
           <!-- Treatment Section -->
           <section class="section treatment-section">
             <h2><i class="fas fa-clipboard-list"></i> Hướng dẫn điều trị</h2>
@@ -175,14 +168,24 @@ onMounted(() => {
           <!-- Medicinal Plants Section -->
           <section class="section plants-section">
             <h2><i class="fas fa-leaf"></i> Cây thuốc điều trị</h2>
-            <div class="plants-grid">
-              <div class="plant-info">
-                <div v-for="advice in advices" :key="advice.plant.plant_id" class="plant-card"> 
-                  <router-link :to="`/plant/${advice.plant.plant_id}`"> {{ advice.plant.name }}</router-link>
-                </div>
+            <div class="plants-list">
+              <div v-for="advice in advices" :key="advice.plant.plant_id" class="plant-item">
+                <i class="fas fa-leaf"></i>
+                <router-link :to="`/plant/${advice.plant.plant_id}`" class="plant-link">
+                  {{ advice.plant.name }}
+                </router-link>
               </div>
             </div>
           </section>
+
+          <section class="section update-section">
+            <h2><i class="fas fa-clock"></i> Thông tin cập nhật</h2>
+            <div class="update-content">
+              <p><strong>Ngày tạo:</strong> {{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</p>
+              <p><strong>Lần cập nhật cuối:</strong> {{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</p>
+            </div>
+          </section>
+
         </div>
 
         <!-- Advice Comments Column -->
@@ -232,11 +235,19 @@ onMounted(() => {
                   </div>
                   
                   <div class="user-info">
-                    <i class="fas fa-user-md"></i>
-                    <router-link :to="`/profile/${advice.user.user_id}`">
-                      <span class="user-name">{{ advice.user.full_name }}</span>
-                    </router-link>
-                    <span class="user-title">({{ advice.user.title }})</span>
+                    <div class="avatar-wrapper">
+                      <img 
+                        :src="advice.user.avatar || '/images/default-avatar.png'" 
+                        :alt="advice.user.full_name"
+                        class="expert-avatar"
+                      >
+                    </div>
+                    <div class="user-details">
+                      <router-link :to="`/profile/${advice.user.user_id}`">
+                        <span class="user-name">{{ advice.user.full_name }}</span>
+                      </router-link>
+                      <span class="user-title">{{ advice.user.title }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -478,63 +489,42 @@ onMounted(() => {
 }
 
 /* Plants Section */
-.plants-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 2rem;
+.plants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
 }
 
-.plant-card {
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+.plant-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f0f7f4;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.plant-card:hover {
-  transform: translateY(-5px);
+.plant-item:hover {
+  background: #e0efe8;
+  transform: translateX(5px);
 }
 
-.plant-image {
-  height: 200px;
-  overflow: hidden;
+.plant-item i {
+  color: #008053;
+  font-size: 1.1rem;
 }
 
-.plant-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.plant-info {
-  padding: 1.5rem;
-}
-
-.plant-info h3 {
-  margin: 0 0 0.5rem;
-  color: #2c3e50;
-}
-
-.english-name {
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-  display: block;
-}
-
-.view-plant {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: #008053;
-  color: white;
+.plant-link {
+  color: #008053;
   text-decoration: none;
-  border-radius: 4px;
-  transition: background 0.3s ease;
+  font-weight: 500;
+  flex: 1;
 }
 
-.view-plant:hover {
-  background: #006c46;
+.plant-link:hover {
+  text-decoration: underline;
 }
 
 /* Comments Section */
@@ -769,6 +759,38 @@ onMounted(() => {
   font-size: 1rem;
 }
 
+.expert-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 0.75rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+.user-title {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
 @media (max-width: 1024px) {
   .main-content-grid {
     grid-template-columns: 1fr;
@@ -794,7 +816,7 @@ onMounted(() => {
     font-size: 2rem;
   }
 
-  .plants-grid {
+  .plants-list {
     grid-template-columns: 1fr;
   }
 }

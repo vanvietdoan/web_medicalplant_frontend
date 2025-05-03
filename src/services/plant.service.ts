@@ -15,6 +15,28 @@ class PlantService extends BaseService {
       throw error
     }
   }
+  async getNewePlants(): Promise<Plant[]> {
+    console.log('Fetching newest plants list from API...')
+    try {
+      const response = await this.get<Plant[]>('/plants/new-plants')
+      console.log('Newest plants list response:', response)
+      return response
+    } catch (error) {
+      console.error('Error fetching newest plants list:', error)
+      throw error
+    }
+  }
+  async getMultiUsePlants(): Promise<Plant[]> {
+    console.log('Fetching multi-use plants list from API...')
+    try {
+      const response = await this.get<Plant[]>('/plants/multiple-benefits')
+      console.log('Multi-use plants list response:', response)
+      return response
+    } catch (error) {
+      console.error('Error fetching multi-use plants list:', error)
+      throw error
+    }
+  }
 
   // Lấy chi tiết cây thuốc theo ID
   async getPlantById(id: number): Promise<Plant> {
