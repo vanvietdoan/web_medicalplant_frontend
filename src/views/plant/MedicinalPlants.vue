@@ -17,6 +17,8 @@ const plants = ref<Plant[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
+const currentPage = ref(1);
+const itemsPerPage = 12;
 
 // Filter states
 const selectedDivision = ref('');
@@ -63,7 +65,9 @@ const availableSpecies = computed(() => {
 
 // Filtered plants based on search query and filters
 const filteredPlants = computed(() => {
-  let result = plants.value;
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  let result = plants.value.slice(start, end);
   
   // Filter by search query
   if (searchQuery.value) {
@@ -76,6 +80,32 @@ const filteredPlants = computed(() => {
   }
 
   return result;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(plants.value.length / itemsPerPage);
+});
+
+// Add computed property for visible pages
+const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const delta = 2; // Number of pages to show before and after current page
+  
+  let range: (number | string)[] = [];
+  for (let i = 1; i <= total; i++) {
+    if (
+      i === 1 || // First page
+      i === total || // Last page
+      (i >= current - delta && i <= current + delta) // Pages around current
+    ) {
+      range.push(i);
+    } else if (i === current - delta - 1 || i === current + delta + 1) {
+      range.push('...'); // Add ellipsis
+    }
+  }
+  
+  return range;
 });
 
 // Filter change handlers
@@ -234,18 +264,16 @@ const fetchFilterData = async () => {
 };
 
 const fetchPlants = async () => {
-  console.log('Starting to fetch plants...')
   try {
     loading.value = true;
     error.value = null;
-    plants.value = await plantService.getPlants();
+    const response = await plantService.getPlants();
+    plants.value = response;
     console.log('Plants fetched successfully:', plants.value)
   } catch (err) {
-    console.error('Error in fetchPlants:', err)
     error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách cây thuốc';
   } finally {
     loading.value = false;
-    console.log('Fetch plants completed, loading:', loading.value)
   }
 };
 
@@ -299,6 +327,13 @@ watch(() => route.path, (newPath) => {
     fetchPlants();
   }
 }, { immediate: true });
+
+const changePage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
 </script>
 
 <template>
@@ -435,20 +470,57 @@ watch(() => route.path, (newPath) => {
     </div>
 
     <div v-else class="plants-grid">
-      <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card" @click="handlePlantClick(plant.plant_id)">
-        <div class="plant-info">
-          <h3>{{ plant.name }}</h3>
+      <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card">
+        <div class="plant-image-container">
           <img :src="getPlantImage(plant)" :alt="plant.name" class="plant-image">
+        </div>
+        <div class="plant-content">
+          <h3>{{ plant.name }}</h3>
           <p class="english-name">{{ plant.english_name }}</p>
           <p class="description">{{ plant.description }}</p>
-        </div>
-        <div class="plant-footer">
-          <span class="benefits">
-            <i class="fas fa-leaf"></i>
-            {{ plant.benefits }}
-          </span>
+          <div class="plant-footer">
+            <div class="benefits">
+              <i class="fas fa-leaf"></i>
+              <span>{{ plant.benefits ? 'Nhiều công dụng' : 'Đang cập nhật' }}</span>
+            </div>
+            <router-link :to="`/plant/${plant.plant_id}`" class="view-more">
+              Xem chi tiết
+              <i class="fas fa-arrow-right"></i>
+            </router-link>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button 
+        class="page-btn" 
+        :disabled="currentPage === 1"
+        @click="changePage(currentPage - 1)"
+      >
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      
+      <template v-for="(page, index) in visiblePages" :key="index">
+        <button 
+          v-if="typeof page === 'number'"
+          class="page-btn"
+          :class="{ active: currentPage === page }"
+          @click="changePage(page)"
+        >
+          {{ page }}
+        </button>
+        <span v-else class="page-ellipsis">...</span>
+      </template>
+
+      <button 
+        class="page-btn"
+        :disabled="currentPage === totalPages"
+        @click="changePage(currentPage + 1)"
+      >
+        <i class="fas fa-chevron-right"></i>
+      </button>
     </div>
   </div>
 </template>
@@ -634,17 +706,17 @@ watch(() => route.path, (newPath) => {
 
 .plants-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
+  padding: 1rem;
 }
 
 .plant-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -655,56 +727,64 @@ watch(() => route.path, (newPath) => {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
-.plant-info {
-  padding: 1.5rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.plant-info h3 {
-  color: #008053;
-  margin-bottom: 0.75rem;
-  font-size: 1.25rem;
-  font-weight: 600;
+.plant-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
 }
 
 .plant-image {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease;
 }
 
 .plant-card:hover .plant-image {
   transform: scale(1.05);
 }
 
+.plant-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.plant-content h3 {
+  color: #008053;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
 .english-name {
   color: #666;
   font-style: italic;
-  margin-bottom: 0.5rem;
   font-size: 0.9rem;
+  margin-bottom: 1rem;
 }
 
 .description {
   color: #444;
-  line-height: 1.5;
   font-size: 0.95rem;
-  margin-bottom: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1;
 }
 
 .plant-footer {
-  padding: 1rem 1.5rem;
-  background-color: #f8f9fa;
-  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
 }
 
 .benefits {
@@ -713,14 +793,13 @@ watch(() => route.path, (newPath) => {
   gap: 0.5rem;
   color: #008053;
   font-size: 0.9rem;
-  font-weight: 500;
 }
 
 .benefits i {
-  color: #42b883;
+  font-size: 1rem;
 }
 
-.view-all {
+.view-more {
   color: #008053;
   text-decoration: none;
   font-weight: 500;
@@ -728,25 +807,97 @@ watch(() => route.path, (newPath) => {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
-  cursor: pointer;
+  font-size: 0.9rem;
 }
 
-.view-all:hover {
+.view-more:hover {
   color: #006040;
   transform: translateX(5px);
 }
 
+.view-more i {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.view-more:hover i {
+  transform: translateX(3px);
+}
+
 @media (max-width: 768px) {
-  .plants-container {
-    margin: 1rem auto;
-  }
-
-  .filters {
-    grid-template-columns: 1fr;
-  }
-
   .plants-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .plant-image-container {
+    height: 180px;
+  }
+}
+
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 1rem;
+}
+
+.page-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 0.5rem;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #008053;
+  color: #008053;
+}
+
+.page-btn.active {
+  background: #008053;
+  color: white;
+  border-color: #008053;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn i {
+  font-size: 0.9rem;
+}
+
+.page-ellipsis {
+  color: #666;
+  padding: 0 0.5rem;
+}
+
+/* Responsive Pagination */
+@media (max-width: 768px) {
+  .pagination {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .page-btn {
+    min-width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
   }
 }
 </style> 

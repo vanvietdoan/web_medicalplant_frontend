@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { CreateUser } from '../../models/User'
 import { userService } from '../../services/user.service'
-
+import { config } from '../../config'
 const router = useRouter()
 const loading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -20,6 +20,13 @@ const user = ref<CreateUser>({
   role_id: 1,
   password: ''
 })
+
+// Function to prepend host to image URL for display
+const getDisplayImageUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${config.API_HOST}${url}`
+}
 
 const handleSubmit = async () => {
   try {
@@ -150,7 +157,7 @@ const handleCancel = () => {
 
     <form @submit.prevent="handleSubmit" class="create-form">
       <div class="avatar-section">
-        <img :src="user.avatar || '/placeholder-avatar.jpg'" class="avatar-preview" alt="Avatar">
+        <img :src="getDisplayImageUrl(user.avatar)" class="avatar-preview" alt="Avatar">
         <div class="avatar-upload">
           <input 
             ref="fileInput"
@@ -201,7 +208,7 @@ const handleCancel = () => {
           </button>
           <p class="upload-hint">Hỗ trợ: PDF (Tối đa 10MB)</p>
           <div v-if="user.proof" class="proof-preview">
-            <a :href="user.proof" target="_blank" class="proof-link">
+            <a :href="getDisplayImageUrl(user.proof)" target="_blank" class="proof-link">
               <i class="fas fa-file-pdf"></i> Xem bằng cấp đã tải
             </a>
           </div>

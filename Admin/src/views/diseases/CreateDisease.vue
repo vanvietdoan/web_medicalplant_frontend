@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { diseasesService } from '../../services/diseases.service'
+import { config } from '../../config'
 import type { Disease } from '../../models/Diseases'
 
 const router = useRouter()
@@ -53,6 +54,13 @@ const handleImageUpload = (event: Event) => {
 // Create object URL for image preview
 const createObjectURL = (file: File) => {
   return URL.createObjectURL(file)
+}
+
+// Function to prepend host to image URL for display
+const getDisplayImageUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${config.API_HOST}${url}`
 }
 
 // Handle form submission
@@ -168,7 +176,7 @@ const handleSubmit = async () => {
           />
           <div v-if="imageFiles.length" class="image-preview">
             <div v-for="(file, index) in imageFiles" :key="index" class="preview-item">
-              <img :src="createObjectURL(file)" :alt="'Preview ' + (index + 1)">
+              <img :src="getDisplayImageUrl(createObjectURL(file))" :alt="'Preview ' + (index + 1)">
               <button 
                 type="button" 
                 class="remove-image" 

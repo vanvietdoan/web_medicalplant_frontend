@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { User } from '../../models/User'
 import { userService } from '../../services/user.service'
+import { config } from '../../config'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +32,22 @@ const user = ref<User>({
 const fileInput = ref<HTMLInputElement | null>(null)
 const proofFileInput = ref<HTMLInputElement | null>(null)
 
+// Function to extract path from URL
+const getPathFromUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) {
+    try {
+      const urlObj = new URL(url)
+      // Remove leading slash if it exists
+      return urlObj.pathname.startsWith('/') ? urlObj.pathname.slice(1) : urlObj.pathname
+    } catch {
+      return url
+    }
+  }
+  // Remove leading slash if it exists
+  return url.startsWith('/') ? url.slice(1) : url
+}
+
 const handleSubmit = async () => {
   try {
     loading.value = true
@@ -50,12 +67,12 @@ const handleSubmit = async () => {
     const response = await userService.updateUser(userId, {
       full_name: user.value.full_name,
       title: user.value.title,
-      proof: user.value.proof,
+      proof: getPathFromUrl(user.value.proof),
       specialty: user.value.specialty,
       active: user.value.active,
       email: user.value.email,
       role_id: user.value.role_id,
-      avatar: user.value.avatar
+      avatar: getPathFromUrl(user.value.avatar)
     })
     
     console.log('User updated successfully:', response)
@@ -67,6 +84,13 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Function to prepend host to image URL for display
+const getDisplayImageUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${config.API_HOST}${url}`
 }
 
 const triggerFileInput = () => {
@@ -103,18 +127,18 @@ const handleAvatarUpload = async (event: Event) => {
         return
       }
       
-      // Hiển thị ảnh preview trước khi tải lên
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        if (e.target && e.target.result) {
-          user.value.avatar = e.target.result as string
-        }
-      }
-      reader.readAsDataURL(file)
-      
       // Tải ảnh lên server
       const response = await userService.uploadAvatarNew(file)
+      // Lưu url trực tiếp từ response
       user.value.avatar = response.url
+      
+      // Hiển thị ảnh preview với host
+      const previewUrl = getDisplayImageUrl(response.url)
+      const img = document.querySelector('.avatar-preview') as HTMLImageElement
+      if (img) {
+        img.src = previewUrl
+      }
+      
       ElMessage.success('Cập nhật ảnh đại diện thành công')
     } catch (error) {
       console.error('Error uploading avatar:', error)
@@ -148,7 +172,7 @@ const handleProofUpload = async (event: Event) => {
       
       // Tải file lên server
       const response = await userService.uploadProof(file)
-      user.value.proof = response.url
+      user.value.proof = getPathFromUrl(response.url)
       ElMessage.success('Tải bằng cấp thành công')
     } catch (error) {
       console.error('Error uploading proof:', error)
@@ -201,7 +225,7 @@ onMounted(() => {
 
     <form v-else @submit.prevent="handleSubmit" class="edit-form">
       <div class="avatar-section">
-        <img :src="user.avatar" class="avatar-preview" alt="Avatar">
+        <img :src="getDisplayImageUrl(user.avatar)" class="avatar-preview" alt="Avatar">
         <div class="avatar-upload">
           <input 
             ref="fileInput"
@@ -237,7 +261,7 @@ onMounted(() => {
         <div class="proof-upload">
           <div v-if="user.proof" class="existing-proof">
             <p>Bằng cấp hiện tại:</p>
-            <a :href="user.proof" target="_blank" class="proof-link">
+            <a :href="getDisplayImageUrl(user.proof)" target="_blank" class="proof-link">
               <i class="fas fa-file-pdf"></i> Xem bằng cấp
             </a>
           </div>

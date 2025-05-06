@@ -104,8 +104,24 @@ onMounted(() => {
         <tr v-for="disease in filteredDiseases" :key="disease.disease_id">
           <td>{{ disease.disease_id }}</td>
           <td>{{ disease.name }}</td>
-          <td>{{ disease.description }}</td>
-          <td>{{ disease.symptoms }}</td>
+          <td>
+            <el-tooltip
+              :content="disease.description"
+              placement="top"
+              :show-after="500"
+            >
+              <div class="truncated-text">{{ disease.description }}</div>
+            </el-tooltip>
+          </td>
+          <td>
+            <el-tooltip
+              :content="disease.symptoms"
+              placement="top"
+              :show-after="500"
+            >
+              <div class="truncated-text">{{ disease.symptoms }}</div>
+            </el-tooltip>
+          </td>
           <td>
             <div class="action-buttons">
               <button @click="handleEdit(disease)" class="btn-edit">
@@ -216,5 +232,19 @@ onMounted(() => {
 
 .btn-create:hover {
   background-color: #388E3C;
+}
+
+.truncated-text {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.disease-table td {
+  max-width: 200px;
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
 }
 </style> 

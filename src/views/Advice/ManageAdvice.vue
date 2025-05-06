@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { adviceService } from '../../services/advice.service';
 import { authService } from '../../services/auth.service';
@@ -9,6 +9,47 @@ const router = useRouter();
 const loading = ref(true);
 const error = ref<string | null>(null);
 const advices = ref<Advice[]>([]);
+const searchQuery = ref('');
+const selectedPlant = ref('');
+const selectedDisease = ref('');
+
+// Computed properties for filtering
+const filteredAdvices = computed(() => {
+  return advices.value.filter(advice => {
+    const matchesSearch = !searchQuery.value || 
+      advice.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      advice.content.toLowerCase().includes(searchQuery.value.toLowerCase());
+    
+    const matchesPlant = !selectedPlant.value || 
+      (advice.plant && advice.plant.plant_id === Number(selectedPlant.value));
+    
+    const matchesDisease = !selectedDisease.value || 
+      (advice.disease && advice.disease.disease_id === Number(selectedDisease.value));
+    
+    return matchesSearch && matchesPlant && matchesDisease;
+  });
+});
+
+// Get unique plants and diseases for filters
+const uniquePlants = computed(() => {
+  const plants = new Map();
+  advices.value.forEach(advice => {
+    if (advice.plant) {
+      plants.set(advice.plant.plant_id, advice.plant);
+    }
+  });
+  return Array.from(plants.values());
+});
+
+const uniqueDiseases = computed(() => {
+  const diseases = new Map();
+  advices.value.forEach(advice => {
+    if (advice.disease) {
+      diseases.set(advice.disease.disease_id, advice.disease);
+    }
+  });
+  return Array.from(diseases.values());
+});
 
 const fetchUserAdvices = async () => {
   try {
@@ -53,6 +94,12 @@ const handleDeleteAdvice = async (adviceId: number) => {
   }
 };
 
+const clearFilters = () => {
+  searchQuery.value = '';
+  selectedPlant.value = '';
+  selectedDisease.value = '';
+};
+
 onMounted(() => {
   fetchUserAdvices();
 });
@@ -68,6 +115,54 @@ onMounted(() => {
       </router-link>
     </div>
 
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+      <div class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input 
+          type="text" 
+          v-model="searchQuery"
+          placeholder="Tìm kiếm lời khuyên..."
+          class="search-input"
+        >
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Cây thuốc:</label>
+          <select v-model="selectedPlant" class="filter-select">
+            <option value="">Tất cả cây thuốc</option>
+            <option v-for="plant in uniquePlants" 
+                    :key="plant.plant_id" 
+                    :value="plant.plant_id">
+              {{ plant.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Bệnh:</label>
+          <select v-model="selectedDisease" class="filter-select">
+            <option value="">Tất cả bệnh</option>
+            <option v-for="disease in uniqueDiseases" 
+                    :key="disease.disease_id" 
+                    :value="disease.disease_id">
+              {{ disease.name }}
+            </option>
+          </select>
+        </div>
+
+        <button 
+          v-if="searchQuery || selectedPlant || selectedDisease"
+          @click="clearFilters" 
+          class="clear-filters-btn"
+        >
+          <i class="fas fa-times"></i>
+          Xóa bộ lọc
+        </button>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading">
       <i class="fas fa-spinner fa-spin"></i>
       <p>Đang tải danh sách lời khuyên...</p>
@@ -81,17 +176,13 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-else-if="advices.length === 0" class="empty-state">
+    <div v-else-if="filteredAdvices.length === 0" class="empty-state">
       <i class="fas fa-comment-slash"></i>
-      <p>Bạn chưa có lời khuyên nào</p>
-      <router-link to="/profile/advice/create" class="create-btn">
-        <i class="fas fa-plus"></i>
-        Thêm lời khuyên mới
-      </router-link>
+      <p>Không tìm thấy lời khuyên phù hợp</p>
     </div>
 
     <div v-else class="advice-list">
-      <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
+      <div v-for="advice in filteredAdvices" :key="advice.advice_id" class="advice-card">
         <div class="advice-header">
           <h3>{{ advice.title }}</h3>
           <div class="advice-meta">
@@ -99,11 +190,15 @@ onMounted(() => {
               <i class="fas fa-calendar"></i>
               {{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}
             </span>
+            <span class="time">
+              <i class="fas fa-clock"></i>
+              {{ new Date(advice.created_at).toLocaleTimeString('vi-VN') }}
+            </span>
           </div>
         </div>
 
         <div class="advice-content">
-          <p>{{ advice.content }}</p>
+          <p class="truncated-content">{{ advice.content }}</p>
         </div>
 
         <div class="advice-info">
@@ -223,6 +318,12 @@ onMounted(() => {
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.advice-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .advice-header {
@@ -237,14 +338,35 @@ onMounted(() => {
 .advice-meta {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   color: #666;
   font-size: 0.9rem;
 }
 
+.advice-meta .date,
+.advice-meta .time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.advice-meta i {
+  color: #008053;
+}
+
 .advice-content {
-  margin-bottom: 1.5rem;
+  margin: 1rem 0;
+  color: #666;
   line-height: 1.6;
+}
+
+.truncated-content {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
 }
 
 .advice-info {
@@ -305,6 +427,92 @@ onMounted(() => {
   background: #c82333;
 }
 
+.search-filter-section {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #008053;
+  box-shadow: 0 0 0 2px rgba(0, 128, 83, 0.1);
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #008053;
+  box-shadow: 0 0 0 2px rgba(0, 128, 83, 0.1);
+}
+
+.clear-filters-btn {
+  padding: 0.75rem 1.5rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.clear-filters-btn:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
 @media (max-width: 768px) {
   .manage-advice-container {
     padding: 1rem;
@@ -323,6 +531,19 @@ onMounted(() => {
   .advice-info {
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .clear-filters-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>    

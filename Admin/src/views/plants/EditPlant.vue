@@ -6,6 +6,7 @@ import type { Plant } from '../../models/Plant'
 import speciesService from '../../services/fillter/species.service'
 import { plantService } from '../../services/plant.service'
 import type { SpeciesResponse } from '../../models/Species'
+import { config } from '../../config'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,6 +70,29 @@ const removeExistingImage = (index: number) => {
   plant.value.images.splice(index, 1)
 }
 
+// Function to prepend host to image URL for display
+const getDisplayImageUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${config.API_HOST}${url}`
+}
+
+// Function to extract path from URL
+const getPathFromUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) {
+    try {
+      const urlObj = new URL(url)
+      // Remove leading slash if it exists
+      return urlObj.pathname.startsWith('/') ? urlObj.pathname.slice(1) : urlObj.pathname
+    } catch {
+      return url
+    }
+  }
+  // Remove leading slash if it exists
+  return url.startsWith('/') ? url.slice(1) : url
+}
+
 const handleSubmit = async () => {
   try {
     loading.value = true
@@ -100,10 +124,13 @@ const handleSubmit = async () => {
     const plantData: Partial<Plant> = {
       ...plant.value,
       images: [
-        ...plant.value.images,
+        ...plant.value.images.map(img => ({
+          picture_id: img.picture_id,
+          url: getPathFromUrl(img.url)
+        })),
         ...uploadedImages.map(img => ({
           picture_id: 0,
-          url: img.url || ''
+          url: getPathFromUrl(img.url || '')
         }))
       ],
       updated_at: new Date().toISOString()
@@ -175,7 +202,7 @@ const handleCancel = () => {
         <label>Hình ảnh hiện tại</label>
         <div v-if="plant.images.length" class="image-preview">
           <div v-for="(image, index) in plant.images" :key="index" class="preview-item">
-            <img :src="image.url" :alt="'Image ' + (index + 1)">
+            <img :src="getDisplayImageUrl(image.url)" :alt="'Image ' + (index + 1)">
             <button 
               type="button" 
               class="remove-image" 

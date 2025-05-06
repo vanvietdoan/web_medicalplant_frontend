@@ -26,7 +26,7 @@ export class Advice implements Advice {
     updated_at: string;
     title: string;
     content: string;
-    plant: {
+    plant:{
         plant_id: number;
         name: string;
     };

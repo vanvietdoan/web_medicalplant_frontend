@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { diseasesService } from '../../services/diseases.service'
 import type { Disease } from '../../models/Diseases'
+import { config } from '../../config'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,11 +75,32 @@ const handleImageUpload = (event: Event) => {
   }
 }
 
-
-
 // Create object URL for image preview      
 const createObjectURL = (file: File) => {
   return URL.createObjectURL(file)
+}
+
+// Function to prepend host to image URL for display
+const getDisplayImageUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${config.API_HOST}${url}`
+}
+
+// Function to extract path from URL
+const getPathFromUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) {
+    try {
+      const urlObj = new URL(url)
+      // Remove leading slash if it exists
+      return urlObj.pathname.startsWith('/') ? urlObj.pathname.slice(1) : urlObj.pathname
+    } catch {
+      return url
+    }
+  }
+  // Remove leading slash if it exists
+  return url.startsWith('/') ? url.slice(1) : url
 }
 
 // Handle form submission
@@ -108,10 +130,16 @@ const handleSubmit = async () => {
       description: formData.description,
       symptoms: formData.symptoms,
       instructions: formData.instructions,
-      images: [...existingImages.value, ...uploadedImages.map(img => ({
-        picture_id: 0, // Temporary placeholder
-        url: img.url || ''
-      }))],
+      images: [
+        ...existingImages.value.map(img => ({
+          picture_id: img.picture_id,
+          url: getPathFromUrl(img.url)
+        })),
+        ...uploadedImages.map(img => ({
+          picture_id: 0, // Temporary placeholder
+          url: getPathFromUrl(img.url || '')
+        }))
+      ],
       updated_at: new Date().toISOString()
     }
     
@@ -190,7 +218,7 @@ onMounted(() => {
           <label>Hình ảnh (tối đa 5 ảnh)</label>
           <div class="existing-images" v-if="existingImages.length">
             <div v-for="(image, index) in existingImages" :key="image.picture_id" class="preview-item">
-              <img :src="image.url" :alt="'Existing image'">
+              <img :src="getDisplayImageUrl(image.url)" :alt="'Existing image'">
               <button 
                 type="button" 
                 class="remove-image" 

@@ -118,7 +118,7 @@ const handleSubmit = async () => {
             <img src="/images/logo.png" alt="Medical Plant" class="logo-img">
           </div>
           <h1>Đăng ký tài khoản</h1>
-          <p>Bước {{ currentStep }}: {{ currentStep === 1 ? 'Thông tin đăng nhập' : 'Thông tin cá nhân' }}</p>
+          <!-- <p>Bước {{ currentStep }}: {{ currentStep === 1 ? 'Thông tin đăng nhập' : 'Thông tin cá nhân' }}</p> -->
         </div>
 
         <!-- Step 1: Login Information -->

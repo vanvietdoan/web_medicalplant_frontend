@@ -277,7 +277,7 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach((to, _from, next) => {
   const isAuthenticated = localStorage.getItem('token')
-  
+  console.log("isAuthenticated::",isAuthenticated)
   // Update document title
   document.title = to.meta.title ? `${to.meta.title} - Admin` : 'Admin'
   

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { diseasesService } from '../../services/diseases.service';
 import { adviceService } from '../../services/advice.service';
@@ -17,6 +17,12 @@ const error = ref<string | null>(null);
 const currentImageIndex = ref(0);
 const isLoggedIn = ref(false);
 const currentUser = ref<any>(null);
+const isDescriptionExpanded = ref(false);
+
+// Add computed property for valid plants
+const validPlants = computed(() => {
+  return advices.value.filter(advice => advice.plant && advice.plant.plant_id);
+});
 
 const fetchDiseaseDetail = async () => {
   try {
@@ -75,14 +81,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="disease-detail">
-    <!-- Loading State -->
+  <div class="plant-detail-container">
     <div v-if="isLoading" class="loading-state">
       <i class="fas fa-spinner fa-spin"></i>
-      <p>Đang tải dữ liệu...</p>
+      <p>Đang tải thông tin bệnh...</p>
     </div>
 
-    <!-- Error State -->
     <div v-else-if="error" class="error-state">
       <i class="fas fa-exclamation-circle"></i>
       <p>{{ error }}</p>
@@ -91,8 +95,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <!-- Disease Detail Content -->
-    <div v-else-if="disease" class="disease-content">
+    <div v-else-if="disease" class="plant-detail">
       <!-- Hero Section -->
       <section class="hero-section">
         <div class="hero-gallery">
@@ -137,82 +140,84 @@ onMounted(() => {
         </div>
         <div class="hero-content">
           <h1>{{ disease.name }}</h1>
-          <p class="description">{{ disease.description }}</p>
+          <p class="update-date">Cập nhật: {{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</p>
         </div>
       </section>
 
       <!-- Main Content Grid -->
       <div class="main-content-grid">
         <!-- Disease Information Column -->
-        <div class="disease-info-column">
-          <!-- Symptoms Section -->
-          <section class="section symptoms-section">
-            <h2><i class="fas fa-exclamation-circle"></i> Triệu chứng</h2>
-            <ul class="symptoms-list">
-              <li v-for="symptom in disease.symptoms.split(',')" :key="symptom">
-                {{ symptom.trim() }}
-              </li>
-            </ul>
-          </section>
+        <div class="info-column">
+          <section class="info-section">
+            <h2><i class="fas fa-disease"></i> Thông tin bệnh</h2>
+            <div class="content-box">
+              <h3>Mô tả</h3>
+              <p class="formatted-text">{{ disease.description }}</p>
 
-          <!-- Last Updated Section -->
-          
-          <!-- Treatment Section -->
-          <section class="section treatment-section">
-            <h2><i class="fas fa-clipboard-list"></i> Hướng dẫn điều trị</h2>
-            <div class="treatment-content">
-              {{ disease.instructions }}
-            </div>
-          </section>
+              <div v-if="disease.images.length > 1" class="content-image">
+                <img :src="disease.images[1].url" :alt="`${disease.name} - ảnh 2`">
+              </div>
 
-          <!-- Medicinal Plants Section -->
-          <section class="section plants-section">
-            <h2><i class="fas fa-leaf"></i> Cây thuốc điều trị</h2>
-            <div class="plants-list">
-              <div v-for="advice in advices" :key="advice.plant.plant_id" class="plant-item">
-                <i class="fas fa-leaf"></i>
-                <router-link :to="`/plant/${advice.plant.plant_id}`" class="plant-link">
-                  {{ advice.plant.name }}
-                </router-link>
+              <h3>Triệu chứng</h3>
+              <div class="symptoms-list">
+                <div v-for="symptom in disease.symptoms.split(',')" :key="symptom" class="symptom-item">
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{{ symptom.trim() }}</span>
+                </div>
+              </div>
+
+              <div v-if="disease.images.length > 2" class="content-image">
+                <img :src="disease.images[2].url" :alt="`${disease.name} - ảnh 3`">
+              </div>
+
+              <h3>Hướng dẫn điều trị</h3>
+              <p class="formatted-text">{{ disease.instructions }}</p>
+
+              <div v-if="disease.images.length > 3" class="content-image">
+                <img :src="disease.images[3].url" :alt="`${disease.name} - ảnh 4`">
+              </div>
+
+              <div class="metadata">
+                <div class="metadata-item">
+                  <span class="label">Ngày tạo:</span>
+                  <span class="value">{{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</span>
+                </div>
+                <div class="metadata-item">
+                  <span class="label">Cập nhật lần cuối:</span>
+                  <span class="value">{{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</span>
+                </div>
               </div>
             </div>
           </section>
-
-          <section class="section update-section">
-            <h2><i class="fas fa-clock"></i> Thông tin cập nhật</h2>
-            <div class="update-content">
-              <p><strong>Ngày tạo:</strong> {{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</p>
-              <p><strong>Lần cập nhật cuối:</strong> {{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</p>
-            </div>
-          </section>
-
         </div>
 
-        <!-- Advice Comments Column -->
+        <!-- Expert Advice Column -->
         <div class="advice-column">
-          <section class="section comments-section">
-            <div class="section-header">
+          <section class="advice-section">
+            <div class="advice-header">
               <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
               <button 
                 v-if="isLoggedIn" 
                 @click="handleSuggestAdvice" 
-                class="suggest-button"
+                class="create-advice-btn"
               >
-                <i class="fas fa-lightbulb"></i> Đề xuất lời khuyên
+                <i class="fas fa-plus"></i>
+                Đề xuất lời khuyên
               </button>
             </div>
-            
-            <div v-if="advices.length === 0" class="no-advice">
-              <p>Chưa có lời khuyên nào cho bệnh này.</p>
+            <div v-if="advices.length === 0" class="empty-advice">
+              <i class="fas fa-comment-slash"></i>
+              <p>Chưa có lời khuyên nào cho bệnh này</p>
             </div>
             <div v-else class="advice-list">
               <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
                 <div class="advice-header">
                   <h3>{{ advice.title }}</h3>
                   <div class="advice-meta">
-                    <span class="date">{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
                     <button 
-                      v-if="currentUser && currentUser.id === advice.user.user_id"
+                      v-if="currentUser && advice.user && currentUser.id === advice.user.user_id"
                       @click="handleEditAdvice(advice.advice_id)"
                       class="edit-btn"
                     >
@@ -227,26 +232,27 @@ onMounted(() => {
                 </div>
 
                 <div class="advice-footer">
-                  <div class="plant-info">
-                    <i class="fas fa-leaf"></i>
-                    <router-link :to="`/plant/${advice.plant.plant_id}`">
-                      {{ advice.plant.name }}
-                    </router-link>
-                  </div>
-                  
-                  <div class="user-info">
-                    <div class="avatar-wrapper">
+                  <div class="expert-info">
+                    <div class="expert-details">
                       <img 
-                        :src="advice.user.avatar || '/images/default-avatar.png'" 
+                        v-if="advice.user"
+                        :src="advice.user.avatar || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'" 
                         :alt="advice.user.full_name"
                         class="expert-avatar"
                       >
-                    </div>
-                    <div class="user-details">
-                      <router-link :to="`/profile/${advice.user.user_id}`">
-                        <span class="user-name">{{ advice.user.full_name }}</span>
-                      </router-link>
-                      <span class="user-title">{{ advice.user.title }}</span>
+                      <img 
+                        v-else
+                        src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
+                        alt="Default Avatar"
+                        class="expert-avatar"
+                      >
+                      <div class="expert-info-text">
+                        <router-link v-if="advice.user" :to="`/profile/${advice.user.user_id}`">
+                          <span class="name">{{ advice.user.full_name }}</span>
+                        </router-link>
+                        <span v-if="advice.user" class="title">{{ advice.user.title }}</span>
+                        <span v-else class="title">Người dùng</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -260,15 +266,21 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.disease-detail {
-  padding-top: 60px;
+.plant-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
-/* Loading and Error States */
+/* Loading & Error States */
 .loading-state,
 .error-state {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
-  padding: 4rem 2rem;
   color: #666;
 }
 
@@ -283,29 +295,32 @@ onMounted(() => {
   color: #dc3545;
 }
 
-.error-state i {
-  color: #dc3545;
-}
-
 .retry-button {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
   background: #008053;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .retry-button:hover {
-  background: #006c46;
+  background: #006040;
+  transform: translateY(-2px);
 }
 
 /* Hero Section */
 .hero-section {
   position: relative;
   height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
   margin-bottom: 2rem;
 }
 
@@ -332,6 +347,23 @@ onMounted(() => {
   max-height: 100%;
   object-fit: contain;
   transition: transform 0.3s ease;
+}
+
+.no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #666;
+  background: #f8f9fa;
+}
+
+.no-image i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #008053;
 }
 
 .nav-button {
@@ -421,82 +453,98 @@ onMounted(() => {
   left: 0;
   right: 0;
   padding: 2rem;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
   color: white;
-  z-index: 2;
 }
 
 .hero-content h1 {
   font-size: 2.5rem;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
-.hero-content .description {
+.hero-content .update-date {
   font-size: 1.2rem;
   opacity: 0.9;
+  margin-top: 0.5rem;
 }
 
 /* Main Content Grid */
 .main-content-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 400px;
   gap: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  position: relative;
 }
 
-.disease-info-column {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+/* Info Sections */
+.info-column {
+  position: relative;
+  z-index: 1;
 }
 
-.advice-column {
-  position: sticky;
-  top: 80px;
-  height: fit-content;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-}
-
-/* Symptoms Section */
-.symptoms-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  list-style: none;
-  padding: 0;
-}
-
-.symptoms-list li {
-  background: #f8f9fa;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 1rem;
-  color: #666;
-  border: 1px solid #e0e0e0;
-}
-
-/* Treatment Section */
-.treatment-content {
-  background: #f8f9fa;
+.info-section {
+  background: white;
+  border-radius: 12px;
   padding: 1.5rem;
-  border-radius: 8px;
-  border-left: 4px solid #008053;
-  line-height: 1.6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Plants Section */
-.plants-list {
+.info-section h2 {
+  color: #008053;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.content-box {
+  color: #2c3e50;
+}
+
+.content-box h3 {
+  color: #008053;
+  margin: 1.5rem 0 1rem;
+  font-size: 1.2rem;
+}
+
+.content-box h3:first-child {
+  margin-top: 0;
+}
+
+.formatted-text {
+  white-space: pre-line;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.content-image {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.content-image img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.content-image img:hover {
+  transform: scale(1.02);
+}
+
+/* Symptoms List */
+.symptoms-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   margin: 1rem 0;
 }
 
-.plant-item {
+.symptom-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -506,193 +554,64 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-.plant-item:hover {
+.symptom-item:hover {
   background: #e0efe8;
   transform: translateX(5px);
 }
 
-.plant-item i {
+.symptom-item i {
   color: #008053;
   font-size: 1.1rem;
 }
 
-.plant-link {
-  color: #008053;
-  text-decoration: none;
+/* Metadata */
+.metadata {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.metadata-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  color: #666;
+}
+
+.metadata-item .label {
   font-weight: 500;
-  flex: 1;
+  color: #2c3e50;
 }
 
-.plant-link:hover {
-  text-decoration: underline;
-}
-
-/* Comments Section */
-.comments-section {
-  margin-top: 0;
+/* Advice Section */
+.advice-section {
+  position: sticky;
+  top: 2rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  flex-shrink: 0;
 }
 
-.section-header {
+.advice-header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f0f0f0;
 }
 
-.section-header h2 {
+.advice-header h2 {
   margin: 0;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-.section-header h2 i {
-  color: #008053;
-  margin-right: 0.5rem;
-}
-
-.no-advice {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.no-advice p {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.advice-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.advice-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.advice-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.advice-header {
-  margin-bottom: 1rem;
-}
-
-.advice-header h3 {
-  color: #008053;
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-.advice-meta {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.advice-content {
-  margin-bottom: 1rem;
-  line-height: 1.6;
-  color: #444;
-}
-
-.advice-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid #eee;
-  font-size: 0.9rem;
-}
-
-.plant-info, .user-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.plant-info a, .user-info a {
+  gap: 0.75rem;
   color: #008053;
-  text-decoration: none;
-}
-
-.plant-info a:hover, .user-info a:hover {
-  text-decoration: underline;
-}
-
-.plant-info i {
-  color: #67C23A;
-}
-
-.user-info i {
-  color: #409EFF;
-}
-
-.user-name {
-  font-weight: 500;
-}
-
-.user-title {
-  color: #666;
-}
-
-.suggest-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #008053;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.suggest-button:hover {
-  background: #006c46;
-  transform: translateY(-2px);
-}
-
-.suggest-button i {
-  font-size: 1.1rem;
-}
-
-/* Update Section */
-.update-section {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 8px;
-  border-left: 4px solid #008053;
-}
-
-.update-content {
-  color: #666;
-  line-height: 1.6;
-}
-
-.update-content p {
-  margin: 0.5rem 0;
-}
-
-.update-content strong {
-  color: #2c3e50;
-  margin-right: 0.5rem;
 }
 
 .create-advice-btn {
@@ -714,8 +633,110 @@ onMounted(() => {
   transform: translateY(-2px);
 }
 
-.create-advice-btn i {
-  font-size: 1.1rem;
+.advice-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-right: -0.5rem;
+}
+
+.advice-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.advice-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.advice-list::-webkit-scrollbar-thumb {
+  background: #008053;
+  border-radius: 3px;
+}
+
+.advice-list::-webkit-scrollbar-thumb:hover {
+  background: #006040;
+}
+
+.advice-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid #008053;
+}
+
+.advice-header {
+  margin-bottom: 1rem;
+}
+
+.advice-header h3 {
+  color: #008053;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.advice-meta {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.advice-content {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  color: #444;
+}
+
+.advice-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.expert-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.expert-details {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.expert-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.expert-info-text .name {
+  font-weight: 500;
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+.expert-info-text .title {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+.expert-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .empty-advice {
@@ -759,55 +780,28 @@ onMounted(() => {
   font-size: 1rem;
 }
 
-.expert-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 0.75rem;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.user-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.user-name {
-  font-weight: 500;
-  color: #2c3e50;
-  text-decoration: none;
-}
-
-.user-title {
-  font-size: 0.9rem;
-  color: #666;
-  font-style: italic;
-}
-
+/* Responsive Design */
 @media (max-width: 1024px) {
   .main-content-grid {
     grid-template-columns: 1fr;
-    gap: 2rem;
   }
 
-  .advice-column {
+  .advice-section {
     position: static;
+    height: auto;
+    width: 100%;
+  }
+
+  .advice-list {
     max-height: none;
   }
 }
 
 @media (max-width: 768px) {
-  .main-content-grid {
-    padding: 0 1rem;
+  .plant-detail-container {
+    padding: 1rem;
   }
-  
+
   .hero-section {
     height: 300px;
   }
@@ -816,8 +810,22 @@ onMounted(() => {
     font-size: 2rem;
   }
 
-  .plants-list {
-    grid-template-columns: 1fr;
+  .hero-gallery {
+    height: 300px;
+  }
+
+  .thumbnail {
+    width: 60px;
+    height: 45px;
+  }
+
+  .nav-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .content-image img {
+    max-height: 300px;
   }
 }
 </style> 

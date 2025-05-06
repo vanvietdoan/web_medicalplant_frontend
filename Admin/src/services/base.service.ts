@@ -1,16 +1,17 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import router from '../router';
+import { config } from '../config';
 
 //const API_URL = 'http://157.20.58.220:2204/api';
-const API_URL = 'http://localhost:2204/api';
+//const API_URL = 'http://localhost:2204/api';
 
 class BaseService {
   protected api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_URL
+      baseURL: config.API_URL
     });
 
     // Thêm token vào header của mọi request
@@ -38,7 +39,7 @@ class BaseService {
           this.removeToken();
           localStorage.removeItem('user');
           
-          // Chuyển hướng về trang đăng nhập
+          // Chuyển hướng về trang chính
           router.push('/login');
         }
         return Promise.reject(error);

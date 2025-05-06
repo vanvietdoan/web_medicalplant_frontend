@@ -9,10 +9,14 @@ import type { Plant } from '../../models/Plant';
 import type { Species } from '../../models/Species';
 import type { Advice } from '../../models/Advice';
 
+interface AdviceWithExpand extends Advice {
+  isExpanded: boolean;
+}
+
 const route = useRoute();
 const router = useRouter();
 const plant = ref<Plant | null>(null);
-const advices = ref<Advice[]>([]);
+const advices = ref<AdviceWithExpand[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const species = ref<Species | null>(null);
@@ -34,7 +38,10 @@ const fetchPlantDetails = async () => {
       adviceService.getAdvicesByPlant(plantId)
     ]);
     plant.value = plantResponse;
-    advices.value = advicesResponse;
+    advices.value = advicesResponse.map(advice => ({
+      ...advice,
+      isExpanded: false
+    }));
     
     // Lấy thông tin species sau khi có plant
     if (plantResponse.species_id) {
@@ -158,13 +165,25 @@ onMounted(() => {
     <h2><i class="fas fa-seedling"></i> Thông tin cây thuốc</h2>
     <div class="content-box">
       <h3>Mô tả</h3>
-      <p>{{ plant.description }}</p>
+      <p class="formatted-text">{{ plant.description }}</p>
+
+      <div v-if="plant.images.length > 1" class="content-image">
+        <img :src="plant.images[1].url" :alt="`${plant.name} - ảnh 2`">
+      </div>
 
       <h3>Công dụng</h3>
-      <p>{{ plant.benefits }}</p>
+      <p class="formatted-text">{{ plant.benefits }}</p>
+
+      <div v-if="plant.images.length > 2" class="content-image">
+        <img :src="plant.images[2].url" :alt="`${plant.name} - ảnh 3`">
+      </div>
 
       <h3>Hướng dẫn sử dụng</h3>
-      <p>{{ plant.instructions }}</p>
+      <p class="formatted-text">{{ plant.instructions }}</p>
+
+      <div v-if="plant.images.length > 3" class="content-image">
+        <img :src="plant.images[3].url" :alt="`${plant.name} - ảnh 4`">
+      </div>
 
       <h3>Bệnh có thể điều trị</h3>
       <div class="disease-list">
@@ -229,7 +248,15 @@ onMounted(() => {
                 </div>
                 
                 <div class="advice-content">
-                  <p>{{ advice.content }}</p>
+                  <p :class="{ 'truncated': !advice.isExpanded }">{{ advice.content }}</p>
+                  <button 
+                    v-if="advice.content.length > 200" 
+                    @click="advice.isExpanded = !advice.isExpanded" 
+                    class="read-more-btn"
+                  >
+                    {{ advice.isExpanded ? 'Thu gọn' : 'Xem thêm' }}
+                    <i :class="advice.isExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                  </button>
                 </div>
 
                 <div class="advice-footer">
@@ -456,55 +483,15 @@ onMounted(() => {
 /* Main Content Grid */
 .main-content-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  grid-template-columns: 1fr 400px;
   gap: 2rem;
+  position: relative;
 }
 
 /* Info Sections */
-.info-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
-}
-
-.info-section h2 {
-  color: #008053;
-  font-size: 1.5rem;
-  margin: 0 0 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.content-box {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 8px;
-  line-height: 1.6;
-}
-
-.metadata {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.metadata-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.metadata-item .label {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.metadata-item .value {
-  font-weight: 500;
-  color: #2c3e50;
+.info-column {
+  position: relative;
+  z-index: 1;
 }
 
 /* Advice Section */
@@ -515,15 +502,43 @@ onMounted(() => {
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  flex-shrink: 0;
+}
+
+.advice-header {
+  flex-shrink: 0;
 }
 
 .advice-list {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-height: calc(100vh - 200px);
   overflow-y: auto;
   padding-right: 0.5rem;
+  margin-right: -0.5rem;
+}
+
+.advice-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.advice-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.advice-list::-webkit-scrollbar-thumb {
+  background: #008053;
+  border-radius: 3px;
+}
+
+.advice-list::-webkit-scrollbar-thumb:hover {
+  background: #006040;
 }
 
 .advice-card {
@@ -559,6 +574,37 @@ onMounted(() => {
   color: #2c3e50;
   line-height: 1.6;
   margin-bottom: 1rem;
+}
+
+.advice-content .truncated {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: #008053;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.read-more-btn:hover {
+  color: #006040;
+  transform: translateY(-1px);
+}
+
+.read-more-btn i {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
 }
 
 .advice-footer {
@@ -626,6 +672,8 @@ onMounted(() => {
 
   .advice-section {
     position: static;
+    height: auto;
+    width: 100%;
   }
 
   .advice-list {
@@ -662,6 +710,10 @@ onMounted(() => {
   .nav-button {
     width: 32px;
     height: 32px;
+  }
+
+  .content-image img {
+    max-height: 300px;
   }
 }
 
@@ -766,5 +818,39 @@ onMounted(() => {
 
 .edit-btn i {
   font-size: 1rem;
+}
+
+.formatted-text {
+  white-space: pre-line;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.content-box h3 {
+  color: #008053;
+  margin: 1.5rem 0 1rem;
+  font-size: 1.2rem;
+}
+
+.content-box h3:first-child {
+  margin-top: 0;
+}
+
+.content-image {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.content-image img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.content-image img:hover {
+  transform: scale(1.02);
 }
 </style>

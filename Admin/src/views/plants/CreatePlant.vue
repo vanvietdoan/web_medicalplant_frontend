@@ -103,6 +103,7 @@ const handleSubmit = async () => {
       updated_at: ''
     }
     
+    console.log("plantData::",plantData.images)
     const response = await plantService.createPlant(plantData)
     console.log("creatq",response)
     if (response) {
