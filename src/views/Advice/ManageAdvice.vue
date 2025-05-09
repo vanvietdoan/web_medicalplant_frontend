@@ -75,7 +75,7 @@ const handleEditAdvice = (adviceId: number) => {
     console.error('Invalid advice ID');
     return;
   }
-  router.push(`/profile/advice/${adviceId}/edit`);
+  router.push(`/report/${adviceId}/edit`);
 };
 
 const handleDeleteAdvice = async (adviceId: number) => {

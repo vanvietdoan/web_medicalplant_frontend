@@ -5,8 +5,7 @@ import { diseasesService } from '../../services/diseases.service';
 import { adviceService } from '../../services/advice.service';
 import { authService } from '../../services/auth.service';
 import type { Diseases } from '../../models/Diseases';
-import type { Advice } from '../../models/Advice';
-import type { IAdviceService } from '../../services/advice.service';
+import type { Advice } from '../../models/Advice';;
 
 const route = useRoute();
 const router = useRouter();
@@ -175,6 +174,16 @@ onMounted(() => {
 
               <div v-if="disease.images.length > 3" class="content-image">
                 <img :src="disease.images[3].url" :alt="`${disease.name} - ảnh 4`">
+              </div>
+
+              <h3 v-if="advices.some(advice => advice.plant)">Cây thuốc có thể điều trị</h3>
+              <div v-if="advices.some(advice => advice.plant)" class="plant-list">
+                <div v-for="advice in advices.filter(advice => advice.plant)" :key="advice.plant.plant_id" class="plant-item">
+                  <i class="fas fa-seedling"></i>
+                  <router-link :to="`/plant/${advice.plant.plant_id}`" class="plant-link">
+                    {{ advice.plant.name }}
+                  </router-link>
+                </div>
               </div>
 
               <div class="metadata">
@@ -499,7 +508,10 @@ onMounted(() => {
 }
 
 .content-box {
+  background: white;
   color: #2c3e50;
+  padding: 1rem;
+  border-radius: 8px;
 }
 
 .content-box h3 {
@@ -536,8 +548,33 @@ onMounted(() => {
   transform: scale(1.02);
 }
 
+/* Metadata */
+.metadata {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.metadata-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  color: #666;
+}
+
+.metadata-item .label {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
 /* Symptoms List */
 .symptoms-list {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -562,25 +599,6 @@ onMounted(() => {
 .symptom-item i {
   color: #008053;
   font-size: 1.1rem;
-}
-
-/* Metadata */
-.metadata {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
-}
-
-.metadata-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-  color: #666;
-}
-
-.metadata-item .label {
-  font-weight: 500;
-  color: #2c3e50;
 }
 
 /* Advice Section */
@@ -827,5 +845,44 @@ onMounted(() => {
   .content-image img {
     max-height: 300px;
   }
+}
+
+/* Plant List Styles */
+.plant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.plant-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f0f7f4;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.plant-item:hover {
+  background: #e0efe8;
+  transform: translateX(5px);
+}
+
+.plant-item i {
+  color: #008053;
+  font-size: 1.1rem;
+}
+
+.plant-link {
+  color: #008053;
+  text-decoration: none;
+  font-weight: 500;
+  flex: 1;
+}
+
+.plant-link:hover {
+  text-decoration: underline;
 }
 </style> 

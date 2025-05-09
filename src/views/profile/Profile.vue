@@ -144,6 +144,11 @@ onMounted(async () => {
           <i class="fas fa-comment-dots"></i>
           Quản lý lời khuyên
         </router-link>
+
+        <router-link to="/profile/report" class="advice-btn">
+          <i class="fas fa-file-alt"></i>
+          Quản lý báo cáo
+        </router-link>
         
         <button @click="router.push('/profile/edit')" class="advice-btn">
           <i class="fas fa-edit"></i>

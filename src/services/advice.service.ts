@@ -1,25 +1,8 @@
-import type { Advice, UserAdviceCount } from '../models/Advice'
 import BaseService from './base.service'
 
-export interface IAdviceService {
-  getAdvices(): Promise<Advice[]>;
-  getAdviceById(id: number): Promise<Advice>;
-  getAdvicesByPlant(plantId: number): Promise<Advice[]>;
-  getAdviceByDiseaseID(diseaseId: number): Promise<Advice[]>;
-  getAdvicesByUser(userId: number): Promise<Advice[]>;
-  deleteAdvice(id: number): Promise<void>;
-  createAdvice(data: {
-    title: string;
-    content: string;
-    plant_id: number;
-    disease_id: number;
-    user_id: number;
-  }): Promise<Advice>;
-  updateAdvice(id: number, data: Partial<Advice>): Promise<Advice>;
-  getListUsetIDMostAdvice(): Promise<UserAdviceCount[]>;
-}
+import type { Advice } from '../models/Advice'
 
-class AdviceService extends BaseService implements IAdviceService {
+class AdviceService extends BaseService {
   async getAdvices(): Promise<Advice[]> {
     console.log('Fetching advices list from API...')
     try {
@@ -119,9 +102,9 @@ class AdviceService extends BaseService implements IAdviceService {
       throw error
     }
   }
-  async getListUsetIDMostAdvice(): Promise<UserAdviceCount[]> {
+  async getListUsetIDMostAdvice(): Promise<Advice[]> {
     try {
-      const response = await this.get<UserAdviceCount[]>('/advice/user/most-advice')
+      const response = await this.get<Advice[]>('/advice/user/most-advice')
       return response
     } catch (error) {
       console.error('Error fetching list user ID most advice:', error)
@@ -130,5 +113,4 @@ class AdviceService extends BaseService implements IAdviceService {
   }
 }
 
-
-export const adviceService = new AdviceService() 
+export const adviceService = new AdviceService()  

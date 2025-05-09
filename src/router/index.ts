@@ -15,6 +15,9 @@ import EditProfile from '../views/profile/EditProfile.vue'
 import ManageAdvice from '../views/Advice/ManageAdvice.vue'
 import VisitProfile from '../views/profile/VisitProfile.vue'
 import EditAdvice from '../views/Advice/EditAdvice.vue'
+import ManageReport from '../views/Report/ManageReport.vue'
+import CreateReport from '../views/Report/CreateReport.vue'
+import EditReport from '../views/Report/EditReport.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -132,6 +135,24 @@ const router = createRouter({
       name: 'user-advice-create',
       component: CreateAdvice,
       meta: { title: 'Tạo lời khuyên' }
+    },
+    {
+      path: '/profile/report',
+      name: 'profile-report',
+      component: ManageReport,
+      meta: { title: 'Quản lý báo cáo' }
+    },
+    {
+      path: '/report/create',
+      name: 'report-create',
+      component: CreateReport,
+      meta: { title: 'Tạo báo cáo' }
+    },  
+    {
+      path: '/report/:id/edit',
+      name: 'report-edit',
+      component: EditReport,
+      meta: { title: 'Chỉnh sửa báo cáo' }
     },
   ]
 })

@@ -14,6 +14,9 @@ import UserCreate from '../views/users/UserCreate.vue'
 import AdviceList from '../views/advices/AdviceList.vue'
 import AdviceCreate from '../views/advices/AdviceCreate.vue'
 import AdviceEdit from '../views/advices/AdviceEdit.vue'
+import ReportList from '../views/reports/ReportList.vue'
+import EditReport from '../views/reports/EditReport.vue'
+import CreateReport from '../views/reports/CreateReport.vue'
 
 import listDivision from '../views/fillter/Division/listDivision.vue'
 import editDivision from '../views/fillter/Division/editDivision.vue'
@@ -268,6 +271,24 @@ const router = createRouter({
               meta: { title: 'Sửa loài' }
             }
           ]
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: ReportList,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'reports/create',
+          name: 'CreateReport',
+          component: CreateReport,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'reports/edit/:id',
+          name: 'EditReport',
+          component: EditReport,
+          meta: { requiresAuth: true }
         }
       ]
     }

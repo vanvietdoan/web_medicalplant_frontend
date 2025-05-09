@@ -136,7 +136,7 @@ const handleSubmit = async () => {
           url: getPathFromUrl(img.url)
         })),
         ...uploadedImages.map(img => ({
-          picture_id: 0, // Temporary placeholder
+        picture_id: 0, // Temporary placeholder
           url: getPathFromUrl(img.url || '')
         }))
       ],
