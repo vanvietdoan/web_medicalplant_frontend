@@ -12,6 +12,7 @@ const router = useRouter()
 const loading = ref(false)
 const reportForm = ref<FormInstance>()
 const selectedPlant = ref<Plant | null>(null)
+const fromPlant = ref(false)
 
 // State for dropdown options
 const plants = ref<Plant[]>([])
@@ -125,7 +126,12 @@ const handleSubmit = async () => {
     
     if (response) {
       ElMessage.success('Tạo báo cáo thành công')
-      router.push('/profile/report')
+      // Navigate back to plant detail if came from there
+      if (fromPlant.value) {
+        router.push(`/plant/${formData.plant_id}`)
+      } else {
+        router.push('/profile/report')
+      }
     } else {
       throw new Error('Không thể tạo báo cáo')
     }
@@ -142,8 +148,26 @@ const handleSubmit = async () => {
 }
 
 // Lifecycle hooks
-onMounted(() => {
-  fetchOptions()
+onMounted(async () => {
+  await fetchOptions()
+  // Check if we came from plant detail page
+  const plantId = router.currentRoute.value.query.plant_id
+  if (plantId) {
+    fromPlant.value = true
+    formData.plant_id = Number(plantId)
+    const plant = plants.value.find(p => p.plant_id === Number(plantId))
+    if (plant) {
+      selectedPlant.value = plant
+      originalPlantName.value = plant.name
+      formData.plant_name = plant.name
+      formData.plant_english_name = plant.english_name
+      formData.plant_species_id = plant.species_id
+      // Pre-fill all plant information
+      formData.plant_description = plant.description
+      formData.plant_instructions = plant.instructions
+      formData.plant_benefits = plant.benefits
+    }
+  }
 })
 
 const loadPlantData = (field: 'plant_description' | 'plant_instructions' | 'plant_benefits') => {
@@ -161,6 +185,11 @@ const loadPlantData = (field: 'plant_description' | 'plant_instructions' | 'plan
         break
     }
   }
+}
+
+// Add clear functions for each field
+const clearField = (field: 'plant_description' | 'plant_instructions' | 'plant_benefits') => {
+  formData[field] = ''
 }
 </script>
 <template>
@@ -231,14 +260,24 @@ const loadPlantData = (field: 'plant_description' | 'plant_instructions' | 'plan
             rows="5"
             placeholder="Nhập mô tả"
           ></textarea>
-          <button 
-            type="button" 
-            class="btn-icon" 
-            @click="loadPlantData('plant_description')"
-            title="Lấy từ cây hiện tại"
-          >
-            <i class="fas fa-sync"></i>
-          </button>
+          <div class="button-group">
+            <button 
+              type="button" 
+              class="btn-icon" 
+              @click="loadPlantData('plant_description')"
+              title="Lấy từ cây hiện tại"
+            >
+              <i class="fas fa-sync"></i>
+            </button>
+            <button 
+              type="button" 
+              class="btn-icon" 
+              @click="clearField('plant_description')"
+              title="Xóa nội dung"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -250,14 +289,24 @@ const loadPlantData = (field: 'plant_description' | 'plant_instructions' | 'plan
             rows="5"
             placeholder="Nhập hướng dẫn sử dụng"
           ></textarea>
-          <button 
-            type="button" 
-            class="btn-icon" 
-            @click="loadPlantData('plant_instructions')"
-            title="Lấy từ cây hiện tại"
-          >
-            <i class="fas fa-sync"></i>
-          </button>
+          <div class="button-group">
+            <button 
+              type="button" 
+              class="btn-icon" 
+              @click="loadPlantData('plant_instructions')"
+              title="Lấy từ cây hiện tại"
+            >
+              <i class="fas fa-sync"></i>
+            </button>
+            <button 
+              type="button" 
+              class="btn-icon" 
+              @click="clearField('plant_instructions')"
+              title="Xóa nội dung"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -269,14 +318,24 @@ const loadPlantData = (field: 'plant_description' | 'plant_instructions' | 'plan
             rows="5"
             placeholder="Nhập công dụng"
           ></textarea>
-          <button 
-            type="button" 
-            class="btn-icon" 
-            @click="loadPlantData('plant_benefits')"
-            title="Lấy từ cây hiện tại"
-          >
-            <i class="fas fa-sync"></i>
-          </button>
+          <div class="button-group">
+            <button 
+              type="button" 
+              class="btn-icon" 
+              @click="loadPlantData('plant_benefits')"
+              title="Lấy từ cây hiện tại"
+            >
+              <i class="fas fa-sync"></i>
+            </button>
+            <button 
+              type="button" 
+              class="btn-icon" 
+              @click="clearField('plant_benefits')"
+              title="Xóa nội dung"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -406,6 +465,12 @@ textarea {
   gap: 0.5rem;
 }
 
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .btn-icon {
   padding: 0.75rem;
   background: #f8f9fa;
@@ -414,11 +479,18 @@ textarea {
   color: #666;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover {
   background: #e9ecef;
   color: #008053;
+}
+
+.btn-icon i {
+  font-size: 1rem;
 }
 
 .form-actions {

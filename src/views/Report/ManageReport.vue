@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { reportService } from '../../services/report.service';
-import { authService } from '../../services/auth.service';
 import type { Report } from '../../models/Report';
 import { ElMessage } from 'element-plus';
+import divisionService from '../../services/fillter/division.service';
+import classService from '../../services/fillter/class.service';
+import orderService from '../../services/fillter/order.service';
+import familyService from '../../services/fillter/family.service';
+import genusService from '../../services/fillter/genus.service';
+import speciesService from '../../services/fillter/species.service';
+import { plantService } from '../../services/plant.service';
+import type { Plant } from '../../models/Plant';
 
 const router = useRouter();
+const route = useRoute();
 const loading = ref(false);
 const error = ref<string | null>(null);
 const reports = ref<Report[]>([]);
 const searchQuery = ref('');
-const selectedStatus = ref('');
 const currentPage = ref(1);
-const itemsPerPage = 10;
-const currentUser = ref(authService.getCurrentUser());
 const filters = ref({
   status: ''
 });
@@ -27,15 +32,25 @@ const statusOptions = [
   { value: '1', label: 'Đã duyệt' }
 ];
 
+// Add filter states
+const selectedDivision = ref('');
+const selectedClass = ref('');
+const selectedOrder = ref('');
+const selectedFamily = ref('');
+const selectedGenus = ref('');
+const selectedSpecies = ref('');
+
+// Add data states
+const divisions = ref<any[]>([]);
+const classes = ref<any[]>([]);
+const orders = ref<any[]>([]);
+const families = ref<any[]>([]);
+const genera = ref<any[]>([]);
+const species = ref<any[]>([]);
+
 // Computed properties for filtering
 const filteredReports = computed(() => {
-  let result = reports.value;
-  
-  if (filters.value.status) {
-    result = result.filter(report => getStatusValue(report.status) === filters.value.status);
-  }
-  
-  return result;
+  return reports.value;
 });
 
 const getStatusValue = (status: number | null) => {
@@ -49,22 +64,78 @@ const fetchReports = async () => {
   try {
     loading.value = true;
     error.value = null;
-    const response = await reportService.getReportsWithPagination(currentPage.value, itemsPerPage);
-    console.log('Full response:', response);
+
+    let response: Report[] | undefined;
     
-    // Kiểm tra cấu trúc response và gán dữ liệu phù hợp
+    // Build query parameters for plant search based on taxonomy filters
+    let queryParams = new URLSearchParams();
+    
+    if (selectedDivision.value) {
+      queryParams.append('divisionId', (Number(selectedDivision.value) + 1).toString());
+    }
+    if (selectedClass.value) {
+      queryParams.append('classId', (Number(selectedClass.value) + 1).toString());
+    }
+    if (selectedOrder.value) {
+      queryParams.append('orderId', (Number(selectedOrder.value) + 1).toString());
+    }
+    if (selectedFamily.value) {
+      queryParams.append('familyId', (Number(selectedFamily.value) + 1).toString());
+    }
+    if (selectedGenus.value) {
+      queryParams.append('genusId', (Number(selectedGenus.value) + 1).toString());
+    }
+    if (selectedSpecies.value) {
+      queryParams.append('speciesId', (Number(selectedSpecies.value) + 1).toString());
+    }
+
+    // Get plants based on taxonomy filters
+    const plants = await plantService.getPlantSearch(queryParams.toString());
+    
+    if (plants && plants.length > 0) {
+      // Get reports for each plant
+      const plantIds = plants.map((plant: Plant) => plant.plant_id);
+      const reportsPromises = plantIds.map((plantId: number) => 
+        reportService.getReportsByPlant(plantId)
+      );
+      
+      const reportsResults = await Promise.all(reportsPromises);
+      response = reportsResults.flat();
+    } else {
+      response = [];
+    }
+
+    // Apply status filter if needed
+    if (filters.value.status && response) {
+      response = response.filter((report: Report) => 
+        getStatusValue(report.status) === filters.value.status
+      );
+    }
+
+    // Apply search filter if needed
+    if (searchQuery.value && response) {
+      const query = searchQuery.value.toLowerCase();
+      response = response.filter((report: Report) => 
+        report.plant_name.toLowerCase().includes(query) ||
+        report.summary.toLowerCase().includes(query) ||
+        report.propose.toLowerCase().includes(query)
+      );
+    }
+    
     if (response && Array.isArray(response)) {
       reports.value = response;
-    } else if (response && response.data && Array.isArray(response.data)) {
-      reports.value = response.data;
     } else {
       reports.value = [];
       console.warn('Unexpected response structure:', response);
     }
     
-    console.log('Reports loaded:', reports.value);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error fetching reports:', err);
+    if (err.response?.status === 401 || err.message === 'Unauthorized') {
+      // Redirect to login page if unauthorized
+      router.push('/login');
+      return;
+    }
     error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách báo cáo';
     reports.value = [];
   } finally {
@@ -102,9 +173,27 @@ const handleDeleteReport = async (reportId: number) => {
   }
 };
 
-const clearFilters = () => {
+const clearFilters = async () => {
+  // Reset all filter values
   searchQuery.value = '';
   filters.value.status = '';
+  selectedDivision.value = '';
+  selectedClass.value = '';
+  selectedOrder.value = '';
+  selectedFamily.value = '';
+  selectedGenus.value = '';
+  selectedSpecies.value = '';
+
+  // Reset all data arrays
+  classes.value = [];
+  orders.value = [];
+  families.value = [];
+  genera.value = [];
+  species.value = [];
+
+  // Fetch all reports
+  currentPage.value = 1;
+  await fetchReports();
 };
 
 const getStatusLabel = (status: number | null) => {
@@ -121,11 +210,272 @@ const getStatusClass = (status: number | null) => {
   return '';
 };
 
-const handleCreateReport = () => {
-  router.push('/report/create');
+
+
+// Add computed properties for available filter options
+const availableClasses = computed(() => {
+  if (!selectedDivision.value) return [];
+  const targetDivisionId = Number(selectedDivision.value) + 1;
+  return classes.value.filter((cls: { division_id: number }) => cls.division_id === targetDivisionId);
+});
+
+const availableOrders = computed(() => {
+  if (!selectedClass.value) return [];
+  const targetClassId = Number(selectedClass.value) + 1;
+  return orders.value.filter((order: { class_id: number }) => order.class_id === targetClassId);
+});
+
+const availableFamilies = computed(() => {
+  if (!selectedOrder.value) return [];
+  const targetOrderId = Number(selectedOrder.value) + 1;
+  return families.value.filter((family: { order_id: number }) => family.order_id === targetOrderId);
+});
+
+const availableGenera = computed(() => {
+  if (!selectedFamily.value) return [];
+  const targetFamilyId = Number(selectedFamily.value) + 1;
+  return genera.value.filter((genus: { family_id: number }) => genus.family_id === targetFamilyId);
+});
+
+const availableSpecies = computed(() => {
+  if (!selectedGenus.value) return [];
+  const targetGenusId = Number(selectedGenus.value) + 1;
+  return species.value.filter((s: { genus_id: number }) => s.genus_id === targetGenusId);
+});
+
+// Add filter change handlers
+const handleDivisionChange = async () => {
+  selectedClass.value = '';
+  selectedOrder.value = '';
+  selectedFamily.value = '';
+  selectedGenus.value = '';
+  selectedSpecies.value = '';
+  if (selectedDivision.value) {
+    const classesData = await classService.getClasses();
+    const targetDivisionId = Number(selectedDivision.value) + 1;
+    classes.value = classesData.filter((cls: { division_id: number }) => cls.division_id === targetDivisionId);
+  }
+  currentPage.value = 1;
+  await fetchReports();
 };
 
+const handleClassChange = async () => {
+  selectedOrder.value = '';
+  selectedFamily.value = '';
+  selectedGenus.value = '';
+  selectedSpecies.value = '';
+  // Load orders for selected class
+  if (selectedClass.value) {
+    const ordersData = await orderService.getOrders();
+    const filteredOrders = ordersData.filter(order => order.class_id === Number(selectedClass.value) + 1);
+    orders.value = [...filteredOrders];
+  }
+  currentPage.value = 1;
+  await fetchReports();
+};
+
+const handleOrderChange = async () => {
+  selectedFamily.value = '';
+  selectedGenus.value = '';
+  selectedSpecies.value = '';
+  // Load families for selected order
+  if (selectedOrder.value) {
+    const familiesData = await familyService.getFamilies();
+    const filteredFamilies = familiesData.filter(family => family.order_id === Number(selectedOrder.value) + 1);
+    families.value = [...filteredFamilies];
+  }
+  currentPage.value = 1;
+  await fetchReports();
+};
+
+const handleFamilyChange = async () => {
+  selectedGenus.value = '';
+  selectedSpecies.value = '';
+  // Load genera for selected family
+  if (selectedFamily.value) {
+    const generaData = await genusService.getGenuses();
+    const filteredGenera = generaData.filter(genus => genus.family_id === Number(selectedFamily.value) + 1);
+    genera.value = [...filteredGenera];
+  }
+  currentPage.value = 1;
+  await fetchReports();
+};
+
+const handleGenusChange = async () => {
+  selectedSpecies.value = '';
+  // Load species for selected genus
+  if (selectedGenus.value) {
+    const speciesData = await speciesService.getSpecies();
+    const filteredSpecies = speciesData.filter(s => s.genus_id === Number(selectedGenus.value) + 1);
+    species.value = [...filteredSpecies];
+  }
+  currentPage.value = 1;
+  await fetchReports();
+};
+
+const handleSpeciesChange = async () => {
+  console.log("Selected species ID:", selectedSpecies.value);
+  currentPage.value = 1;
+  await fetchReports();
+};
+
+// Add watch for search query
+watch(searchQuery, async () => {
+  currentPage.value = 1;
+  await fetchReports();
+});
+
+// Add watch for status filter
+watch(() => filters.value.status, async () => {
+  currentPage.value = 1;
+  await fetchReports();
+});
+
+// Add fetchFilterData function
+const fetchFilterData = async () => {
+  try {
+    const [
+      divisionsData,
+      classesData,
+      ordersData,
+      familiesData,
+      generaData,
+      speciesData
+    ] = await Promise.all([
+      divisionService.getDivisions(),
+      classService.getClasses(),
+      orderService.getOrders(),
+      familyService.getFamilies(),
+      genusService.getGenuses(),
+      speciesService.getSpecies()
+    ]);
+
+    divisions.value = divisionsData;
+    classes.value = classesData;
+    orders.value = ordersData;
+    families.value = familiesData;
+    genera.value = generaData;
+    species.value = speciesData;
+  } catch (error) {
+    console.error('Error fetching filter data:', error);
+  }
+};
+
+// Add computed property to check if there are any active filters
+const hasActiveFilters = computed(() => {
+  return searchQuery.value || 
+         filters.value.status || 
+         selectedDivision.value || 
+         selectedClass.value || 
+         selectedOrder.value || 
+         selectedFamily.value || 
+         selectedGenus.value || 
+         selectedSpecies.value;
+});
+
+// Add function to handle initial filters from query params
+const handleInitialFilters = async () => {
+  const { plant_id } = route.query;
+  
+  if (plant_id) {
+    try {
+      // Get plant details
+      const plant = await plantService.getPlantById(Number(plant_id));
+      if (plant && plant.species_id) {
+        // Store all taxonomy IDs
+        const taxonomyIds: {
+          species_id: number;
+          genus_id: number | null;
+          family_id: number | null;
+          order_id: number | null;
+          class_id: number | null;
+          division_id: number | null;
+        } = {
+          species_id: plant.species_id,
+          genus_id: null,
+          family_id: null,
+          order_id: null,
+          class_id: null,
+          division_id: null
+        };
+
+        // Get species details
+        const species = await speciesService.getSpeciesById(taxonomyIds.species_id);
+        if (species && species.genus_id) {
+          taxonomyIds.genus_id = species.genus_id;
+
+          // Get genus details
+          const genus = await genusService.getGenusById(taxonomyIds.genus_id);
+          if (genus && genus.family_id) {
+            taxonomyIds.family_id = genus.family_id;
+
+            // Get family details
+            const family = await familyService.getFamilyById(taxonomyIds.family_id);
+            if (family && family.order_id) {
+              taxonomyIds.order_id = family.order_id;
+
+              // Get order details
+              const order = await orderService.getOrderById(taxonomyIds.order_id);
+              if (order && order.class_id) {
+                taxonomyIds.class_id = order.class_id;
+
+                // Get class details
+                const cls = await classService.getClassById(taxonomyIds.class_id);
+                if (cls && cls.division_id) {
+                  taxonomyIds.division_id = cls.division_id;
+                }
+              }
+            }
+          }
+        }
+
+        console.log("Final taxonomy IDs:", {
+          division_id: taxonomyIds.division_id,
+          class_id: taxonomyIds.class_id,
+          order_id: taxonomyIds.order_id,
+          family_id: taxonomyIds.family_id,
+          genus_id: taxonomyIds.genus_id,
+          species_id: taxonomyIds.species_id
+        });
+
+        // Load all filter data first
+        await fetchFilterData();
+
+        // Set filters in order from top to bottom
+        if (taxonomyIds.division_id) {
+          selectedDivision.value = (taxonomyIds.division_id - 1).toString();
+          await handleDivisionChange();
+        }
+        if (taxonomyIds.class_id) {
+          selectedClass.value = (taxonomyIds.class_id - 1).toString();
+          await handleClassChange();
+        }
+        if (taxonomyIds.order_id) {
+          selectedOrder.value = (taxonomyIds.order_id - 1).toString();
+          await handleOrderChange();
+        }
+        if (taxonomyIds.family_id) {
+          selectedFamily.value = (taxonomyIds.family_id - 1).toString();
+          await handleFamilyChange();
+        }
+        if (taxonomyIds.genus_id) {
+          selectedGenus.value = (taxonomyIds.genus_id - 1).toString();
+          await handleGenusChange();
+        }
+        if (taxonomyIds.species_id) {
+          selectedSpecies.value = (taxonomyIds.species_id - 1).toString();
+          await handleSpeciesChange();
+        }
+      }
+    } catch (err) {
+      console.error('Error setting initial filters:', err);
+    }
+  }
+};
+
+// Update onMounted to handle initial filters
 onMounted(async () => {
+  await Promise.all([fetchFilterData(), handleInitialFilters()]);
   await fetchReports();
 });
 
@@ -168,14 +518,87 @@ onUnmounted(() => {
           </select>
         </div>
 
+        <div class="filter-group">
+          <label>Ngành</label>
+          <select v-model="selectedDivision" class="filter-select" @change="handleDivisionChange">
+            <option value="">Chọn ngành</option>
+            <option v-for="division in divisions" 
+                    :key="division.division_id" 
+                    :value="(division.division_id - 1).toString()">
+              {{ division.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group" v-if="selectedDivision">
+          <label>Lớp</label>
+          <select v-model="selectedClass" class="filter-select" @change="handleClassChange">
+            <option value="">Chọn lớp</option>
+            <option v-for="cls in availableClasses" 
+                    :key="cls.class_id" 
+                    :value="(cls.class_id - 1).toString()">
+              {{ cls.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group" v-if="selectedClass">
+          <label>Bộ</label>
+          <select v-model="selectedOrder" class="filter-select" @change="handleOrderChange">
+            <option value="">Chọn bộ</option>
+            <option v-for="order in availableOrders" 
+                    :key="order.order_id" 
+                    :value="(order.order_id - 1).toString()">
+              {{ order.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group" v-if="selectedOrder">
+          <label>Họ</label>
+          <select v-model="selectedFamily" class="filter-select" @change="handleFamilyChange">
+            <option value="">Chọn họ</option>
+            <option v-for="family in availableFamilies" 
+                    :key="family.family_id" 
+                    :value="(family.family_id - 1).toString()">
+              {{ family.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group" v-if="selectedFamily">
+          <label>Chi</label>
+          <select v-model="selectedGenus" class="filter-select" @change="handleGenusChange">
+            <option value="">Chọn chi</option>
+            <option v-for="genus in availableGenera" 
+                    :key="genus.genus_id" 
+                    :value="(genus.genus_id - 1).toString()">
+              {{ genus.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group" v-if="selectedGenus">
+          <label>Loài</label>
+          <select v-model="selectedSpecies" class="filter-select" @change="handleSpeciesChange">
+            <option value="">Chọn loài</option>
+            <option v-for="species in availableSpecies" 
+                    :key="species.species_id" 
+                    :value="(species.species_id - 1).toString()">
+              {{ species.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-actions" v-if="hasActiveFilters">
         <button 
-          v-if="searchQuery || filters.status"
           @click="clearFilters" 
           class="clear-filters-btn"
         >
-          <i class="fas fa-times"></i>
-          Xóa bộ lọc
+            <i class="fas fa-times-circle"></i>
+            <span>Xóa bộ lọc</span>
         </button>
+        </div>
       </div>
     </div>
 
@@ -327,31 +750,31 @@ onUnmounted(() => {
 }
 
 .filters {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  margin-top: 1rem;
+  position: relative;
 }
 
 .filter-group {
-  flex: 1;
-  min-width: 200px;
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-group label {
-  display: block;
   margin-bottom: 0.5rem;
-  color: #666;
-  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
 }
 
 .filter-select {
-  width: 100%;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 8px;
-  font-size: 1rem;
   background-color: white;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
 }
 
 .filter-select:focus {
@@ -360,22 +783,40 @@ onUnmounted(() => {
   box-shadow: 0 0 0 2px rgba(0, 128, 83, 0.1);
 }
 
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+}
+
 .clear-filters-btn {
-  padding: 0.75rem 1.5rem;
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
 }
 
 .clear-filters-btn:hover {
-  background: #c82333;
-  transform: translateY(-2px);
+  background: #dc3545;
+  color: #fff;
+  border-color: #dc3545;
+  transform: translateY(-1px);
+}
+
+.clear-filters-btn i {
+  font-size: 1rem;
+  color: #dc3545;
+}
+
+.clear-filters-btn:hover i {
+  color: #fff;
 }
 
 .loading, .error, .empty-state {
@@ -579,11 +1020,11 @@ onUnmounted(() => {
   }
 
   .filters {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
-  .filter-group {
-    width: 100%;
+  .filter-actions {
+    margin-top: 1rem;
   }
 
   .clear-filters-btn {

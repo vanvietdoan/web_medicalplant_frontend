@@ -8,6 +8,7 @@ import { authService } from '../../services/auth.service';
 import type { Plant } from '../../models/Plant';
 import type { Species } from '../../models/Species';
 import type { Advice } from '../../models/Advice';
+import { ElMessage } from 'element-plus';
 
 interface AdviceWithExpand extends Advice {
   isExpanded: boolean;
@@ -81,7 +82,18 @@ const handleCreateAdvice = () => {
   console.log('handleCreateAdvice called with plant_id:', route.params.id)
   router.push({
     path: '/plant/create-advice',
-    
+    query: { plant_id: route.params.id }
+  });
+};
+
+const handleCreateReport = () => {
+  if (!currentUser.value) {
+    ElMessage.warning('Vui lòng đăng nhập để tạo báo cáo');
+    router.push('/login');
+    return;
+  }
+  router.push({
+    path: '/report/create',
     query: { plant_id: route.params.id }
   });
 };
@@ -91,6 +103,16 @@ const handleEditAdvice = (adviceId: number) => {
   router.push({
     path :`/profile/advice/${adviceId}/edit`,
     query: { plant_id: route.params.id }
+  });
+};
+
+const handleViewReports = () => {
+  router.push({
+    path: '/profile/report',
+    query: { 
+      plant_id: route.params.id,
+      species_id: plant.value?.species_id
+    }
   });
 };
 
@@ -153,6 +175,23 @@ onMounted(() => {
         <div class="hero-content">
           <h1>{{ plant.name }}</h1>
           <p class="english-name">{{ plant.english_name }}</p>
+          <div class="action-buttons">
+            <button 
+              v-if="currentUser"
+              @click="handleCreateReport" 
+              class="create-report-btn"
+            >
+              <i class="fas fa-file-medical"></i>
+              Tạo báo cáo
+            </button>
+            <button 
+              @click="handleViewReports" 
+              class="view-reports-btn"
+            >
+              <i class="fas fa-list"></i>
+              Xem danh sách báo cáo
+            </button>
+          </div>
         </div>
       </section>
 
@@ -852,5 +891,48 @@ onMounted(() => {
 
 .content-image img:hover {
   transform: scale(1.02);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.create-report-btn,
+.view-reports-btn {
+  padding: 0.75rem 1.5rem;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-report-btn {
+  background: #008053;
+}
+
+.create-report-btn:hover {
+  background: #006040;
+  transform: translateY(-2px);
+}
+
+.view-reports-btn {
+  background: #6c757d;
+}
+
+.view-reports-btn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.create-report-btn i,
+.view-reports-btn i {
+  font-size: 1.1rem;
 }
 </style>
