@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { diseasesService } from '../../services/diseases.service';
 import { adviceService } from '../../services/advice.service';
@@ -16,12 +16,6 @@ const error = ref<string | null>(null);
 const currentImageIndex = ref(0);
 const isLoggedIn = ref(false);
 const currentUser = ref<any>(null);
-const isDescriptionExpanded = ref(false);
-
-// Add computed property for valid plants
-const validPlants = computed(() => {
-  return advices.value.filter(advice => advice.plant && advice.plant.plant_id);
-});
 
 const fetchDiseaseDetail = async () => {
   try {

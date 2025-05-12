@@ -1,6 +1,5 @@
 import type { Login, AuthResponse,  RegisterUser, User } from '../models/User';
 import BaseService from './base.service';
-import { userService } from './user.service';   
 
 class AuthService extends BaseService {
   async login(credentials: Login): Promise<AuthResponse> {

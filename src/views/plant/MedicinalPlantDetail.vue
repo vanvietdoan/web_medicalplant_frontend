@@ -5,13 +5,17 @@ import { plantService } from '../../services/plant.service';
 import { adviceService } from '../../services/advice.service';
 import speciesService from '../../services/fillter/species.service';
 import { authService } from '../../services/auth.service';
+import { evalueService } from '../../services/evalue.service';
+import { userService } from '../../services/user.service';
 import type { Plant } from '../../models/Plant';
 import type { Species } from '../../models/Species';
 import type { Advice } from '../../models/Advice';
+import type { EvalueResponse } from '../../models/Evalue';
 import { ElMessage } from 'element-plus';
 
 interface AdviceWithExpand extends Advice {
   isExpanded: boolean;
+  evaluations: (EvalueResponse & { userDetails?: any })[];
 }
 
 const route = useRoute();
@@ -39,10 +43,30 @@ const fetchPlantDetails = async () => {
       adviceService.getAdvicesByPlant(plantId)
     ]);
     plant.value = plantResponse;
-    advices.value = advicesResponse.map(advice => ({
-      ...advice,
-      isExpanded: false
-    }));
+    
+    // Fetch evaluations for each advice
+    const advicesWithEvaluations = await Promise.all(
+      advicesResponse.map(async (advice) => {
+        const evaluations = await evalueService.getEvaluesByAdvice(advice.advice_id);
+        // Fetch user details for each evaluation
+        const evaluationsWithUserDetails = await Promise.all(
+          evaluations.map(async (evalue) => {
+            const userDetails = await userService.getUserById(evalue.user_id);
+            return {
+              ...evalue,
+              userDetails
+            };
+          })
+        );
+        return {
+          ...advice,
+          isExpanded: false,
+          evaluations: evaluationsWithUserDetails
+        };
+      })
+    );
+    
+    advices.value = advicesWithEvaluations;
     
     // Lấy thông tin species sau khi có plant
     if (plantResponse.species_id) {
@@ -185,7 +209,16 @@ onMounted(() => {
               Tạo báo cáo
             </button>
             <button 
+              v-if="currentUser"
               @click="handleViewReports" 
+              class="view-reports-btn"
+            >
+              <i class="fas fa-list"></i>
+              Xem danh sách báo cáo
+            </button>
+            <button 
+              v-if="!currentUser"
+              @click="() => { ElMessage.warning('Vui lòng đăng nhập để xem báo cáo'); router.push('/login'); }" 
               class="view-reports-btn"
             >
               <i class="fas fa-list"></i>
@@ -258,7 +291,19 @@ onMounted(() => {
           <section class="advice-section">
             <div class="advice-header">
               <h2><i class="fas fa-comments"></i> Lời khuyên từ chuyên gia</h2>
-              <button @click="handleCreateAdvice" class="create-advice-btn">
+              <button 
+                v-if="currentUser"
+                @click="handleCreateAdvice" 
+                class="create-advice-btn"
+              >
+                <i class="fas fa-plus"></i>
+                Tạo lời khuyên cho cây này
+              </button>
+              <button 
+                v-else
+                @click="() => { ElMessage.warning('Vui lòng đăng nhập để tạo lời khuyên'); router.push('/login'); }" 
+                class="create-advice-btn"
+              >
                 <i class="fas fa-plus"></i>
                 Tạo lời khuyên cho cây này
               </button>
@@ -319,6 +364,42 @@ onMounted(() => {
                         </router-link>
                         <span class="title">{{ advice.user.title }}</span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Evaluation List Section -->
+                <div class="evaluation-section" v-if="advice.evaluations && advice.evaluations.length > 0">
+                  <h4 class="evaluation-title">
+                    <i class="fas fa-star"></i>
+                    Đánh giá ({{ advice.evaluations.length }})
+                  </h4>
+                  <div class="evaluation-list">
+                    <div v-for="evalue in advice.evaluations" :key="evalue.id" class="evaluation-item">
+                      <div class="evaluation-header">
+                        <div class="evaluation-user">
+                          <img 
+                            :src="evalue.userDetails?.avatar || '/default-avatar.png'" 
+                            :alt="evalue.userDetails?.full_name"
+                            class="evaluation-avatar"
+                          >
+                          <div class="evaluation-user-info">
+                            <router-link :to="`/profile/${evalue.user_id}`">
+                              {{ evalue.userDetails?.full_name }}
+                            </router-link>
+                            <span class="evaluation-date">{{ new Date(evalue.created_at).toLocaleDateString('vi-VN') }}</span>
+                          </div>
+                        </div>
+                        <div class="evaluation-rating">
+                          <i 
+                            v-for="star in 5" 
+                            :key="star"
+                            :class="['fas', star <= evalue.rating ? 'fa-star' : 'fa-star-o']"
+                            :style="{ color: star <= evalue.rating ? '#FFD700' : '#ccc' }"
+                          ></i>
+                        </div>
+                      </div>
+                      <p class="evaluation-content">{{ evalue.content }}</p>
                     </div>
                   </div>
                 </div>
@@ -934,5 +1015,113 @@ onMounted(() => {
 .create-report-btn i,
 .view-reports-btn i {
   font-size: 1.1rem;
+}
+
+/* Evaluation Styles */
+.evaluation-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.evaluation-title {
+  font-size: 1.1rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.evaluation-title i {
+  color: #FFD700;
+}
+
+.evaluation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.evaluation-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.evaluation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.evaluation-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.evaluation-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.evaluation-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.evaluation-user-info a {
+  color: #008053;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.evaluation-user-info a:hover {
+  text-decoration: underline;
+}
+
+.evaluation-date {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.evaluation-rating {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.evaluation-rating i {
+  font-size: 0.9rem;
+}
+
+.evaluation-content {
+  color: #2c3e50;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 2.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .evaluation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .evaluation-rating {
+    margin-left: 2.75rem;
+  }
+
+  .evaluation-content {
+    padding-left: 0;
+  }
 }
 </style>

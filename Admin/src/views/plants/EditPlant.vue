@@ -6,7 +6,7 @@ import type { Plant } from '../../models/Plant'
 import speciesService from '../../services/fillter/species.service'
 import { plantService } from '../../services/plant.service'
 import type { SpeciesResponse } from '../../models/Species'
-import { config } from '../../config'
+import { API_HOST } from '../../confighost'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,7 +74,7 @@ const removeExistingImage = (index: number) => {
 const getDisplayImageUrl = (url: string) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `${config.API_HOST}${url}`
+  return `${API_HOST}${url}`
 }
 
 // Function to extract path from URL

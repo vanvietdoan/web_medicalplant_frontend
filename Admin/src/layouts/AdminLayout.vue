@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Collection, Warning, ChatDotRound, User, SwitchButton, Document } from '@element-plus/icons-vue'
+import { Collection, Warning, ChatDotRound, User, SwitchButton, Document, Star } from '@element-plus/icons-vue'
 import { useAuth } from '../composables/useAuth'
 import { authService } from '../services/auth.service'
 import { computed } from 'vue'
@@ -52,6 +52,11 @@ const handleLogout = () => {
         <el-menu-item index="/admin/reports">
           <el-icon><Document /></el-icon>
           <span>Báo cáo</span>
+        </el-menu-item>
+
+        <el-menu-item index="/admin/evalues">
+          <el-icon><Star /></el-icon>
+          <span>Đánh giá</span>
         </el-menu-item>
 
         <!-- <el-menu-item index="/admin/comments">

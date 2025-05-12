@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import {  useRouter } from 'vue-router';
-import type { User, Login } from '../../models/User';
+import type { User } from '../../models/User';
 import { authService } from '../../services/auth.service';
 import { userService } from '../../services/user.service';
 
@@ -148,6 +148,11 @@ onMounted(async () => {
         <router-link to="/profile/report" class="advice-btn">
           <i class="fas fa-file-alt"></i>
           Quản lý báo cáo
+        </router-link>
+
+        <router-link to="/profile/evalue" class="advice-btn">
+          <i class="fas fa-star"></i>
+          Quản lý đánh giá
         </router-link>
         
         <button @click="router.push('/profile/edit')" class="advice-btn">

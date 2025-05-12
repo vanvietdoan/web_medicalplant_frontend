@@ -3,17 +3,14 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { reportService } from '../../services/report.service';
 import { plantService } from '../../services/plant.service';
-import { authService } from '../../services/auth.service';
-import type { Report } from '../../models/Report';
-import type { Plant } from '../../models/Plant';
 import { ElMessage } from 'element-plus';
+import type { Plant } from '../../models/Plant';
 
 const router = useRouter();
 const route = useRoute();
 const loading = ref(false);
 const submitting = ref(false);
 const plants = ref<Plant[]>([]);
-const report = ref<Report | null>(null);
 const originalPlantName = ref('');
 const originalReportData = ref({
   description: '',

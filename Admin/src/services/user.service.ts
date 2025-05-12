@@ -1,6 +1,5 @@
 import type { User, UserResponse, CreateUser } from '../models/User'
 import BaseService from './base.service'
-import axios from 'axios'
 
 class UserService extends BaseService {
   async getUsers(): Promise<UserResponse> {

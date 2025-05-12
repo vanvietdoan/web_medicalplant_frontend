@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { CreateUser } from '../../models/User'
 import { userService } from '../../services/user.service'
-import { config } from '../../config'
+import { API_HOST } from '../../confighost'
 const router = useRouter()
 const loading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -25,7 +25,7 @@ const user = ref<CreateUser>({
 const getDisplayImageUrl = (url: string) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `${config.API_HOST}${url}`
+  return `${API_HOST}${url}`
 }
 
 const handleSubmit = async () => {

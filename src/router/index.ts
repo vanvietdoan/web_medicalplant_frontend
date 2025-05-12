@@ -18,6 +18,9 @@ import EditAdvice from '../views/Advice/EditAdvice.vue'
 import ManageReport from '../views/Report/ManageReport.vue'
 import CreateReport from '../views/Report/CreateReport.vue'
 import EditReport from '../views/Report/EditReport.vue'
+import ManageEvalue from '../views/Evalue/ManageEvalue.vue'
+import CreateEvalue from '../views/Evalue/CreateEvalue.vue'
+import EditEvalue from '../views/Evalue/EditEvalue.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -154,8 +157,26 @@ const router = createRouter({
       component: EditReport,
       meta: { title: 'Chỉnh sửa báo cáo' }
     },
+    {
+      path: '/profile/evalue',
+      name: 'evalue',
+      component: ManageEvalue,
+      meta: { title: 'Quản lý đánh giá' }
+    },  
+    {
+      path: '/profile/evalue/create',
+      name: 'evalue-create',
+      component: CreateEvalue,
+      meta: { title: 'Tạo đánh giá' }
+    },
+    {
+      path: '/profile/evalue/:id/edit',
+      name: 'evalue-edit',
+      component: EditEvalue,
+      meta: { title: 'Chỉnh sửa đánh giá' }
+    },
   ]
-})
+})  
 
 // Navigation guard
 router.beforeEach((to, from, next) => {

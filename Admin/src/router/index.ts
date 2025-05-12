@@ -7,7 +7,6 @@ import EditPlant from '../views/plants/EditPlant.vue'
 import DiseaseList from '../views/diseases/DiseasesList.vue'
 import CreateDisease from '../views/diseases/CreateDisease.vue'
 import EditDisease from '../views/diseases/EditDisease.vue'
-import CommentList from '../views/comments/CommentList.vue'
 import UserList from '../views/users/UserList.vue'
 import UserEdit from '../views/users/UserEdit.vue'
 import UserCreate from '../views/users/UserCreate.vue'
@@ -38,8 +37,11 @@ import createGenus from '../views/fillter/Genus/createGenus.vue'
 import createSpecies from '../views/fillter/Species/createSpecies.vue'
 import listStatistics from '../views/statistics/listStatistics.vue'
 import chartStatistics from '../views/statistics/chartStatistics.vue'
+import EvalueList from '../views/evalue/EvalueList.vue'
+import CreateEvalue from '../views/evalue/CreateEvalue.vue'
+import EditEvalue from '../views/evalue/EditEvalue.vue'
 
-const router = createRouter({
+const router = createRouter({ 
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
@@ -108,12 +110,7 @@ const router = createRouter({
           props: true,
           meta: { title: 'Sửa bệnh' }
         },
-        {
-          path: 'comments',
-          name: 'comments',
-          component: CommentList,
-          meta: { title: 'Quản lý bình luận' }
-        },
+        
         {
           path: 'users',
           name: 'users',
@@ -289,6 +286,25 @@ const router = createRouter({
           name: 'EditReport',
           component: EditReport,
           meta: { requiresAuth: true }
+        },
+        {
+          path: 'evalues',
+          name: 'evalues',
+          component: EvalueList,
+          meta: { title: 'Quản lý đánh giá' }
+        },
+        {
+          path: 'evalues/create',
+          name: 'createEvalue',
+          component: CreateEvalue,
+          meta: { title: 'Thêm đánh giá' }
+        },
+        {
+          path: 'evalues/:id/edit',
+          name: 'editEvalue',
+          component: EditEvalue,
+          props: true,
+          meta: { title: 'Sửa đánh giá' }
         }
       ]
     }

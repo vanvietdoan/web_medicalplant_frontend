@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { plantService } from '../../services/plant.service';
 import divisionService from '../../services/fillter/division.service';
 import classService from '../../services/fillter/class.service';
@@ -11,7 +11,6 @@ import speciesService from '../../services/fillter/species.service';
 
 import type { Plant } from '../../models/Plant';
 
-const router = useRouter();
 const route = useRoute();
 const plants = ref<Plant[]>([]);
 const loading = ref(true);
@@ -275,11 +274,6 @@ const fetchPlants = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-const handlePlantClick = (plantId: number) => {
-  console.log('Plant clicked, navigating to:', plantId)
-  router.push(`/plant/${plantId}`);
 };
 
 // Add computed property for plant image

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { User } from '../../models/User'
 import { userService } from '../../services/user.service'
-import { config } from '../../config'
+import { API_HOST } from '../../confighost'
 
 const route = useRoute()
 const router = useRouter()
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
 const getDisplayImageUrl = (url: string) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `${config.API_HOST}${url}`
+  return `${API_HOST}${url}`
 }
 
 const triggerFileInput = () => {

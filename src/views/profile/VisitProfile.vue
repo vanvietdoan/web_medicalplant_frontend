@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import type { User } from '../../models/User';
 import { userService } from '../../services/user.service';
 
-const router = useRouter();
 const route = useRoute();
 const user = ref<User | null>(null);
 const loading = ref(true);

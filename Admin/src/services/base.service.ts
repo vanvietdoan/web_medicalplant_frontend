@@ -1,17 +1,14 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import router from '../router';
-import { config } from '../config';
-
-//const API_URL = 'http://157.20.58.220:2204/api';
-//const API_URL = 'http://localhost:2204/api';
+import { API_URL, API_URL_LOCAL } from '../confighost';
 
 class BaseService {
   protected api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: config.API_URL
+      baseURL: API_URL_LOCAL
     });
 
     // Thêm token vào header của mọi request

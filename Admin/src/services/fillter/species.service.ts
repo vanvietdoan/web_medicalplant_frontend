@@ -1,5 +1,3 @@
-
-import type { GenusResponse } from '../../models/Genus';
 import type { SpeciesResponse } from '../../models/Species';
 import BaseService from '../base.service';
 

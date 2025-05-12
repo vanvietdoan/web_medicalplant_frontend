@@ -18,8 +18,6 @@ const fullName = ref('');
 const title = ref('');
 const specialty = ref('');
 const proof = ref('');
-const certificateFile = ref<File | null>(null);
-const avatarFile = ref<File | null>(null);
 
 const validateStep1 = () => {
   error.value = '';

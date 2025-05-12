@@ -2,7 +2,6 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import type { FormInstance } from 'element-plus'
 import { reportService } from '../../services/report.service'
 import { plantService } from '../../services/plant.service'
 import type { Plant } from '../../models/Plant'
@@ -10,7 +9,6 @@ import { authService } from '../../services/auth.service'
 
 const router = useRouter()
 const loading = ref(false)
-const reportForm = ref<FormInstance>()
 const selectedPlant = ref<Plant | null>(null)
 const fromPlant = ref(false)
 
@@ -31,25 +29,6 @@ const formData = reactive({
   plant_id: 0,
   user_id: authService.getCurrentUser()?.id || 0
 })
-
-// Form validation rules
-const rules = {
-  plant_id: [
-    { required: true, message: 'Vui lòng chọn cây thuốc', trigger: 'change' }
-  ],
-  summary: [
-    { required: true, message: 'Vui lòng nhập tóm tắt', trigger: 'blur' },
-    { min: 10, message: 'Tóm tắt phải có ít nhất 10 ký tự', trigger: 'blur' }
-  ],
-  propose: [
-    { required: true, message: 'Vui lòng nhập đề xuất', trigger: 'blur' },
-    { min: 10, message: 'Đề xuất phải có ít nhất 10 ký tự', trigger: 'blur' }
-  ],
-  proof: [
-    { required: true, message: 'Vui lòng nhập bằng chứng', trigger: 'blur' },
-    { min: 10, message: 'Bằng chứng phải có ít nhất 10 ký tự', trigger: 'blur' }
-  ]
-}
 
 // Add originalPlantName ref
 const originalPlantName = ref('')

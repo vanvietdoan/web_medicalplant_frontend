@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { diseasesService } from '../../services/diseases.service'
-import { config } from '../../config'
+import { API_HOST } from '../../confighost'
 import type { Disease } from '../../models/Diseases'
 
 const router = useRouter()
@@ -60,7 +60,7 @@ const createObjectURL = (file: File) => {
 const getDisplayImageUrl = (url: string) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `${config.API_HOST}${url}`
+  return `${API_HOST}${url}`
 }
 
 // Handle form submission

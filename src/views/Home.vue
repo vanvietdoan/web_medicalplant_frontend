@@ -2,13 +2,9 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { plantService } from '../services/plant.service';
 import type { Plant } from '../models/Plant';
-import { useRouter } from 'vue-router';
 import { adviceService } from '../services/advice.service';
-import { userService } from '../services/user.service';
 import type { User } from '../models/User';
 import type { UserAdviceCount } from '../models/Advice';
-
-const router = useRouter();
 
 // Hero Slider
 const currentSlide = ref(0);
@@ -131,29 +127,11 @@ const formatDate = (dateString: string) => {
 };
 
 const fetchListUserIDMostAdvice = async () => {
-  console.log('Fetching newest plants for home page...');
   try {
-    loadingUserMostAdvice.value = true;
-    errorUserMostAdvice.value = null;
-    const userAdviceCount = await adviceService.getListUsetIDMostAdvice();
-    console.log("userAdviceCount", userAdviceCount);
-    listUserMostAdvice.value = userAdviceCount.slice(0, 6);
-    console.log("listUserMostAdvice.value", listUserMostAdvice.value);
-    // Fetch user details for each user
-    const userPromises = listUserMostAdvice.value.map(user => 
-    //console.log(user.user_id),
-      userService.getUserById(user.user_id)
-    );
-    console.log(userPromises);
-    userDetails.value = await Promise.all(userPromises);
-    
-    console.log('List user ID most advice fetched successfully:', userDetails.value);
-  } catch (err) {
-    console.error('Error fetching list user ID most advice:', err);
-    errorUserMostAdvice.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách chuyên gia';
-  } finally {
-    loadingUserMostAdvice.value = false;
-    console.log('Fetch list user ID most advice completed, loading:', loadingUserMostAdvice.value);
+    const response = await adviceService.getListUsetIDMostAdvice();
+    listUserMostAdvice.value = (response as unknown) as UserAdviceCount[];
+  } catch (error) {
+    console.error('Error fetching list user ID most advice:', error);
   }
 };
 
@@ -161,8 +139,8 @@ onMounted(() => {
   console.log('Home component mounted');
   fetchNewestPlants();
   fetchMultiUsePlants();
-  startSlideInterval();
   fetchListUserIDMostAdvice();
+  startSlideInterval();
 });
 
 onBeforeUnmount(() => {
