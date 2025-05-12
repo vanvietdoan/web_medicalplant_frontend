@@ -507,7 +507,7 @@ onMounted(() => {
                     <i class="fas fa-calendar"></i>
                     <span>{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
                     <button 
-                      v-if="currentUser && currentUser.id === advice.user.user_id"
+                      v-if="currentUser && advice.user && currentUser.id === advice.user.user_id"
                       @click="handleEditAdvice(advice.advice_id)"
                       class="edit-btn"
                     >
@@ -546,17 +546,17 @@ onMounted(() => {
                     <div class="expert-details">
                       <img 
                         :src="advice.user?.avatar || '/default-avatar.png'" 
-                        :alt="advice.user?.full_name || 'Unknown User'"
+                        :alt="advice.user?.full_name || 'Người ẩn danh'"
                         class="expert-avatar"
                       >
                       <div class="expert-info-text">
                         <router-link 
-                          v-if="advice.user?.user_id"
+                          v-if="advice.user && advice.user.user_id"
                           :to="`/profile/${advice.user.user_id}`"
                         >
-                          <span class="name">{{ advice.user?.full_name || 'Unknown User' }}</span>
+                          <span class="name">{{ advice.user?.full_name || 'Người ẩn danh' }}</span>
                         </router-link>
-                        <span v-else class="name">{{ advice.user?.full_name || 'Unknown User' }}</span>
+                        <span v-else class="name">Người ẩn danh</span>
                         <span class="title">{{ advice.user?.title || 'Chưa có chức danh' }}</span>
                       </div>
                     </div>
@@ -619,17 +619,17 @@ onMounted(() => {
                             <div class="evaluation-user">
                               <img 
                                 :src="evalue.userDetails?.avatar || '/default-avatar.png'" 
-                                :alt="evalue.userDetails?.full_name || 'Unknown User'"
+                                :alt="evalue.userDetails?.full_name || 'Người ẩn danh'"
                                 class="evaluation-avatar"
                               >
                               <div class="evaluation-user-info">
                                 <template v-if="evalue.user_id && evalue.userDetails">
                                   <router-link :to="`/profile/${evalue.user_id}`">
-                                    {{ evalue.userDetails.full_name || 'Unknown User' }}
+                                    {{ evalue.userDetails.full_name || 'Người ẩn danh' }}
                                   </router-link>
                                 </template>
                                 <template v-else>
-                                  <span>{{ evalue.userDetails?.full_name || 'Unknown User' }}</span>
+                                  <span>Người ẩn danh</span>
                                 </template>
                                 <span class="evaluation-date">{{ new Date(evalue.created_at).toLocaleDateString('vi-VN') }}</span>
                               </div>

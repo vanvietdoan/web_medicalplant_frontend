@@ -4,18 +4,37 @@ import { useRoute, useRouter } from 'vue-router';
 import { diseasesService } from '../../services/diseases.service';
 import { adviceService } from '../../services/advice.service';
 import { authService } from '../../services/auth.service';
+import { evalueService } from '../../services/evalue.service';
+import { userService } from '../../services/user.service';
 import type { Diseases } from '../../models/Diseases';
-import type { Advice } from '../../models/Advice';;
+import type { Advice } from '../../models/Advice';
+import type { EvalueResponse } from '../../models/Evalue';
+import { ElMessage } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();
 const disease = ref<Diseases | null>(null);
-const advices = ref<Advice[]>([]);
+const advices = ref<AdviceWithExpand[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 const currentImageIndex = ref(0);
 const isLoggedIn = ref(false);
 const currentUser = ref<any>(null);
+
+interface AdviceWithExpand extends Advice {
+  isExpanded: boolean;
+  evaluations: (EvalueResponse & { userDetails?: any })[];
+  userRating?: number;
+  userContent?: string;
+  hoverRating?: number;
+  showEvaluations?: boolean;
+  editingEvaluation?: {
+    id: number;
+    rating: number;
+    content: string;
+    hoverRating?: number;
+  } | null;
+}
 
 const fetchDiseaseDetail = async () => {
   try {
@@ -30,7 +49,51 @@ const fetchDiseaseDetail = async () => {
       ...diseaseResponse,
       images: diseaseResponse.images || []
     };
-    advices.value = advicesResponse;
+    
+    // Fetch evaluations for each advice
+    const advicesWithEvaluations = await Promise.all(
+      advicesResponse.map(async (advice) => {
+        const evaluations = await evalueService.getEvaluesByAdvice(advice.advice_id);
+        // Fetch user details for each evaluation
+        const evaluationsWithUserDetails = await Promise.all(
+          evaluations.map(async (evalue) => {
+            try {
+              const userDetails = await userService.getUserById(evalue.user_id);
+              return {
+                ...evalue,
+                userDetails: userDetails || {
+                  full_name: 'Người dùng ẩn danh',
+                  avatar: '/default-avatar.png'
+                }
+              };
+            } catch (err) {
+              console.error('Error fetching user details:', err);
+              return {
+                ...evalue,
+                userDetails: {
+                  full_name: 'Người dùng ẩn danh',
+                  avatar: '/default-avatar.png'
+                }
+              };
+            }
+          })
+        );
+        return {
+          ...advice,
+          isExpanded: false,
+          showEvaluations: false,
+          evaluations: evaluationsWithUserDetails,
+          user: advice.user || {
+            user_id: 0,
+            full_name: 'Người dùng ẩn danh',
+            title: 'Chưa có chức danh',
+            avatar: '/default-avatar.png'
+          }
+        };
+      })
+    );
+    
+    advices.value = advicesWithEvaluations;
   } catch (err) {
     error.value = 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.';
     console.error('Error fetching disease details:', err);
@@ -63,6 +126,149 @@ const handleEditAdvice = (adviceId: number) => {
     path: `/profile/advice/${adviceId}/edit`,
     query: { disease_id: route.params.id }
   });
+};
+
+const isEvaluationAuthor = (userId: number) => {
+  return isLoggedIn.value && currentUser.value?.id === userId;
+};
+
+const handleSubmitEvaluation = async (adviceId: number) => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('Vui lòng đăng nhập để đánh giá');
+    router.push('/login');
+    return;
+  }
+
+  const advice = advices.value.find(a => a.advice_id === adviceId);
+  if (!advice) return;
+
+  try {
+    await evalueService.createEvalue({
+      advice_id: adviceId,
+      rating: advice.userRating || 0,
+      content: advice.userContent || '',
+      user_id: currentUser.value!.id
+    });
+
+    ElMessage.success('Đánh giá thành công');
+    
+    // Reset form
+    advice.userRating = 0;
+    advice.userContent = '';
+    
+    // Refresh evaluations
+    const evaluations = await evalueService.getEvaluesByAdvice(adviceId);
+    const evaluationsWithUserDetails = await Promise.all(
+      evaluations.map(async (evalue) => {
+        try {
+          const userDetails = await userService.getUserById(evalue.user_id);
+          return {
+            ...evalue,
+            userDetails
+          };
+        } catch (err) {
+          console.error('Error fetching user details:', err);
+          return {
+            ...evalue,
+            userDetails: null
+          };
+        }
+      })
+    );
+    advice.evaluations = evaluationsWithUserDetails;
+  } catch (err) {
+    console.error('Error submitting evaluation:', err);
+    ElMessage.error('Có lỗi xảy ra khi gửi đánh giá');
+  }
+};
+
+const handleEditEvaluation = (adviceId: number, evalueId: number) => {
+  const advice = advices.value.find(a => a.advice_id === adviceId);
+  if (!advice) return;
+
+  const evaluation = advice.evaluations.find(e => e.id === evalueId);
+  if (!evaluation) return;
+
+  advice.editingEvaluation = {
+    id: evaluation.id,
+    rating: evaluation.rating,
+    content: evaluation.content || '',
+    hoverRating: 0
+  };
+};
+
+const handleUpdateEvaluation = async (adviceId: number) => {
+  const advice = advices.value.find(a => a.advice_id === adviceId);
+  if (!advice || !advice.editingEvaluation) return;
+
+  try {
+    await evalueService.updateEvalue(advice.editingEvaluation.id, {
+      rating: advice.editingEvaluation.rating,
+      content: advice.editingEvaluation.content,
+      user_id: currentUser.value!.id,
+      advice_id: adviceId
+    });
+
+    // Refresh evaluations
+    const evaluations = await evalueService.getEvaluesByAdvice(adviceId);
+    const evaluationsWithUserDetails = await Promise.all(
+      evaluations.map(async (evalue) => {
+        try {
+          const userDetails = await userService.getUserById(evalue.user_id);
+          return {
+            ...evalue,
+            userDetails
+          };
+        } catch (err) {
+          console.error('Error fetching user details:', err);
+          return {
+            ...evalue,
+            userDetails: null
+          };
+        }
+      })
+    );
+    advice.evaluations = evaluationsWithUserDetails;
+    advice.editingEvaluation = null;
+    ElMessage.success('Cập nhật đánh giá thành công');
+  } catch (err) {
+    console.error('Error updating evaluation:', err);
+    ElMessage.error('Có lỗi xảy ra khi cập nhật đánh giá');
+  }
+};
+
+const cancelEditEvaluation = (adviceId: number) => {
+  const advice = advices.value.find(a => a.advice_id === adviceId);
+  if (advice) {
+    advice.editingEvaluation = null;
+  }
+};
+
+const handleDeleteEvaluation = async (adviceId: number, evalueId: number) => {
+  const advice = advices.value.find(a => a.advice_id === adviceId);
+  if (!advice) return;
+
+  try {
+    await evalueService.deleteEvalue(evalueId);
+    advice.evaluations = advice.evaluations.filter(e => e.id !== evalueId);
+    ElMessage.success('Xóa đánh giá thành công');
+  } catch (err) {
+    console.error('Error deleting evaluation:', err);
+    ElMessage.error('Có lỗi xảy ra khi xóa đánh giá');
+  }
+};
+
+const scrollToEvaluation = (adviceId: number) => {
+  const advice = advices.value.find(a => a.advice_id === adviceId);
+  if (advice) {
+    advice.showEvaluations = !advice.showEvaluations;
+    if (advice.showEvaluations) {
+      const evaluationSection = document.getElementById(`evaluation-${adviceId}`);
+      if (evaluationSection) {
+        evaluationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
 };
 
 onMounted(() => {
@@ -140,59 +346,57 @@ onMounted(() => {
       <!-- Main Content Grid -->
       <div class="main-content-grid">
         <!-- Disease Information Column -->
-        <div class="info-column">
-          <section class="info-section">
-            <h2><i class="fas fa-disease"></i> Thông tin bệnh</h2>
-            <div class="content-box">
-              <h3>Mô tả</h3>
-              <p class="formatted-text">{{ disease.description }}</p>
+        <section class="info-section">
+          <h2><i class="fas fa-disease"></i> Thông tin bệnh</h2>
+          <div class="content-box">
+            <h3>Mô tả</h3>
+            <p class="formatted-text">{{ disease.description }}</p>
 
-              <div v-if="disease.images.length > 1" class="content-image">
-                <img :src="disease.images[1].url" :alt="`${disease.name} - ảnh 2`">
-              </div>
+            <div v-if="disease.images.length > 1" class="content-image">
+              <img :src="disease.images[1].url" :alt="`${disease.name} - ảnh 2`">
+            </div>
 
-              <h3>Triệu chứng</h3>
-              <div class="symptoms-list">
-                <div v-for="symptom in disease.symptoms.split(',')" :key="symptom" class="symptom-item">
-                  <i class="fas fa-exclamation-circle"></i>
-                  <span>{{ symptom.trim() }}</span>
-                </div>
-              </div>
-
-              <div v-if="disease.images.length > 2" class="content-image">
-                <img :src="disease.images[2].url" :alt="`${disease.name} - ảnh 3`">
-              </div>
-
-              <h3>Hướng dẫn điều trị</h3>
-              <p class="formatted-text">{{ disease.instructions }}</p>
-
-              <div v-if="disease.images.length > 3" class="content-image">
-                <img :src="disease.images[3].url" :alt="`${disease.name} - ảnh 4`">
-              </div>
-
-              <h3 v-if="advices.some(advice => advice.plant)">Cây thuốc có thể điều trị</h3>
-              <div v-if="advices.some(advice => advice.plant)" class="plant-list">
-                <div v-for="advice in advices.filter(advice => advice.plant)" :key="advice.plant.plant_id" class="plant-item">
-                  <i class="fas fa-seedling"></i>
-                  <router-link :to="`/plant/${advice.plant.plant_id}`" class="plant-link">
-                    {{ advice.plant.name }}
-                  </router-link>
-                </div>
-              </div>
-
-              <div class="metadata">
-                <div class="metadata-item">
-                  <span class="label">Ngày tạo:</span>
-                  <span class="value">{{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</span>
-                </div>
-                <div class="metadata-item">
-                  <span class="label">Cập nhật lần cuối:</span>
-                  <span class="value">{{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</span>
-                </div>
+            <h3>Triệu chứng</h3>
+            <div class="symptoms-list">
+              <div v-for="symptom in disease.symptoms.split(',')" :key="symptom" class="symptom-item">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ symptom.trim() }}</span>
               </div>
             </div>
-          </section>
-        </div>
+
+            <div v-if="disease.images.length > 2" class="content-image">
+              <img :src="disease.images[2].url" :alt="`${disease.name} - ảnh 3`">
+            </div>
+
+            <h3>Hướng dẫn điều trị</h3>
+            <p class="formatted-text">{{ disease.instructions }}</p>
+
+            <div v-if="disease.images.length > 3" class="content-image">
+              <img :src="disease.images[3].url" :alt="`${disease.name} - ảnh 4`">
+            </div>
+
+            <h3 v-if="advices.some(advice => advice.plant)">Cây thuốc có thể điều trị</h3>
+            <div v-if="advices.some(advice => advice.plant)" class="plant-list">
+              <div v-for="advice in advices.filter(advice => advice.plant)" :key="advice.plant.plant_id" class="plant-item">
+                <i class="fas fa-seedling"></i>
+                <router-link :to="`/plant/${advice.plant.plant_id}`" class="plant-link">
+                  {{ advice.plant.name }}
+                </router-link>
+              </div>
+            </div>
+
+            <div class="metadata">
+              <div class="metadata-item">
+                <span class="label">Ngày tạo:</span>
+                <span class="value">{{ new Date(disease.created_at).toLocaleDateString('vi-VN') }}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="label">Cập nhật lần cuối:</span>
+                <span class="value">{{ new Date(disease.updated_at).toLocaleDateString('vi-VN') }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <!-- Expert Advice Column -->
         <div class="advice-column">
@@ -215,7 +419,17 @@ onMounted(() => {
             <div v-else class="advice-list">
               <div v-for="advice in advices" :key="advice.advice_id" class="advice-card">
                 <div class="advice-header">
-                  <h3>{{ advice.title }}</h3>
+                  <div class="advice-title-section">
+                    <h3>{{ advice.title }}</h3>
+                    <button 
+                      @click="scrollToEvaluation(advice.advice_id)"
+                      class="view-evaluations-btn"
+                    >
+                      <i class="fas fa-star"></i>
+                      Xem đánh giá ({{ advice.evaluations?.length || 0 }})
+                    </button>
+                  </div>
+                  
                   <div class="advice-meta">
                     <i class="fas fa-calendar"></i>
                     <span>{{ new Date(advice.created_at).toLocaleDateString('vi-VN') }}</span>
@@ -231,32 +445,190 @@ onMounted(() => {
                 </div>
                 
                 <div class="advice-content">
-                  <p>{{ advice.content }}</p>
+                  <p :class="{ 'truncated': !advice.isExpanded }">{{ advice.content }}</p>
+                  <button 
+                    v-if="advice.content.length > 200" 
+                    @click="advice.isExpanded = !advice.isExpanded" 
+                    class="read-more-btn"
+                  >
+                    {{ advice.isExpanded ? 'Thu gọn' : 'Xem thêm' }}
+                    <i :class="advice.isExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                  </button>
                 </div>
 
                 <div class="advice-footer">
                   <div class="expert-info">
                     <div class="expert-details">
                       <img 
-                        v-if="advice.user"
-                        :src="advice.user.avatar || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'" 
-                        :alt="advice.user.full_name"
-                        class="expert-avatar"
-                      >
-                      <img 
-                        v-else
-                        src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
-                        alt="Default Avatar"
+                        :src="advice.user?.avatar || '/default-avatar.png'" 
+                        :alt="advice.user?.full_name || 'Người dùng ẩn danh'"
                         class="expert-avatar"
                       >
                       <div class="expert-info-text">
-                        <router-link v-if="advice.user" :to="`/profile/${advice.user.user_id}`">
-                          <span class="name">{{ advice.user.full_name }}</span>
+                        <router-link 
+                          v-if="advice.user?.user_id && advice.user.user_id !== 0"
+                          :to="`/profile/${advice.user.user_id}`"
+                        >
+                          <span class="name">{{ advice.user?.full_name || 'Người dùng ẩn danh' }}</span>
                         </router-link>
-                        <span v-if="advice.user" class="title">{{ advice.user.title }}</span>
-                        <span v-else class="title">Người dùng</span>
+                        <span v-else class="name">{{ advice.user?.full_name || 'Người dùng ẩn danh' }}</span>
+                        <span class="title">{{ advice.user?.title || 'Chưa có chức danh' }}</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Evaluation Section -->
+                <div :id="`evaluation-${advice.advice_id}`" class="evaluation-section" v-show="advice.showEvaluations">
+                  <!-- Evaluation List -->
+                  <div v-if="advice.evaluations && advice.evaluations.length > 0" class="evaluation-list-section">
+                    <h4 class="evaluation-title">
+                      <i class="fas fa-star"></i>
+                      Đánh giá ({{ advice.evaluations.length }})
+                    </h4>
+                    <div class="evaluation-list">
+                      <div v-for="evalue in advice.evaluations" :key="evalue.id" class="evaluation-item">
+                        <div v-if="advice.editingEvaluation?.id === evalue.id" class="edit-evaluation-form">
+                          <div class="rating-input">
+                            <div class="star-rating">
+                              <i 
+                                v-for="star in 5" 
+                                :key="star"
+                                class="fas fa-star"
+                                :style="{ color: star <= (advice.editingEvaluation?.hoverRating || advice.editingEvaluation?.rating || 0) ? '#FFD700' : '#e0e0e0' }"
+                                @click="advice.editingEvaluation!.rating = star"
+                                @mouseover="advice.editingEvaluation!.hoverRating = star"
+                                @mouseleave="advice.editingEvaluation!.hoverRating = 0"
+                              ></i>
+                            </div>
+                            <span v-if="advice.editingEvaluation?.rating" class="rating-text">
+                              {{ advice.editingEvaluation.rating }} sao
+                            </span>
+                          </div>
+                          <textarea
+                            v-model="advice.editingEvaluation.content"
+                            placeholder="Nhập nội dung đánh giá của bạn..."
+                            class="evaluation-textarea"
+                            rows="3"
+                          ></textarea>
+                          <div class="form-actions">
+                            <button 
+                              @click="handleUpdateEvaluation(advice.advice_id)"
+                              class="submit-evaluation-btn"
+                              :disabled="!advice.editingEvaluation?.rating || !advice.editingEvaluation?.content?.trim()"
+                            >
+                              <i class="fas fa-save"></i>
+                              Lưu thay đổi
+                            </button>
+                            <button 
+                              @click="cancelEditEvaluation(advice.advice_id)"
+                              class="cancel-evaluation-btn"
+                            >
+                              <i class="fas fa-times"></i>
+                              Hủy
+                            </button>
+                          </div>
+                        </div>
+                        <div v-else class="evaluation-content-wrapper">
+                          <div class="evaluation-header">
+                            <div class="evaluation-user">
+                              <img 
+                                :src="evalue.userDetails?.avatar || '/default-avatar.png'" 
+                                :alt="evalue.userDetails?.full_name || 'Người dùng ẩn danh'"
+                                class="evaluation-avatar"
+                              >
+                              <div class="evaluation-user-info">
+                                <template v-if="evalue.user_id && evalue.userDetails && evalue.user_id !== 0">
+                                  <router-link :to="`/profile/${evalue.user_id}`">
+                                    {{ evalue.userDetails.full_name || 'Người dùng ẩn danh' }}
+                                  </router-link>
+                                </template>
+                                <template v-else>
+                                  <span>{{ evalue.userDetails?.full_name || 'Người dùng ẩn danh' }}</span>
+                                </template>
+                                <span class="evaluation-date">{{ new Date(evalue.created_at).toLocaleDateString('vi-VN') }}</span>
+                              </div>
+                            </div>
+                            <div class="evaluation-actions">
+                              <div class="evaluation-rating">
+                                <i 
+                                  v-for="star in 5" 
+                                  :key="star"
+                                  :class="['fas', star <= evalue.rating ? 'fa-star' : 'fa-star-o']"
+                                  :style="{ color: star <= evalue.rating ? '#FFD700' : '#ccc' }"
+                                ></i>
+                              </div>
+                              <div v-if="isEvaluationAuthor(evalue.user_id)" class="evaluation-controls">
+                                <button 
+                                  @click="handleEditEvaluation(advice.advice_id, evalue.id)"
+                                  class="edit-evaluation-btn"
+                                >
+                                  <i class="fas fa-edit"></i>
+                                </button>
+                                <button 
+                                  @click="handleDeleteEvaluation(advice.advice_id, evalue.id)"
+                                  class="delete-evaluation-btn"
+                                >
+                                  <i class="fas fa-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <p class="evaluation-content">{{ evalue.content }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- User Evaluation Form -->
+                  <div v-if="isLoggedIn" class="user-evaluation-form">
+                    <h4 class="evaluation-title">
+                      <i class="fas fa-edit"></i>
+                      Đánh giá của bạn
+                    </h4>
+                    <form @submit.prevent="handleSubmitEvaluation(advice.advice_id)" class="evaluation-form">
+                      <div class="rating-input">
+                        <div class="star-rating">
+                          <i 
+                            v-for="star in 5" 
+                            :key="star"
+                            class="fas fa-star"
+                            :style="{ color: star <= (advice.userRating || 0) ? '#FFD700' : '#e0e0e0' }"
+                            @click="advice.userRating = star"
+                            @mouseover="advice.hoverRating = star"
+                            @mouseleave="advice.hoverRating = 0"
+                          ></i>
+                        </div>
+                        <span v-if="advice.userRating" class="rating-text">
+                          {{ advice.userRating }} sao
+                        </span>
+                      </div>
+                      <textarea
+                        v-model="advice.userContent"
+                        placeholder="Nhập nội dung đánh giá của bạn..."
+                        class="evaluation-textarea"
+                        rows="3"
+                      ></textarea>
+                      <div class="form-actions">
+                        <button 
+                          type="submit" 
+                          class="submit-evaluation-btn"
+                          :disabled="!advice.userRating || !advice.userContent?.trim()"
+                        >
+                          <i class="fas fa-paper-plane"></i>
+                          Gửi đánh giá
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-if="!advice.evaluations || advice.evaluations.length === 0" class="empty-evaluations">
+                    <i class="fas fa-star"></i>
+                    <p>Chưa có đánh giá nào</p>
+                    <p v-if="!isLoggedIn" class="login-prompt">
+                      <router-link to="/login">Đăng nhập</router-link> để đánh giá
+                    </p>
                   </div>
                 </div>
               </div>
@@ -270,7 +642,7 @@ onMounted(() => {
 
 <style scoped>
 .plant-detail-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -475,22 +847,19 @@ onMounted(() => {
 /* Main Content Grid */
 .main-content-grid {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1.5fr 1fr;
   gap: 2rem;
   position: relative;
+  width: 100%;
 }
 
 /* Info Sections */
-.info-column {
-  position: relative;
-  z-index: 1;
-}
-
 .info-section {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 100%;
 }
 
 .info-section h2 {
@@ -606,8 +975,8 @@ onMounted(() => {
   height: calc(100vh - 4rem);
   display: flex;
   flex-direction: column;
-  width: 400px;
-  flex-shrink: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .advice-header {
@@ -653,6 +1022,7 @@ onMounted(() => {
   overflow-y: auto;
   padding-right: 0.5rem;
   margin-right: -0.5rem;
+  max-height: calc(100vh - 200px);
 }
 
 .advice-list::-webkit-scrollbar {
@@ -793,7 +1163,13 @@ onMounted(() => {
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
+  .main-content-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 992px) {
   .main-content-grid {
     grid-template-columns: 1fr;
   }
@@ -801,7 +1177,7 @@ onMounted(() => {
   .advice-section {
     position: static;
     height: auto;
-    width: 100%;
+    max-height: none;
   }
 
   .advice-list {
@@ -811,6 +1187,15 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .plant-detail-container {
+    padding: 1rem;
+  }
+
+  .main-content-grid {
+    gap: 1rem;
+  }
+
+  .info-section,
+  .advice-section {
     padding: 1rem;
   }
 
@@ -878,5 +1263,314 @@ onMounted(() => {
 
 .plant-link:hover {
   text-decoration: underline;
+}
+
+/* Evaluation Styles */
+.evaluation-section {
+  margin-top: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.evaluation-list-section {
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.evaluation-title {
+  font-size: 1.1rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.evaluation-title i {
+  color: #FFD700;
+}
+
+.evaluation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.evaluation-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.evaluation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.evaluation-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.evaluation-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.evaluation-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.evaluation-user-info a {
+  color: #008053;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.evaluation-date {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.evaluation-rating {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.evaluation-rating i {
+  font-size: 0.9rem;
+  color: #FFD700;
+}
+
+.evaluation-content {
+  color: #2c3e50;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 2.75rem;
+}
+
+.user-evaluation-form {
+  padding: 1.5rem;
+}
+
+.evaluation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rating-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.star-rating {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 2rem;
+}
+
+.star-rating i {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-rating i:hover {
+  transform: scale(1.1);
+  color: #FFD700 !important;
+}
+
+.rating-text {
+  color: #008053;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.evaluation-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.evaluation-textarea:focus {
+  outline: none;
+  border-color: #008053;
+  box-shadow: 0 0 0 2px rgba(0, 128, 83, 0.1);
+}
+
+.submit-evaluation-btn {
+  padding: 0.75rem 1.5rem;
+  background: #008053;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.submit-evaluation-btn:hover:not(:disabled) {
+  background: #006040;
+  transform: translateY(-2px);
+}
+
+.submit-evaluation-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.empty-evaluations {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.empty-evaluations i {
+  font-size: 2rem;
+  color: #FFD700;
+  margin-bottom: 1rem;
+}
+
+.empty-evaluations p {
+  margin: 0.5rem 0;
+}
+
+.login-prompt {
+  font-size: 0.9rem;
+}
+
+.login-prompt a {
+  color: #008053;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-prompt a:hover {
+  text-decoration: underline;
+}
+
+/* Evaluation Controls Styles */
+.evaluation-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.evaluation-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-evaluation-btn,
+.delete-evaluation-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.edit-evaluation-btn:hover {
+  color: #008053;
+  transform: scale(1.1);
+}
+
+.delete-evaluation-btn:hover {
+  color: #dc3545;
+  transform: scale(1.1);
+}
+
+.edit-evaluation-btn i,
+.delete-evaluation-btn i {
+  font-size: 1rem;
+}
+
+/* Edit Evaluation Form Styles */
+.edit-evaluation-form {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.cancel-evaluation-btn {
+  padding: 0.75rem 1.5rem;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+
+.cancel-evaluation-btn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* View Evaluations Button Styles */
+.view-evaluations-btn {
+  padding: 0.5rem 1rem;
+  background: #f8f9fa;
+  color: #008053;
+  border: 1px solid #008053;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  font-weight: 500;
+}
+
+.view-evaluations-btn i {
+  font-size: 0.9rem;
+  color: #FFD700;
+}
+
+.view-evaluations-btn:hover {
+  background: #008053;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.view-evaluations-btn:hover i {
+  color: white;
 }
 </style> 

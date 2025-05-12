@@ -8,6 +8,7 @@ const searchQuery = ref('');
 const selectedSymptom = ref('');
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+const expandedSymptoms = ref<{ [key: number]: boolean }>({});
 
 const symptoms = computed(() => {
   const allSymptoms = diseases.value.flatMap(disease => 
@@ -23,6 +24,16 @@ const filteredDiseases = computed(() => {
     return matchesSearch && matchesSymptom;
   });
 });
+
+const toggleSymptoms = (diseaseId: number) => {
+  expandedSymptoms.value[diseaseId] = !expandedSymptoms.value[diseaseId];
+};
+
+const getVisibleSymptoms = (disease: Diseases) => {
+  const symptomsList = disease.symptoms.split(',').map(s => s.trim());
+  const isExpanded = expandedSymptoms.value[disease.disease_id];
+  return isExpanded ? symptomsList : symptomsList.slice(0, 4);
+};
 
 const fetchDiseases = async () => {
   try {
@@ -123,23 +134,18 @@ onMounted(() => {
           <div class="symptoms-section">
             <h4><i class="fas fa-exclamation-circle"></i> Triệu chứng</h4>
             <ul class="symptoms-list">
-              <li v-for="symptom in disease.symptoms.split(',')" :key="symptom">
-                {{ symptom.trim() }}
+              <li v-for="symptom in getVisibleSymptoms(disease)" :key="symptom">
+                {{ symptom }}
               </li>
             </ul>
-          </div>
-
-          <div class="plants-section">
-            <h4><i class="fas fa-leaf"></i> Cây thuốc điều trị</h4>
-            <div class="plants-list">
-              <div v-for="plant in disease.medicinal_plants" :key="plant.plant_id" class="plant-item">
-                <img :src="plant.image" :alt="plant.name">
-                <div class="plant-info">
-                  <h5>{{ plant.name }}</h5>
-                  <span class="english-name">{{ plant.english_name }}</span>
-                </div>
-              </div>
-            </div>
+            <button 
+              v-if="disease.symptoms.split(',').length > 4"
+              @click="toggleSymptoms(disease.disease_id)"
+              class="show-more-btn"
+            >
+              {{ expandedSymptoms[disease.disease_id] ? 'Thu gọn' : 'Xem thêm' }}
+              <i :class="expandedSymptoms[disease.disease_id] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+            </button>
           </div>
         </div>
 
@@ -347,12 +353,17 @@ h4 i {
   font-size: 1.1rem;
 }
 
+.symptoms-section {
+  margin: 1rem 0;
+}
+
 .symptoms-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0.5rem 0;
   list-style: none;
+  padding: 0;
 }
 
 .symptoms-list li {
@@ -361,6 +372,30 @@ h4 i {
   border-radius: 15px;
   font-size: 0.9rem;
   color: #666;
+}
+
+.show-more-btn {
+  background: none;
+  border: none;
+  color: #008053;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.show-more-btn:hover {
+  color: #006040;
+  transform: translateY(-1px);
+}
+
+.show-more-btn i {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
 }
 
 .treatment-section {
