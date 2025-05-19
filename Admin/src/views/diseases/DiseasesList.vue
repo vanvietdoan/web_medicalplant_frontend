@@ -14,8 +14,7 @@ const filteredDiseases = computed(() => {
   if (!searchQuery.value) return diseases.value
   const query = searchQuery.value.toLowerCase()
   return diseases.value.filter(disease =>
-    disease.name.toLowerCase().includes(query) ||
-    disease.description.toLowerCase().includes(query)
+    disease.name.toLowerCase().includes(query)
   )
 })
 

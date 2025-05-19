@@ -4,10 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Advice } from '../../models/Advice'
 import { adviceService } from '../../services/advice.service'
-import { plantService } from '../../services/plant.service'
-import { diseasesService } from '../../services/diseases.service'
-import { authService } from '../../services/auth.service'
 import { evalueService } from '../../services/evalue.service'
+import { authService } from '../../services/auth.service'
 
 const route = useRoute()
 const router = useRouter()
@@ -57,10 +55,6 @@ const fetchEvalueDetails = async () => {
     console.error('Error fetching evaluation details:', err)
     error.value = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải thông tin đánh giá'
   }
-}
-
-const handleAdviceSelect = (advice: Advice) => {
-  selectedAdvice.value = advice
 }
 
 const handleSubmit = async () => {

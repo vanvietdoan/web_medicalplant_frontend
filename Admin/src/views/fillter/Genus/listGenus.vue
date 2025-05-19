@@ -11,17 +11,30 @@ const genuses = ref<GenusResponse[]>([])
 const families = ref<FamilyResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedFamilyId = ref<number | null>(null)
 
 const getFamilies = async () => {
   const response = await familyService.getFamilies()
   families.value = response
 }
+
 const filteredGenuses = computed(() => {
-  if (!searchQuery.value) return genuses.value
-  const query = searchQuery.value.toLowerCase()
-  return genuses.value.filter(item =>
-    item.name.toLowerCase().includes(query)
-  )
+  let filtered = genuses.value
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(item =>
+      item.name.toLowerCase().includes(query)
+    )
+  }
+
+  // Filter by selected family
+  if (selectedFamilyId.value) {
+    filtered = filtered.filter(item => item.family_id === selectedFamilyId.value)
+  }
+  
+  return filtered
 })
 
 const formatDate = (date: string) => {
@@ -81,13 +94,30 @@ onMounted(() => {
     <div class="header">
       <h2>Quản lý chi</h2>
      
-      <div class="search-bar">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Tìm kiếm phân chi..." 
-          class="search-input"
-        />
+      <div class="filters">
+        <div class="search-bar">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Tìm kiếm phân chi..." 
+            class="search-input"
+          />
+        </div>
+        <div class="filter-group">
+          <select 
+            v-model="selectedFamilyId" 
+            class="form-select"
+          >
+            <option :value="null">Tất cả họ</option>
+            <option 
+              v-for="family in families" 
+              :key="family.family_id" 
+              :value="family.family_id"
+            >
+              {{ family.name }}
+            </option>
+          </select>
+        </div>
       </div>
       <button class="btn-create" @click="handleCreate">
         <i class="fas fa-plus"></i> Tạo phân loại chi
@@ -142,19 +172,30 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.search-bar {
-  flex: 0 0 300px;
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
-.search-input {
+.search-bar {
+  flex: 1;
+}
+
+.filter-group {
+  flex: 0 0 200px;
+}
+
+.form-select {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  background-color: white;
 }
 
-.search-input:focus {
+.form-select:focus {
   outline: none;
   border-color: #2196F3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);

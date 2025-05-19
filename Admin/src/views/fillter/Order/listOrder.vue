@@ -12,13 +12,25 @@ const orders = ref<OrderResponse[]>([])
 const classes = ref<ClassResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedClassId = ref<number | null>(null)
 
 const filteredOrders = computed(() => {
-  if (!searchQuery.value) return orders.value
-  const query = searchQuery.value.toLowerCase()
-  return orders.value.filter(item =>
-    item.name.toLowerCase().includes(query)
-  )
+  let filtered = orders.value
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(item =>
+      item.name.toLowerCase().includes(query)
+    )
+  }
+
+  // Filter by selected class
+  if (selectedClassId.value) {
+    filtered = filtered.filter(item => item.class_id === selectedClassId.value)
+  }
+  
+  return filtered
 })
 const getClasses = async () => {
   const response = await classService.getClasses()
@@ -83,13 +95,30 @@ onMounted(() => {
     <div class="header">
       <h2>Quản lý phân Bộ</h2>
      
-      <div class="search-bar">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Tìm kiếm phân loại..." 
-          class="search-input"
-        />
+      <div class="filters">
+        <div class="search-bar">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Tìm kiếm phân loại..." 
+            class="search-input"
+          />
+        </div>
+        <div class="filter-group">
+          <select 
+            v-model="selectedClassId" 
+            class="form-select"
+          >
+            <option :value="null">Tất cả lớp</option>
+            <option 
+              v-for="cls in classes" 
+              :key="cls.class_id" 
+              :value="cls.class_id"
+            >
+              {{ cls.name }}
+            </option>
+          </select>
+        </div>
       </div>
       <button class="btn-create" @click="handleCreate">
         <i class="fas fa-plus"></i> Tạo phân loại
@@ -144,19 +173,30 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.search-bar {
-  flex: 0 0 300px;
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
-.search-input {
+.search-bar {
+  flex: 1;
+}
+
+.filter-group {
+  flex: 0 0 200px;
+}
+
+.form-select {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  background-color: white;
 }
 
-.search-input:focus {
+.form-select:focus {
   outline: none;
   border-color: #2196F3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);

@@ -10,6 +10,8 @@ import speciesService from '../../services/fillter/species.service'
 import { diseasesService } from '../../services/diseases.service'
 import { adviceService } from '../../services/advice.service'
 import { userService } from '../../services/user.service'
+import { evalueService } from '../../services/evalue.service'
+import { reportService } from '../../services/report.service'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -24,7 +26,9 @@ const stats = ref({
   totalClasses: 0,
   totalFamilies: 0,
   totalGenuses: 0,
-  totalSpecies: 0
+  totalSpecies: 0,
+  totalEvalues: 0,
+  totalReports: 0
 })
 
 const handleChart = (type: string) => {
@@ -44,7 +48,9 @@ const fetchStatistics = async () => {
       classesResponse,
       familiesResponse,
       genusesResponse,
-      speciesResponse
+      speciesResponse,
+      evaluesResponse,
+      reportsResponse
     ] = await Promise.all([
       plantService.getPlants(),
       diseasesService.getDiseases(),
@@ -55,7 +61,9 @@ const fetchStatistics = async () => {
       classService.getClasses(),
       familyService.getFamilies(),
       genusService.getGenuses(),
-      speciesService.getSpecies()
+      speciesService.getSpecies(),
+      evalueService.getEvalues(),
+      reportService.getReports()
     ])
 
     let usersData = []
@@ -78,6 +86,8 @@ const fetchStatistics = async () => {
     stats.value.totalFamilies = familiesResponse.length
     stats.value.totalGenuses = genusesResponse.length
     stats.value.totalSpecies = speciesResponse.length
+    stats.value.totalEvalues = evaluesResponse.length
+    stats.value.totalReports = reportsResponse.length
 
   } catch (error) {
     console.error('Error fetching statistics:', error)
@@ -146,6 +156,16 @@ onMounted(() => {
       <div class="stat-card" @click="handleChart('species')">
         <h3>Tổng số loài</h3>
         <p class="number">{{ stats.totalSpecies }}</p>
+      </div>
+
+      <div class="stat-card" @click="handleChart('evalue')">
+        <h3>Tổng số đánh giá</h3>
+        <p class="number">{{ stats.totalEvalues }}</p>
+      </div>
+
+      <div class="stat-card" @click="handleChart('report')">
+        <h3>Tổng số báo cáo</h3>
+        <p class="number">{{ stats.totalReports }}</p>
       </div>
     </div>
   </div>

@@ -1,14 +1,14 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import router from '../router';
-import { API_URL, API_URL_LOCAL } from '../confighost';
+import { API_URL } from '../confighost';
 
 class BaseService {
   protected api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_URL_LOCAL
+      baseURL: API_URL
     });
 
     // Thêm token vào header của mọi request

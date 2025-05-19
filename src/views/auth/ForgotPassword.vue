@@ -69,7 +69,7 @@ const handleSubmit = async () => {
             {{ error }}
           </div>
 
-          <div v-if="message" :class="['message', message.includes('success') ? 'success' : 'error']">
+          <div v-if="message" class="message success">
             {{ message }}
           </div>
 

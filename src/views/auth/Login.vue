@@ -11,10 +11,49 @@ const showPassword = ref(false);
 const loading = ref(false);
 const isLoggedIn = ref(false);
 
+// Thêm các biến để theo dõi lỗi validation
+const emailError = ref('');
+const passwordError = ref('');
+
+// Hàm validate email
+const validateEmail = (email: string) => {
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  if (!email) {
+    emailError.value = 'Email không được để trống';
+    return false;
+  }
+  if (!emailRegex.test(email)) {
+    emailError.value = 'Email không hợp lệ';
+    return false;
+  }
+  emailError.value = '';
+  return true;
+};
+
+// Hàm validate password
+const validatePassword = (password: string) => {
+  if (!password) {
+    passwordError.value = 'Mật khẩu không được để trống';
+    return false;
+  }
+  if (password.length < 6) {
+    passwordError.value = 'Mật khẩu phải có ít nhất 6 ký tự';
+    return false;
+  }
+  passwordError.value = '';
+  return true;
+};
+
 const handleSubmit = async () => {
   error.value = '';
-  if (!email.value || !password.value) {
-    error.value = 'Vui lòng nhập đầy đủ thông tin đăng nhập.';
+  emailError.value = '';
+  passwordError.value = '';
+
+  // Validate trước khi submit
+  const isEmailValid = validateEmail(email.value);
+  const isPasswordValid = validatePassword(password.value);
+
+  if (!isEmailValid || !isPasswordValid) {
     return;
   }
   
@@ -30,10 +69,7 @@ const handleSubmit = async () => {
     });
     console.log('Login successful:', response);
     
-    // Cập nhật trạng thái đăng nhập trước khi chuyển trang
     isLoggedIn.value = true;
-    
-    // Chuyển hướng sau khi cập nhật trạng thái
     router.push('/profile');
   } catch (err) {
     console.error('Login error:', err);
@@ -43,7 +79,15 @@ const handleSubmit = async () => {
   }
   console.log("isLoggedIn", isLoggedIn.value);
   localStorage.setItem('isLoggedIn', isLoggedIn.value.toString());
-  
+};
+
+// Thêm hàm validate realtime
+const validateEmailRealtime = () => {
+  validateEmail(email.value);
+};
+
+const validatePasswordRealtime = () => {
+  validatePassword(password.value);
 };
 
 const togglePassword = () => {
@@ -72,7 +116,11 @@ const togglePassword = () => {
               v-model="email"
               placeholder="abcd@gmail.com"
               :disabled="loading"
+              @input="validateEmailRealtime"
+              @blur="validateEmailRealtime"
+              :class="{ 'error-input': emailError }"
             >
+            <span class="error-text" v-if="emailError">{{ emailError }}</span>
           </div>
 
           <div class="form-group">
@@ -84,11 +132,15 @@ const togglePassword = () => {
                 v-model="password"
                 placeholder="••••••••"
                 :disabled="loading"
+                @input="validatePasswordRealtime"
+                @blur="validatePasswordRealtime"
+                :class="{ 'error-input': passwordError }"
               >
               <button type="button" class="toggle-password" @click="togglePassword">
                 <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
               </button>
             </div>
+            <span class="error-text" v-if="passwordError">{{ passwordError }}</span>
           </div>
 
           <div class="error-message" v-if="error">
@@ -101,7 +153,7 @@ const togglePassword = () => {
           </div>
 
           <div class="form-buttons">
-            <button type="submit" class="btn-login" :disabled="loading">
+            <button type="submit" class="btn-login" :disabled="loading || !!emailError || !!passwordError">
               <i v-if="loading" class="fas fa-spinner fa-spin"></i>
               <span v-else>Đăng nhập</span>
             </button>
@@ -180,7 +232,7 @@ const togglePassword = () => {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
@@ -340,5 +392,16 @@ const togglePassword = () => {
   .login-left {
     padding: 2rem;
   }
+}
+
+.error-input {
+  border-color: #dc3545 !important;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
 }
 </style> 

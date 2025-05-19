@@ -13,7 +13,12 @@ const router = useRouter()
 const loading = ref(false)
 
 // State for advice data
-const advice = ref<Advice>(Advice.createDefault())
+const advice = ref<Advice>({
+  ...Advice.createDefault(),
+  plant: { plant_id: 0, name: '' },
+  disease: { disease_id: 0, name: '' },
+  user: { user_id: 0, full_name: '', title: '' }
+})
 
 // State for dropdown options
 const plants = ref<{ plant_id: number; name: string }[]>([])
@@ -36,23 +41,30 @@ const handleSubmit = async () => {
     // Get advice ID from route params
     const adviceId = Number(route.params.id)
     
+    // Prepare data
+    const plantData = advice.value.plant.plant_id ? {
+      plant_id: advice.value.plant.plant_id,
+      name: advice.value.plant.name
+    } : undefined
+
+    const diseaseData = advice.value.disease.disease_id ? {
+      disease_id: advice.value.disease.disease_id,
+      name: advice.value.disease.name
+    } : undefined
+
+    const userData = advice.value.user.user_id ? {
+      user_id: advice.value.user.user_id,
+      full_name: advice.value.user.full_name,
+      title: advice.value.user.title
+    } : undefined
+    
     // Call API to update advice
     const response = await adviceService.updateAdvice(adviceId, {
       title: advice.value.title,
       content: advice.value.content,
-      plant: {
-        plant_id: advice.value.plant.plant_id,
-        name: advice.value.plant.name
-      },
-      disease: {
-        disease_id: advice.value.disease.disease_id,
-        name: advice.value.disease.name
-      },
-      user: {
-        user_id: advice.value.user.user_id,
-        full_name: advice.value.user.full_name,
-        title: advice.value.user.title
-      }
+      plant: plantData,
+      disease: diseaseData,
+      user: userData
     })
     
     console.log('Advice updated successfully:', response)
@@ -112,7 +124,13 @@ const fetchAdviceData = async () => {
     console.log('Advice data:', response)
 
     if (response) {
-      advice.value = response
+      // Ensure all required fields are initialized
+      advice.value = {
+        ...response,
+        plant: response.plant || { plant_id: 0, name: '' },
+        disease: response.disease || { disease_id: 0, name: '' },
+        user: response.user || { user_id: 0, full_name: '', title: '' }
+      }
     }
   } catch (error) {
     console.error('Error fetching advice:', error)
@@ -157,8 +175,13 @@ onMounted(async () => {
 
       <div class="form-group">
         <label>Cây trồng</label>
-        <select v-model="advice.plant.plant_id" required>
-          <option v-for="plant in plants" :key="plant.plant_id" :value="plant.plant_id">
+        <select v-model="advice.plant.plant_id">
+          <option :value="0">Không chọn cây</option>
+          <option 
+            v-for="plant in plants" 
+            :key="plant.plant_id" 
+            :value="plant.plant_id"
+          >
             {{ plant.name }}
           </option>
         </select>
@@ -166,8 +189,13 @@ onMounted(async () => {
 
       <div class="form-group">
         <label>Bệnh</label>
-        <select v-model="advice.disease.disease_id" required>
-          <option v-for="disease in diseases" :key="disease.disease_id" :value="disease.disease_id">
+        <select v-model="advice.disease.disease_id">
+          <option :value="0">Không chọn bệnh</option>
+          <option 
+            v-for="disease in diseases" 
+            :key="disease.disease_id" 
+            :value="disease.disease_id"
+          >
             {{ disease.name }}
           </option>
         </select>
@@ -175,8 +203,13 @@ onMounted(async () => {
 
       <div class="form-group">
         <label>Người đưa lời khuyên</label>
-        <select v-model="advice.user.user_id" required>
-          <option v-for="user in users" :key="user.user_id" :value="user.user_id">
+        <select v-model="advice.user.user_id">
+          <option :value="0">Không có người đưa lời khuyên</option>
+          <option 
+            v-for="user in users" 
+            :key="user.user_id" 
+            :value="user.user_id"
+          >
             {{ user.full_name }} ({{ user.active ? 'Hoạt động' : 'Không hoạt động' }})
           </option>
         </select>

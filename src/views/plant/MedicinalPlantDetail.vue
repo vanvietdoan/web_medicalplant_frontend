@@ -545,9 +545,10 @@ onMounted(() => {
                   <div class="expert-info">
                     <div class="expert-details">
                       <img 
-                        :src="advice.user?.avatar || '/default-avatar.png'" 
+                        :src="advice.user?.avatar || '/images/avatar.webp'" 
                         :alt="advice.user?.full_name || 'Người ẩn danh'"
                         class="expert-avatar"
+                        @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
                       >
                       <div class="expert-info-text">
                         <router-link 
@@ -618,9 +619,10 @@ onMounted(() => {
                           <div class="evaluation-header">
                             <div class="evaluation-user">
                               <img 
-                                :src="evalue.userDetails?.avatar || '/default-avatar.png'" 
+                                :src="evalue.userDetails?.avatar || '/images/avatar.webp'" 
                                 :alt="evalue.userDetails?.full_name || 'Người ẩn danh'"
                                 class="evaluation-avatar"
+                                @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
                               >
                               <div class="evaluation-user-info">
                                 <template v-if="evalue.user_id && evalue.userDetails">

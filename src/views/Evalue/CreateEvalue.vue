@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import {  useRouter } from 'vue-router';
 import { evalueService } from '../../services/evalue.service';
 import { adviceService } from '../../services/advice.service';
 import { authService } from '../../services/auth.service';
 import type { Advice } from '../../models/Advice';
 import { ElMessage } from 'element-plus';
 
-const route = useRoute();
 const router = useRouter();
 const loading = ref(true);
 const submitting = ref(false);
@@ -16,7 +15,6 @@ const advices = ref<Advice[]>([]);
 const selectedAdvice = ref<Advice | null>(null);
 const rating = ref(0);
 const content = ref('');
-const hoverRating = ref(0);
 
 const currentUser = ref(authService.getCurrentUser());
 
@@ -35,12 +33,6 @@ const fetchUserAdvices = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-const handleAdviceSelect = (advice: Advice) => {
-  selectedAdvice.value = advice;
-  rating.value = 0;
-  content.value = '';
 };
 
 const handleSubmit = async () => {

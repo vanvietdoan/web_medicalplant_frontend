@@ -18,6 +18,8 @@ import speciesService from '../../services/fillter/species.service'
 import { diseasesService } from '../../services/diseases.service'
 import { adviceService } from '../../services/advice.service'
 import { userService } from '../../services/user.service'
+import { evalueService } from '../../services/evalue.service'
+import { reportService } from '../../services/report.service'
   
   Chart.register(...registerables)
   
@@ -91,6 +93,16 @@ import { userService } from '../../services/user.service'
         title = 'Loài theo thời gian'
         color = '#FFCE56'
         break
+      case 'evalue':
+        data = await evalueService.getEvalues()
+        title = 'Đánh giá theo thời gian'
+        color = '#9C27B0'
+        break
+      case 'report':
+        data = await reportService.getReports()
+        title = 'Báo cáo theo thời gian'
+        color = '#F44336'
+        break
       default:
         console.error('Invalid chart type')
         return null
@@ -107,8 +119,8 @@ import { userService } from '../../services/user.service'
   
     const { data, title, color } = chartInfo
   
-    // Process data
-    const countByDate = data.reduce((acc: Record<string, number>, item: any) => {
+    // Process data for created_at
+    const countByCreatedDate = data.reduce((acc: Record<string, number>, item: any) => {
       if (item.created_at) {
         const date = new Date(item.created_at).toISOString().slice(0, 10)
         acc[date] = (acc[date] || 0) + 1
@@ -116,8 +128,25 @@ import { userService } from '../../services/user.service'
       return acc
     }, {})
   
-    const labels = Object.keys(countByDate).sort()
-    const chartData = labels.map(date => countByDate[date])
+    // Process data for updated_at
+    const countByUpdatedDate = data.reduce((acc: Record<string, number>, item: any) => {
+      if (item.updated_at) {
+        const date = new Date(item.updated_at).toISOString().slice(0, 10)
+        acc[date] = (acc[date] || 0) + 1
+      }
+      return acc
+    }, {})
+  
+    // Get all unique dates
+    const allDates = new Set([
+      ...Object.keys(countByCreatedDate),
+      ...Object.keys(countByUpdatedDate)
+    ])
+    const labels = Array.from(allDates).sort()
+  
+    // Prepare data for both datasets
+    const createdData = labels.map(date => countByCreatedDate[date] || 0)
+    const updatedData = labels.map(date => countByUpdatedDate[date] || 0)
   
     // Draw chart
     if (chartRef.value) {
@@ -131,9 +160,17 @@ import { userService } from '../../services/user.service'
           labels,
           datasets: [
             {
-              label: title,
-              data: chartData,
+              label: `${title} (Ngày tạo)`,
+              data: createdData,
               backgroundColor: color,
+              borderColor: color,
+              borderWidth: 1,
+              borderRadius: 4
+            },
+            {
+              label: `${title} (Ngày cập nhật)`,
+              data: updatedData,
+              backgroundColor: color + '80', // Add transparency
               borderColor: color,
               borderWidth: 1,
               borderRadius: 4
@@ -144,14 +181,15 @@ import { userService } from '../../services/user.service'
           responsive: true,
           plugins: {
             legend: {
-              display: true
+              display: true,
+              position: 'top'
             }
           },
           scales: {
             x: {
               title: {
                 display: true,
-                text: 'Ngày tạo'
+                text: 'Ngày'
               },
               grid: {
                 display: false

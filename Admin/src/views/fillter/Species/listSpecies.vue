@@ -12,16 +12,30 @@ const species = ref<SpeciesResponse[]>([])
 const genuses = ref<GenusResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedGenusId = ref<number | null>(null)
+
 const getGenuses = async () => {
   const response = await genusService.getGenuses()
   genuses.value = response
 }
+
 const filteredSpecies = computed(() => {  
-  if (!searchQuery.value) return species.value
-  const query = searchQuery.value.toLowerCase()
-  return species.value.filter(item =>
-    item.name.toLowerCase().includes(query)
-  )
+  let filtered = species.value
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(item =>
+      item.name.toLowerCase().includes(query)
+    )
+  }
+
+  // Filter by selected genus
+  if (selectedGenusId.value) {
+    filtered = filtered.filter(item => item.genus_id === selectedGenusId.value)
+  }
+  
+  return filtered
 })
 
 const formatDate = (date: string) => {
@@ -81,13 +95,30 @@ onMounted(() => {
   <div class="species-list">
     <div class="header">
       <h2>Quản lý loài</h2>
-      <div class="search-bar">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Tìm kiếm loài..." 
-          class="search-input"
-        />
+      <div class="filters">
+        <div class="search-bar">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Tìm kiếm loài..." 
+            class="search-input"
+          />
+        </div>
+        <div class="filter-group">
+          <select 
+            v-model="selectedGenusId" 
+            class="form-select"
+          >
+            <option :value="null">Tất cả chi</option>
+            <option 
+              v-for="genus in genuses" 
+              :key="genus.genus_id" 
+              :value="genus.genus_id"
+            >
+              {{ genus.name }}
+            </option>
+          </select>
+        </div>
       </div>
       <button class="btn-create" @click="handleCreate">
         <i class="fas fa-plus"></i> Tạo loài mới
@@ -147,19 +178,32 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.search-bar {
-  flex: 0 0 300px;
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
-.search-input {
+.search-bar {
+  flex: 1;
+}
+
+.filter-group {
+  flex: 0 0 200px;
+}
+
+.search-input,
+.form-select {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  background-color: white;
 }
 
-.search-input:focus {
+.search-input:focus,
+.form-select:focus {
   outline: none;
   border-color: #2196F3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);

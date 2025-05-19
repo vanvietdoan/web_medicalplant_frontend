@@ -63,7 +63,7 @@ const fetchDiseaseDetail = async () => {
                 ...evalue,
                 userDetails: userDetails || {
                   full_name: 'Người dùng ẩn danh',
-                  avatar: '/default-avatar.png'
+                  avatar: '/images/avatar.webp'
                 }
               };
             } catch (err) {
@@ -72,7 +72,7 @@ const fetchDiseaseDetail = async () => {
                 ...evalue,
                 userDetails: {
                   full_name: 'Người dùng ẩn danh',
-                  avatar: '/default-avatar.png'
+                  avatar: '/images/avatar.webp'
                 }
               };
             }
@@ -87,7 +87,7 @@ const fetchDiseaseDetail = async () => {
             user_id: 0,
             full_name: 'Người dùng ẩn danh',
             title: 'Chưa có chức danh',
-            avatar: '/default-avatar.png'
+            avatar: '/images/avatar.webp'
           }
         };
       })
@@ -445,7 +445,7 @@ onMounted(() => {
                 </div>
                 
                 <div class="advice-content">
-                  <p :class="{ 'truncated': !advice.isExpanded }">{{ advice.content }}</p>
+                  <p :class="{ 'truncated': !advice.isExpanded }" :style="{ maxHeight: advice.isExpanded ? 'none' : '100px', overflow: 'hidden' }">{{ advice.content }}</p>
                   <button 
                     v-if="advice.content.length > 200" 
                     @click="advice.isExpanded = !advice.isExpanded" 
@@ -460,9 +460,10 @@ onMounted(() => {
                   <div class="expert-info">
                     <div class="expert-details">
                       <img 
-                        :src="advice.user?.avatar || '/default-avatar.png'" 
+                        :src="advice.user?.avatar || '/images/avatar.webp'" 
                         :alt="advice.user?.full_name || 'Người dùng ẩn danh'"
                         class="expert-avatar"
+                        @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
                       >
                       <div class="expert-info-text">
                         <router-link 
@@ -533,9 +534,10 @@ onMounted(() => {
                           <div class="evaluation-header">
                             <div class="evaluation-user">
                               <img 
-                                :src="evalue.userDetails?.avatar || '/default-avatar.png'" 
+                                :src="evalue.userDetails?.avatar || '/images/avatar.webp'" 
                                 :alt="evalue.userDetails?.full_name || 'Người dùng ẩn danh'"
                                 class="evaluation-avatar"
+                                @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
                               >
                               <div class="evaluation-user-info">
                                 <template v-if="evalue.user_id && evalue.userDetails && evalue.user_id !== 0">
@@ -1073,6 +1075,36 @@ onMounted(() => {
   margin-bottom: 1rem;
   line-height: 1.6;
   color: #444;
+  position: relative;
+}
+
+.advice-content p {
+  transition: max-height 0.3s ease;
+  margin: 0;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: #008053;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.read-more-btn:hover {
+  color: #006040;
+  transform: translateY(-1px);
+}
+
+.read-more-btn i {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
 }
 
 .advice-footer {

@@ -13,52 +13,157 @@ const password = ref('');
 const confirmPassword = ref('');
 const error = ref('');
 
+// Thêm các biến để theo dõi lỗi validation
+const emailError = ref('');
+const passwordError = ref('');
+const confirmPasswordError = ref('');
+const fullNameError = ref('');
+const titleError = ref('');
+const specialtyError = ref('');
+
 // Step 2 data
 const fullName = ref('');
 const title = ref('');
 const specialty = ref('');
 const proof = ref('');
+const showCustomTitle = ref(false);
+const showCustomSpecialty = ref(false);
 
-const validateStep1 = () => {
-  error.value = '';
-  if (!email.value) {
-    error.value = 'Vui lòng nhập địa chỉ email';
+// Thêm danh sách các chức danh
+const titleOptions = [
+  { value: '', label: 'Chọn chức danh' },
+  { value: 'Giáo sư', label: 'Giáo sư' },
+  { value: 'Phó giáo sư', label: 'Phó giáo sư' },
+  { value: 'Tiến sĩ', label: 'Tiến sĩ' },
+  { value: 'Thạc sĩ', label: 'Thạc sĩ' },
+  { value: 'Bác sĩ', label: 'Bác sĩ' },
+  { value: 'Dược sĩ', label: 'Dược sĩ' },
+  { value: 'Sinh viên', label: 'Sinh viên' },
+  { value: 'custom', label: 'Khác (Tự nhập)' }
+];
+
+// Thêm danh sách các chuyên khoa
+const specialtyOptions = [
+  { value: '', label: 'Chọn chuyên khoa' },
+  { value: 'Y dược cổ truyền', label: 'Y dược cổ truyền' },
+  { value: 'Y dược hiện đại', label: 'Y dược hiện đại' },
+  { value: 'Nội khoa', label: 'Nội khoa' },
+  { value: 'Ngoại khoa', label: 'Ngoại khoa' },
+  { value: 'Dược học', label: 'Dược học' },
+  { value: 'Y học cổ truyền', label: 'Y học cổ truyền' },
+  { value: 'custom', label: 'Khác (Tự nhập)' }
+];
+
+// Hàm validate email
+const validateEmail = (email: string) => {
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  if (!email) {
+    emailError.value = 'Email không được để trống';
     return false;
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    error.value = 'Địa chỉ email không hợp lệ';
+  if (!emailRegex.test(email)) {
+    emailError.value = 'Email không hợp lệ';
     return false;
   }
-  if (!password.value) {
-    error.value = 'Vui lòng nhập mật khẩu';
-    return false;
-  }
-  if (password.value.length < 6) {
-    error.value = 'Mật khẩu phải có ít nhất 6 ký tự';
-    return false;
-  }
-  if (password.value !== confirmPassword.value) {
-    error.value = 'Mật khẩu xác nhận không khớp';
-    return false;
-  }
+  emailError.value = '';
   return true;
 };
 
-const validateStep2 = () => {
-  error.value = '';
-  if (!fullName.value) {
-    error.value = 'Vui lòng nhập họ và tên';
+// Hàm validate password
+const validatePassword = (password: string) => {
+  if (!password) {
+    passwordError.value = 'Mật khẩu không được để trống';
     return false;
   }
-  if (!specialty.value) {
-    error.value = 'Vui lòng nhập chuyên khoa';
+  if (password.length < 6) {
+    passwordError.value = 'Mật khẩu phải có ít nhất 6 ký tự';
     return false;
   }
-  // if (!workplace.value) {
-  //   error.value = 'Vui lòng nhập đơn vị công tác';
-  //   return false;
-  // }
+  passwordError.value = '';
   return true;
+};
+
+// Hàm validate confirm password
+const validateConfirmPassword = (confirmPassword: string) => {
+  if (!confirmPassword) {
+    confirmPasswordError.value = 'Vui lòng xác nhận mật khẩu';
+    return false;
+  }
+  if (confirmPassword !== password.value) {
+    confirmPasswordError.value = 'Mật khẩu xác nhận không khớp';
+    return false;
+  }
+  confirmPasswordError.value = '';
+  return true;
+};
+
+// Hàm validate full name
+const validateFullName = (fullName: string) => {
+  if (!fullName) {
+    fullNameError.value = 'Họ và tên không được để trống';
+    return false;
+  }
+  fullNameError.value = '';
+  return true;
+};
+
+// Hàm validate title
+const validateTitle = (title: string) => {
+  if (!title) {
+    titleError.value = 'Chức danh không được để trống';
+    return false;
+  }
+  titleError.value = '';
+  return true;
+};
+
+// Hàm validate specialty
+const validateSpecialty = (specialty: string) => {
+  if (!specialty) {
+    specialtyError.value = 'Chuyên khoa không được để trống';
+    return false;
+  }
+  specialtyError.value = '';
+  return true;
+};
+
+// Hàm validate realtime
+const validateEmailRealtime = () => {
+  validateEmail(email.value);
+};
+
+const validatePasswordRealtime = () => {
+  validatePassword(password.value);
+};
+
+const validateConfirmPasswordRealtime = () => {
+  validateConfirmPassword(confirmPassword.value);
+};
+
+const validateFullNameRealtime = () => {
+  validateFullName(fullName.value);
+};
+
+const validateTitleRealtime = () => {
+  validateTitle(title.value);
+};
+
+const validateSpecialtyRealtime = () => {
+  validateSpecialty(specialty.value);
+};
+
+const validateStep1 = () => {
+  const isEmailValid = validateEmail(email.value);
+  const isPasswordValid = validatePassword(password.value);
+  const isConfirmPasswordValid = validateConfirmPassword(confirmPassword.value);
+  return isEmailValid && isPasswordValid && isConfirmPasswordValid;
+};
+
+const validateStep2 = () => {
+  const isFullNameValid = validateFullName(fullName.value);
+  const isTitleValid = validateTitle(title.value);
+  const isSpecialtyValid = validateSpecialty(specialty.value);
+  return isFullNameValid && isTitleValid && isSpecialtyValid;
 };
 
 const handleContinue = () => {
@@ -83,9 +188,15 @@ const handleSubmit = async () => {
       };
 
       const response = await authService.register(registrationData) as { message: string };
-      // Hiển thị thông báo từ server
-      alert(response.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+      console.log(response);
+      // Hiển thị thông báo thành công với hướng dẫn xác thực email
+      const successMessage = `
+        Đăng ký thành công! 
+        Vui lòng kiểm tra email ${email.value} để xác thực tài khoản của bạn.
+        Nếu không thấy email, vui lòng kiểm tra thư mục spam.
+      `;
       
+      alert(successMessage);
       router.push('/login');
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Đã có lỗi xảy ra khi đăng ký';
@@ -93,6 +204,30 @@ const handleSubmit = async () => {
       isLoading.value = false;
     }
   }
+};
+
+const handleTitleChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value;
+  if (value === 'custom') {
+    showCustomTitle.value = true;
+    title.value = '';
+  } else {
+    showCustomTitle.value = false;
+    title.value = value;
+  }
+  validateTitleRealtime();
+};
+
+const handleSpecialtyChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value;
+  if (value === 'custom') {
+    showCustomSpecialty.value = true;
+    specialty.value = '';
+  } else {
+    showCustomSpecialty.value = false;
+    specialty.value = value;
+  }
+  validateSpecialtyRealtime();
 };
 
 // const handleFileUpload = (event: Event, type: 'certificate' | 'avatar') => {
@@ -128,8 +263,11 @@ const handleSubmit = async () => {
               id="email" 
               v-model="email"
               placeholder="Nhập địa chỉ email của bạn"
-              required
+              @input="validateEmailRealtime"
+              @blur="validateEmailRealtime"
+              :class="{ 'error-input': emailError }"
             >
+            <span class="error-text" v-if="emailError">{{ emailError }}</span>
           </div>
 
           <div class="form-group">
@@ -139,8 +277,11 @@ const handleSubmit = async () => {
               id="password" 
               v-model="password"
               placeholder="Nhập mật khẩu"
-              required
+              @input="validatePasswordRealtime"
+              @blur="validatePasswordRealtime"
+              :class="{ 'error-input': passwordError }"
             >
+            <span class="error-text" v-if="passwordError">{{ passwordError }}</span>
           </div>
 
           <div class="form-group">
@@ -150,8 +291,11 @@ const handleSubmit = async () => {
               id="confirmPassword" 
               v-model="confirmPassword"
               placeholder="Nhập lại mật khẩu"
-              required
+              @input="validateConfirmPasswordRealtime"
+              @blur="validateConfirmPasswordRealtime"
+              :class="{ 'error-input': confirmPasswordError }"
             >
+            <span class="error-text" v-if="confirmPasswordError">{{ confirmPasswordError }}</span>
           </div>
 
           <div class="error-message" v-if="error">
@@ -159,7 +303,9 @@ const handleSubmit = async () => {
             {{ error }}
           </div>
 
-          <button type="submit" class="btn-continue">Tiếp tục đăng ký</button>
+          <button type="submit" class="btn-continue" :disabled="!!emailError || !!passwordError || !!confirmPasswordError">
+            Tiếp tục đăng ký
+          </button>
         </form>
 
         <!-- Step 2: Personal Information -->
@@ -171,30 +317,87 @@ const handleSubmit = async () => {
               id="fullName" 
               v-model="fullName"
               placeholder="Lê Văn A"
-              required
+              @input="validateFullNameRealtime"
+              @blur="validateFullNameRealtime"
+              :class="{ 'error-input': fullNameError }"
             >
+            <span class="error-text" v-if="fullNameError">{{ fullNameError }}</span>
           </div>
 
           <div class="form-group">
             <label for="title">Chức danh</label>
-            <input 
-              type="text" 
+            <select 
+              v-if="!showCustomTitle"
               id="title" 
               v-model="title"
-              placeholder="Giáo sư"
-              required
+              @change="handleTitleChange"
+              :class="{ 'error-input': titleError }"
             >
+              <option 
+                v-for="option in titleOptions" 
+                :key="option.value" 
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+            <div v-else class="custom-input-group">
+              <input 
+                type="text" 
+                id="title" 
+                v-model="title"
+                placeholder="Nhập chức danh của bạn"
+                @input="validateTitleRealtime"
+                @blur="validateTitleRealtime"
+                :class="{ 'error-input': titleError }"
+              >
+              <button 
+                type="button" 
+                class="btn-back" 
+                @click="showCustomTitle = false; title = ''"
+              >
+                <i class="fas fa-arrow-left"></i>
+              </button>
+            </div>
+            <span class="error-text" v-if="titleError">{{ titleError }}</span>
           </div>
 
           <div class="form-group">
             <label for="specialty">Chuyên khoa</label>
-            <input 
-              type="text" 
+            <select 
+              v-if="!showCustomSpecialty"
               id="specialty" 
               v-model="specialty"
-              placeholder="Dược học cổ truyền"
-              required
+              @change="handleSpecialtyChange"
+              :class="{ 'error-input': specialtyError }"
             >
+              <option 
+                v-for="option in specialtyOptions" 
+                :key="option.value" 
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+            <div v-else class="custom-input-group">
+              <input 
+                type="text" 
+                id="specialty" 
+                v-model="specialty"
+                placeholder="Nhập chuyên khoa của bạn"
+                @input="validateSpecialtyRealtime"
+                @blur="validateSpecialtyRealtime"
+                :class="{ 'error-input': specialtyError }"
+              >
+              <button 
+                type="button" 
+                class="btn-back" 
+                @click="showCustomSpecialty = false; specialty = ''"
+              >
+                <i class="fas fa-arrow-left"></i>
+              </button>
+            </div>
+            <span class="error-text" v-if="specialtyError">{{ specialtyError }}</span>
           </div>
 
           <!-- <div class="form-group">
@@ -212,7 +415,7 @@ const handleSubmit = async () => {
             {{ error }}
           </div>
 
-          <button type="submit" class="btn-register" :disabled="isLoading">
+          <button type="submit" class="btn-register" :disabled="isLoading || !!fullNameError || !!titleError || !!specialtyError">
             {{ isLoading ? 'Đang xử lý...' : 'Đăng ký' }}
           </button>
         </form>
@@ -287,7 +490,7 @@ const handleSubmit = async () => {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
@@ -404,5 +607,64 @@ const handleSubmit = async () => {
   .register-left {
     padding: 2rem;
   }
+}
+
+.error-input {
+  border-color: #dc3545 !important;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+
+select:focus {
+  outline: none;
+  border-color: #008053;
+}
+
+select.error-input {
+  border-color: #dc3545;
+}
+
+.custom-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.custom-input-group input {
+  flex: 1;
+}
+
+.btn-back {
+  padding: 0.8rem;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.btn-back:hover {
+  color: #008053;
 }
 </style> 

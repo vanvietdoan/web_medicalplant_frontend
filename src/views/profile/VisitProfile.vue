@@ -49,7 +49,11 @@ onMounted(fetchUserDetails);
     <div v-else-if="user" class="profile-content">
       <div class="profile-header">
         <div class="avatar">
-          <img :src="user.avatar || '/default-avatar.png'" :alt="user.full_name">
+          <img 
+            :src="user.avatar || '/images/avatar.webp'" 
+            :alt="user.full_name"
+            @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
+          >
         </div>
         <h2>{{ user.full_name }}</h2>
         <p class="title">{{ user.title }}</p>

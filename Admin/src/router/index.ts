@@ -313,26 +313,38 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach((to, _from, next) => {
-  const isAuthenticated = localStorage.getItem('token')
-  console.log("isAuthenticated::",isAuthenticated)
+  const token = localStorage.getItem('token')
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
+  
   // Update document title
   document.title = to.meta.title ? `${to.meta.title} - Admin` : 'Admin'
   
-  if (to.path === '/') {
-    if (isAuthenticated) {
-      next('/admin')
-    } else {
-      next()
-    }
-  } else if (to.path.startsWith('/admin')) {
-    if (isAuthenticated) {
-      next()
-    } else {
-      next('/')
-    }
-  } else {
-    next()
+  // Check if token exists and is valid
+  const isAuthenticated = token && token !== 'undefined' && token !== 'null'
+  
+  // If route requires auth and user is not authenticated
+  if (requiresAuth && !isAuthenticated) {
+    // Clear any invalid token
+    localStorage.removeItem('token')
+    next({ name: 'login' })
+    return
   }
+  
+  // If user is authenticated and trying to access login page
+  if (isAuthenticated && to.name === 'login') {
+    next({ path: '/admin' })
+    return
+  }
+  
+  // For all other routes, require authentication
+  if (to.path !== '/' && !isAuthenticated) {
+    localStorage.removeItem('token')
+    next({ name: 'login' })
+    return
+  }
+  
+  // Otherwise proceed normally
+  next()
 })
 
 export default router 

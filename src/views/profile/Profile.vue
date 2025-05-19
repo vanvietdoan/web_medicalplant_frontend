@@ -74,17 +74,66 @@ onMounted(async () => {
     </div>
 
     <div v-else-if="user" class="profile-content">
-      <div class="profile-header">
-        <div class="avatar">
-          <img :src="user.avatar || '/default-avatar.png'" :alt="user.full_name">
+      <div class="profile-sidebar">
+        <div class="profile-card">
+          <div class="avatar-wrapper">
+            <div class="avatar">
+              <img 
+                :src="user.avatar || '/images/avatar.webp'" 
+                :alt="user.full_name"
+                @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
+              >
+            </div>
+          </div>
+          <div class="user-basic-info">
+            <div class="name-status">
+              <h2>{{ user.full_name }}</h2>
+              <div class="status-dot" :class="{ 'active': user.active }" :title="user.active ? 'Đang hoạt động' : 'Không hoạt động'">
+                <i class="fas fa-circle"></i>
+              </div>
+            </div>
+            <p class="title">{{ user.title }}</p>
+            <p class="specialty">
+              <i class="fas fa-graduation-cap"></i>
+              {{ user.specialty }}
+            </p>
+          </div>
+          <div class="quick-stats">
+            <div class="stat-item">
+              <i class="fas fa-comment-dots"></i>
+              <span>Lời khuyên</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-star"></i>
+              <span>Đánh giá</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-file-alt"></i>
+              <span>Báo cáo</span>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button @click="router.push('/profile/edit')" class="action-btn edit-btn">
+              <i class="fas fa-edit"></i>
+              <span>Chỉnh sửa</span>
+            </button>
+            <button @click="router.push('/change-password')" class="action-btn password-btn">
+              <i class="fas fa-key"></i>
+              <span>Đổi mật khẩu</span>
+            </button>
+            <button @click="handleLogout" class="action-btn logout-btn">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Đăng xuất</span>
+            </button>
+          </div>
         </div>
-        <h2>{{ user.full_name }}</h2>
-        <p class="title">{{ user.title }}</p>
       </div>
 
-      <div class="profile-info">
-        <div class="info-section">
-          <h3>Thông tin cá nhân</h3>
+      <div class="profile-main">
+        <div class="info-card">
+          <div class="card-header">
+            <h3><i class="fas fa-user-circle"></i> Thông tin cá nhân</h3>
+          </div>
           <div class="info-grid">
             <div class="info-item">
               <i class="fas fa-envelope"></i>
@@ -126,47 +175,26 @@ onMounted(async () => {
                 <p>{{ new Date(user.created_at).toLocaleDateString('vi-VN') }}</p>
               </div>
             </div>
-            <div class="info-item">
-              <i class="fas fa-check-circle"></i>
-              <div>
-                <strong>Trạng thái:</strong>
-                <p :class="{ 'active': user.active, 'inactive': !user.active }">
-                  {{ user.active ? 'Đang hoạt động' : 'Không hoạt động' }}
-                </p>
-              </div>
-            </div>
+          </div>
+
+          <div class="card-header">
+            <h3><i class="fas fa-tasks"></i> Quản lý</h3>
+          </div>
+          <div class="management-grid">
+            <router-link to="/profile/advice" class="management-item advice">
+              <i class="fas fa-comment-dots"></i>
+              <span>Quản lý lời khuyên</span>
+            </router-link>
+            <router-link to="/profile/report" class="management-item report">
+              <i class="fas fa-file-alt"></i>
+              <span>Quản lý báo cáo</span>
+            </router-link>
+            <router-link to="/profile/evalue" class="management-item evalue">
+              <i class="fas fa-star"></i>
+              <span>Quản lý đánh giá</span>
+            </router-link>
           </div>
         </div>
-      </div>
-
-      <div class="profile-actions">
-        <router-link to="/profile/advice" class="advice-btn">
-          <i class="fas fa-comment-dots"></i>
-          Quản lý lời khuyên
-        </router-link>
-
-        <router-link to="/profile/report" class="advice-btn">
-          <i class="fas fa-file-alt"></i>
-          Quản lý báo cáo
-        </router-link>
-
-        <router-link to="/profile/evalue" class="advice-btn">
-          <i class="fas fa-star"></i>
-          Quản lý đánh giá
-        </router-link>
-        
-        <button @click="router.push('/profile/edit')" class="advice-btn">
-          <i class="fas fa-edit"></i>
-          Chỉnh sửa
-        </button>
-        <button @click="router.push('/change-password')" class="password-btn">
-          <i class="fas fa-key"></i>
-          Đổi mật khẩu
-        </button>
-        <button @click="handleLogout" class="logout-btn">
-          <i class="fas fa-sign-out-alt"></i>
-          Đăng xuất
-        </button>
       </div>
     </div>
   </div>
@@ -174,20 +202,24 @@ onMounted(async () => {
 
 <style scoped>
 .profile-container {
-  max-width: 1000px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6rem 1rem 2rem;
 }
 
 .loading, .error {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem;
   color: #666;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .loading i, .error i {
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin-bottom: 1rem;
+  color: #008053;
 }
 
 .error {
@@ -196,42 +228,88 @@ onMounted(async () => {
 
 .retry-btn {
   margin-top: 1rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   background-color: #dc3545;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .retry-btn:hover {
   background-color: #c82333;
+  transform: translateY(-2px);
 }
 
 .profile-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  min-height: calc(100vh - 8rem);
 }
 
-.profile-header {
-  background: linear-gradient(135deg, #008053 0%, #006040 100%);
-  color: white;
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-card, .info-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-card {
   text-align: center;
 }
 
+.profile-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: auto;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 180px;
+  margin: 0 auto 1.5rem;
+}
+
 .avatar {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 1rem;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  border: 4px solid #008053;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .avatar img {
@@ -240,128 +318,117 @@ onMounted(async () => {
   object-fit: cover;
 }
 
-.profile-header h2 {
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-.title {
-  margin: 0.5rem 0 0;
-  opacity: 0.9;
-}
-
-.profile-info {
-  padding: 2rem;
-}
-
-.info-section h3 {
-  color: #008053;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.info-item {
+.name-status {
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.info-item i {
-  color: #008053;
-  font-size: 1.2rem;
-  margin-top: 0.2rem;
-}
-
-.info-item strong {
-  display: block;
-  color: #666;
-  margin-bottom: 0.2rem;
-}
-
-.info-item p {
-  margin: 0;
-  color: #333;
-}
-
-.pdf-link {
-  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #008053;
-  text-decoration: none;
-  padding: 0.3rem 0.8rem;
-  border-radius: 4px;
-  background-color: rgba(0, 128, 83, 0.1);
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.status-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
+.status-dot i {
+  font-size: 0.75rem;
+  color: #dc3545;
   transition: all 0.3s ease;
 }
 
-.pdf-link:hover {
-  background-color: rgba(0, 128, 83, 0.2);
-  color: #006040;
-}
-
-.active {
+.status-dot.active i {
   color: #28a745;
 }
 
-.inactive {
-  color: #dc3545;
+.status-dot:hover i {
+  transform: scale(1.2);
 }
 
-.profile-actions {
-  padding: 1.5rem 2rem;
-  border-top: 1px solid #f0f0f0;
+.user-basic-info h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #2c3e50;
+}
+
+.title {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  color: #008053;
+}
+
+.specialty {
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 1rem;
 }
 
-.profile-actions button,
-.profile-actions .advice-btn {
-  display: inline-flex;
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  color: #666;
+}
+
+.stat-item i {
+  font-size: 1.5rem;
+  color: #008053;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
-  text-decoration: none;
   color: white;
 }
 
-.advice-btn {
-  background-color: #008053;
-}
-
-.advice-btn:hover {
-  background-color: #006040;
-  transform: translateY(-2px);
-}
-
 .edit-btn {
-  background-color: #42b883;
+  background-color: #00a067;
 }
 
 .edit-btn:hover {
-  background-color: #3aa876;
+  background-color: #006040;
   transform: translateY(-2px);
 }
 
 .password-btn {
-  background-color: #008053;
+  background-color: #00a067;
 }
 
 .password-btn:hover {
-  background-color: #006040;
+  background-color: #008053;
   transform: translateY(-2px);
 }
 
@@ -374,37 +441,135 @@ onMounted(async () => {
   transform: translateY(-2px);
 }
 
+.card-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.card-header:not(:first-child) {
+  margin-top: 2rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.info-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.info-item i {
+  color: #008053;
+  font-size: 1.2rem;
+  margin-top: 0.2rem;
+}
+
+.info-item strong {
+  display: block;
+  color: #666;
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.info-item p {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #008053;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: rgba(0, 128, 83, 0.1);
+  transition: all 0.3s ease;
+}
+
+.pdf-link:hover {
+  background-color: rgba(0, 128, 83, 0.2);
+  color: #006040;
+  transform: translateY(-2px);
+}
+
+.management-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.management-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.management-item i {
+  font-size: 1.5rem;
+}
+
+.management-item span {
+  font-weight: 500;
+}
+
+.advice {
+  background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
+}
+
+.report {
+  background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
+}
+
+.evalue {
+  background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
+}
+
+@media (max-width: 1024px) {
+  .profile-content {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-sidebar {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-container {
     margin: 1rem auto;
   }
 
-  .profile-header {
-    padding: 1.5rem;
+  .avatar-wrapper {
+    width: 150px;
   }
 
   .avatar {
-    width: 100px;
-    height: 100px;
+    width: 150px;
+    height: 150px;
   }
 
-  .profile-info {
-    padding: 1.5rem;
-  }
-
-  .info-grid {
+  .info-grid, .management-grid {
     grid-template-columns: 1fr;
   }
 
-  .profile-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .profile-actions button,
-  .profile-actions .advice-btn {
-    width: 100%;
-    justify-content: center;
+  .management-item {
+    padding: 1rem;
   }
 }
 </style> 

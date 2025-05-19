@@ -105,6 +105,7 @@ class AdviceService extends BaseService {
   async getListUsetIDMostAdvice(): Promise<Advice[]> {
     try {
       const response = await this.get<Advice[]>('/advice/user/most-advice')
+      console.log('List user ID most advice response:', response)
       return response
     } catch (error) {
       console.error('Error fetching list user ID most advice:', error)

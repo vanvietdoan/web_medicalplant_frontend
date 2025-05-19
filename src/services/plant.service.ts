@@ -19,7 +19,7 @@ class PlantService extends BaseService {
     console.log('Fetching newest plants list from API...')
     try {
       const response = await this.get<Plant[]>('/plants/new-plants')
-      console.log('Newest plants list response:', response)
+      console.log('Newest updateq plants list response:', response)
       return response
     } catch (error) {
       console.error('Error fetching newest plants list:', error)

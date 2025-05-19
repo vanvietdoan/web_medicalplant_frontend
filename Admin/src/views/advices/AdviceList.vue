@@ -4,26 +4,46 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { Advice } from '../../models/Advice'
 import { adviceService } from '../../services/advice.service'
+import { plantService } from '../../services/plant.service'
+import { diseasesService } from '../../services/diseases.service'
+import type { Plant } from '../../models/Plant'
+import type { Disease } from '../../models/Diseases'
+
 // Router setup
 const router = useRouter()
 
 // State management
 const advices = ref<Advice[]>([])
+const plants = ref<Plant[]>([])
+const diseases = ref<Disease[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedPlantId = ref<number | null>(null)
+const selectedDiseaseId = ref<number | null>(null)
 
 // Computed properties
 const filteredAdvices = computed(() => {
-  if (!searchQuery.value) return advices.value
+  let filtered = advices.value
   
-  const query = searchQuery.value.toLowerCase()
-  return advices.value.filter(advice =>
-    advice.title.toLowerCase().includes(query) ||
-    advice.content.toLowerCase().includes(query) ||
-    advice.plant.name.toLowerCase().includes(query) ||
-    advice.disease.name.toLowerCase().includes(query) ||
-    advice.user.full_name.toLowerCase().includes(query)
-  )
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(advice =>
+      advice.title.toLowerCase().includes(query)
+    )
+  }
+
+  // Filter by selected plant
+  if (selectedPlantId.value) {
+    filtered = filtered.filter(advice => advice.plant?.plant_id === selectedPlantId.value)
+  }
+
+  // Filter by selected disease
+  if (selectedDiseaseId.value) {
+    filtered = filtered.filter(advice => advice.disease?.disease_id === selectedDiseaseId.value)
+  }
+  
+  return filtered
 })
 
 // Event handlers
@@ -66,24 +86,29 @@ const handleCreate = () => {
 const fetchAdvices = async () => {
   try {
     loading.value = true
-    const response = await adviceService.getAdvices()
-    console.log('Advice API Response:', response)
+    const [advicesData, plantsData, diseasesData] = await Promise.all([
+      adviceService.getAdvices(),
+      plantService.getPlants(),
+      diseasesService.getDiseases()
+    ])
     
-    // Handle Proxy-wrapped Array
-    if (response && typeof response === 'object') {
-      // Convert Proxy to regular array
-      advices.value = Array.from(response)
+    // Handle Proxy-wrapped Array for advices
+    if (advicesData && typeof advicesData === 'object') {
+      advices.value = Array.from(advicesData)
     } else {
-      console.error('Unexpected data structure:', response)
+      console.error('Unexpected data structure:', advicesData)
       ElMessage.error('Dữ liệu không đúng định dạng')
       return
     }
+
+    plants.value = plantsData || []
+    diseases.value = diseasesData || []
     
     console.log('Advices data after assignment:', advices.value)
     console.log('Number of advices:', advices.value.length)
   } catch (error) {
-    console.error('Error fetching advices:', error)
-    ElMessage.error('Không thể tải danh sách lời khuyên')
+    console.error('Error fetching data:', error)
+    ElMessage.error('Không thể tải dữ liệu')
   } finally {
     loading.value = false
   }
@@ -92,33 +117,67 @@ const fetchAdvices = async () => {
 // Lifecycle hooks
 onMounted(() => {
   fetchAdvices()
-  //console.log("advices in advice list:",Response)
 })
 
 onUnmounted(() => {
-  // Cleanup if needed
   advices.value = []
+  plants.value = []
+  diseases.value = []
   loading.value = false
   searchQuery.value = ''
+  selectedPlantId.value = null
+  selectedDiseaseId.value = null
 })
 </script>
 
 <template>
   <div class="advice-list">
     <div class="header">
-      <h2>Quản lý lời khuyên</h2>
-     
-      <div class="search-bar">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Tìm kiếm lời khuyên..." 
-          class="search-input"
-        />
+      <div class="header-left">
+        <h2>Quản lý lời khuyên</h2>
+        <button class="btn-create" @click="handleCreate">
+          <i class="fas fa-plus"></i> Tạo lời khuyên
+        </button>
       </div>
-      <button class="btn-create" @click="handleCreate">
-        <i class="fas fa-plus"></i> Tạo lời khuyên
-      </button>
+     
+      <div class="filters">
+        <div class="search-bar">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Tìm kiếm lời khuyên..." 
+            class="search-input"
+          />
+        </div>
+        <div class="filter-group">
+          <select 
+            v-model="selectedPlantId" 
+            class="form-select"
+          >
+            <option :value="null">Tất cả cây</option>
+            <option 
+              v-for="plant in plants" 
+              :key="plant.plant_id" 
+              :value="plant.plant_id"
+            >
+              {{ plant.name }}
+            </option>
+          </select>
+          <select 
+            v-model="selectedDiseaseId" 
+            class="form-select"
+          >
+            <option :value="null">Tất cả bệnh</option>
+            <option 
+              v-for="disease in diseases" 
+              :key="disease.disease_id" 
+              :value="disease.disease_id"
+            >
+              {{ disease.name }}
+            </option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div v-if="loading" class="loading">Đang tải...</div>
@@ -134,6 +193,7 @@ onUnmounted(() => {
           <th>Tiêu đề</th>
           <th>Cây thuốc</th>
           <th>Bệnh</th>
+          <th>Người tạo</th>
           <th>Ngày tạo</th>
           <th>Thao tác</th>
         </tr>
@@ -174,24 +234,48 @@ onUnmounted(() => {
 
 .header {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
 .search-bar {
-  flex: 0 0 300px;
+  flex: 1;
 }
 
-.search-input {
+.filter-group {
+  display: flex;
+  gap: 12px;
+}
+
+.search-input,
+.form-select {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  transition: border-color 0.3s ease;
 }
 
-.search-input:focus {
+.search-input:focus,
+.form-select:focus {
   outline: none;
   border-color: #2196F3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
@@ -200,19 +284,36 @@ onUnmounted(() => {
 .advice-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .advice-table th,
 .advice-table td {
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.advice-table th {
+  background-color: #f8f9fa;
+  font-weight: 500;
+  color: #333;
+}
+
+.advice-table tr:last-child td {
+  border-bottom: none;
 }
 
 .loading {
   text-align: center;
   padding: 20px;
   color: #666;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .action-buttons {
@@ -222,11 +323,12 @@ onUnmounted(() => {
 
 .btn-edit,
 .btn-delete {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   color: white;
+  transition: opacity 0.3s ease;
 }
 
 .btn-edit {
@@ -237,12 +339,9 @@ onUnmounted(() => {
   background: #f44336;
 }
 
-.btn-edit:hover {
-  background: #1976D2;
-}
-
+.btn-edit:hover,
 .btn-delete:hover {
-  background: #D32F2F;
+  opacity: 0.9;
 }
 
 .user-info {
@@ -264,26 +363,35 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 20px;
   background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  height: 40px;
 }
 
 .btn-create:hover {
   background-color: #388E3C;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-create:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .no-data {
   text-align: center;
   padding: 20px;
   color: #666;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-top: 20px;
 }
 </style> 

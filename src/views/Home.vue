@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { plantService } from '../services/plant.service';
 import type { Plant } from '../models/Plant';
 import { adviceService } from '../services/advice.service';
+import { userService } from '../services/user.service';
 import type { User } from '../models/User';
 import type { UserAdviceCount } from '../models/Advice';
 
@@ -128,10 +129,29 @@ const formatDate = (dateString: string) => {
 
 const fetchListUserIDMostAdvice = async () => {
   try {
+    loadingUserMostAdvice.value = true;
+    errorUserMostAdvice.value = null;
     const response = await adviceService.getListUsetIDMostAdvice();
     listUserMostAdvice.value = (response as unknown) as UserAdviceCount[];
+    
+    // Fetch user details for each expert
+    const userPromises = listUserMostAdvice.value.map(async (userAdvice) => {
+      try {
+        const user = await userService.getUserById(userAdvice.user_id);
+        return user;
+      } catch (error) {
+        console.error(`Error fetching user details for ID ${userAdvice.user_id}:`, error);
+        return null;
+      }
+    });
+    
+    const users = await Promise.all(userPromises);
+    userDetails.value = users.filter((user): user is User => user !== null);
   } catch (error) {
     console.error('Error fetching list user ID most advice:', error);
+    errorUserMostAdvice.value = 'Có lỗi xảy ra khi tải danh sách chuyên gia';
+  } finally {
+    loadingUserMostAdvice.value = false;
   }
 };
 
@@ -171,7 +191,7 @@ onBeforeUnmount(() => {
       <!-- Cây thuốc mới phát hiện -->
       <section class="new-plants">
         <div class="section-header">
-          <h2>Cây Thuốc Mới Phát Hiện</h2>
+          <h2>Cây Thuốc Mới Cập Nhật</h2>
           <router-link to="/plant/newest" class="view-all">Xem tất cả</router-link>
         </div>
         
@@ -205,7 +225,7 @@ onBeforeUnmount(() => {
               <p class="english-name">{{ plant.english_name }}</p>
               <p class="description">{{ plant.description }}</p>
               <div class="discovery-date">
-                <p>Phát hiện: {{ formatDate(plant.created_at) }}</p>
+                <p>Cập nhật: {{ formatDate(plant.updated_at) }}</p>
               </div>
               <router-link :to="`/plant/${plant.plant_id}`" class="view-details">
                 Xem chi tiết
@@ -251,9 +271,7 @@ onBeforeUnmount(() => {
               </div>
               <p class="english-name">{{ plant.english_name }}</p>
               <p class="description">{{ plant.description }}</p>
-              <div class="benefits-count">
-                <p>Số công dụng: {{ plant.benefits.split(',').length }}</p>
-              </div>
+             
               <router-link :to="`/plant/${plant.plant_id}`" class="view-details">
                 Xem chi tiết
               </router-link>
@@ -284,10 +302,10 @@ onBeforeUnmount(() => {
             class="user-card"
           >
             <img 
-              :src="user.avatar || '/images/default-avatar.png'" 
+              :src="user.avatar || '/images/avatar.webp'" 
               :alt="user.full_name" 
               class="user-avatar"
-              @error="(e) => (e.target as HTMLImageElement).src = '/images/default-avatar.png'"
+              @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
             >
             <div class="user-info">
               <h3>{{ user.full_name }}</h3>
@@ -302,6 +320,7 @@ onBeforeUnmount(() => {
       </section>
       <section class="user-most-advice"></section>
 
+      
     </div>
   </div>
 </template>
@@ -570,8 +589,17 @@ section {
   padding: 2rem;
 }
 
+.plant-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
 .no-image {
-  height: 200px;
+  width: 100%;
+  height: 250px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -682,5 +710,67 @@ section {
 
 .advice-count i {
   color: #42b883;
+}
+
+.experts-section {
+  margin: 4rem 0;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.experts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.expert-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.expert-card:hover {
+  transform: translateY(-5px);
+}
+
+.expert-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.expert-avatar {
+  font-size: 2.5rem;
+  color: #008053;
+}
+
+.expert-info h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.expert-contribution {
+  margin: 0.5rem 0 0;
+  color: #666;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expert-contribution i {
+  color: #FFD700;
+}
+
+@media (max-width: 768px) {
+  .experts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

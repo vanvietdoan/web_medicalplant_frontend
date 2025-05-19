@@ -68,6 +68,17 @@ const uploadFiles = async () => {
   }
 };
 
+// Add function to remove host from URL
+const removeHostFromUrl = (url: string): string => {
+  try {
+    if (!url) return '';
+    const urlObj = new URL(url);
+    return urlObj.pathname;
+  } catch {
+    return url; // Return original URL if it's not a valid URL
+  }
+};
+
 const fetchUserDetails = async () => {
   try {
     loading.value = true;
@@ -111,6 +122,11 @@ const handleSubmit = async () => {
 
     // Upload files first if any
     await uploadFiles();
+
+    // Remove host from avatar URL if it exists
+    if (formData.value.avatar) {
+      formData.value.avatar = removeHostFromUrl(formData.value.avatar);
+    }
 
     const updatedUser = {
       ...user.value,

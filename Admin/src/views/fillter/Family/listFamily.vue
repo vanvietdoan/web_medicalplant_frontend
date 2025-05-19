@@ -12,13 +12,25 @@ const families = ref<FamilyResponse[]>([])
 const orders = ref<OrderResponse[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedOrderId = ref<number | null>(null)
 
 const filteredFamilies = computed(() => {
-  if (!searchQuery.value) return families.value
-  const query = searchQuery.value.toLowerCase()
-  return families.value.filter(item =>
-    item.name.toLowerCase().includes(query)
-  )
+  let filtered = families.value
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(item =>
+      item.name.toLowerCase().includes(query)
+    )
+  }
+
+  // Filter by selected order
+  if (selectedOrderId.value) {
+    filtered = filtered.filter(item => item.order_id === selectedOrderId.value)
+  }
+  
+  return filtered
 })
 const getOrders = async () => {
   const response = await orderService.getOrders()
@@ -81,13 +93,30 @@ onMounted(() => {
     <div class="header">
       <h2>Quản lý phân họ</h2>
      
-      <div class="search-bar">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Tìm kiếm phân loại..." 
-          class="search-input"
-        />
+      <div class="filters">
+        <div class="search-bar">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Tìm kiếm phân loại..." 
+            class="search-input"
+          />
+        </div>
+        <div class="filter-group">
+          <select 
+            v-model="selectedOrderId" 
+            class="form-select"
+          >
+            <option :value="null">Tất cả bộ</option>
+            <option 
+              v-for="order in orders" 
+              :key="order.order_id" 
+              :value="order.order_id"
+            >
+              {{ order.name }}
+            </option>
+          </select>
+        </div>
       </div>
       <button class="btn-create" @click="handleCreate">
         <i class="fas fa-plus"></i> Tạo phân loại họ
@@ -142,19 +171,30 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.search-bar {
-  flex: 0 0 300px;
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
-.search-input {
+.search-bar {
+  flex: 1;
+}
+
+.filter-group {
+  flex: 0 0 200px;
+}
+
+.form-select {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  background-color: white;
 }
 
-.search-input:focus {
+.form-select:focus {
   outline: none;
   border-color: #2196F3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);

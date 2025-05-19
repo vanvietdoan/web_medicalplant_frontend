@@ -11,7 +11,7 @@ import familyService from '../../services/fillter/family.service';
 import genusService from '../../services/fillter/genus.service';
 import speciesService from '../../services/fillter/species.service';
 import { plantService } from '../../services/plant.service';
-import type { Plant } from '../../models/Plant';
+import { authService } from '../../services/auth.service';
 
 const router = useRouter();
 const route = useRoute();
@@ -48,6 +48,9 @@ const families = ref<any[]>([]);
 const genera = ref<any[]>([]);
 const species = ref<any[]>([]);
 
+// Add plant names mapping
+const plantNames = ref<{ [key: number]: string }>({});
+
 // Computed properties for filtering
 const filteredReports = computed(() => {
   return reports.value;
@@ -60,6 +63,21 @@ const getStatusValue = (status: number | null) => {
   return 'null';
 };
 
+// Add function to fetch plant name
+const fetchPlantName = async (plantId: number) => {
+  if (!plantNames.value[plantId]) {
+    try {
+      const plant = await plantService.getPlantById(plantId);
+      if (plant) {
+        plantNames.value[plantId] = plant.name;
+      }
+    } catch (err) {
+      console.error('Error fetching plant name:', err);
+    }
+  }
+  return plantNames.value[plantId] || 'Đang tải...';
+};
+
 const fetchReports = async () => {
   try {
     loading.value = true;
@@ -67,42 +85,10 @@ const fetchReports = async () => {
 
     let response: Report[] | undefined;
     
-    // Build query parameters for plant search based on taxonomy filters
-    let queryParams = new URLSearchParams();
-    
-    if (selectedDivision.value) {
-      queryParams.append('divisionId', (Number(selectedDivision.value) + 1).toString());
-    }
-    if (selectedClass.value) {
-      queryParams.append('classId', (Number(selectedClass.value) + 1).toString());
-    }
-    if (selectedOrder.value) {
-      queryParams.append('orderId', (Number(selectedOrder.value) + 1).toString());
-    }
-    if (selectedFamily.value) {
-      queryParams.append('familyId', (Number(selectedFamily.value) + 1).toString());
-    }
-    if (selectedGenus.value) {
-      queryParams.append('genusId', (Number(selectedGenus.value) + 1).toString());
-    }
-    if (selectedSpecies.value) {
-      queryParams.append('speciesId', (Number(selectedSpecies.value) + 1).toString());
-    }
-
-    // Get plants based on taxonomy filters
-    const plants = await plantService.getPlantSearch(queryParams.toString());
-    
-    if (plants && plants.length > 0) {
-      // Get reports for each plant
-      const plantIds = plants.map((plant: Plant) => plant.plant_id);
-      const reportsPromises = plantIds.map((plantId: number) => 
-        reportService.getReportsByPlant(plantId)
-      );
-      
-      const reportsResults = await Promise.all(reportsPromises);
-      response = reportsResults.flat();
-    } else {
-      response = [];
+    // Get current user's reports by default
+    const currentUser = authService.getCurrentUser();
+    if (currentUser?.id) {
+      response = await reportService.getReportsByUser(currentUser.id);
     }
 
     // Apply status filter if needed
@@ -124,6 +110,9 @@ const fetchReports = async () => {
     
     if (response && Array.isArray(response)) {
       reports.value = response;
+      // Fetch plant names for all reports
+      const uniquePlantIds = [...new Set(response.map(report => report.plant_id))];
+      await Promise.all(uniquePlantIds.map(id => fetchPlantName(id)));
     } else {
       reports.value = [];
       console.warn('Unexpected response structure:', response);
@@ -191,7 +180,7 @@ const clearFilters = async () => {
   genera.value = [];
   species.value = [];
 
-  // Fetch all reports
+  // Fetch user's reports
   currentPage.value = 1;
   await fetchReports();
 };
@@ -209,8 +198,6 @@ const getStatusClass = (status: number | null) => {
   if (status === 1) return 'status-approved';
   return '';
 };
-
-
 
 // Add computed properties for available filter options
 const availableClasses = computed(() => {
@@ -264,7 +251,6 @@ const handleClassChange = async () => {
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
-  // Load orders for selected class
   if (selectedClass.value) {
     const ordersData = await orderService.getOrders();
     const filteredOrders = ordersData.filter(order => order.class_id === Number(selectedClass.value) + 1);
@@ -278,7 +264,6 @@ const handleOrderChange = async () => {
   selectedFamily.value = '';
   selectedGenus.value = '';
   selectedSpecies.value = '';
-  // Load families for selected order
   if (selectedOrder.value) {
     const familiesData = await familyService.getFamilies();
     const filteredFamilies = familiesData.filter(family => family.order_id === Number(selectedOrder.value) + 1);
@@ -291,7 +276,6 @@ const handleOrderChange = async () => {
 const handleFamilyChange = async () => {
   selectedGenus.value = '';
   selectedSpecies.value = '';
-  // Load genera for selected family
   if (selectedFamily.value) {
     const generaData = await genusService.getGenuses();
     const filteredGenera = generaData.filter(genus => genus.family_id === Number(selectedFamily.value) + 1);
@@ -303,7 +287,6 @@ const handleFamilyChange = async () => {
 
 const handleGenusChange = async () => {
   selectedSpecies.value = '';
-  // Load species for selected genus
   if (selectedGenus.value) {
     const speciesData = await speciesService.getSpecies();
     const filteredSpecies = speciesData.filter(s => s.genus_id === Number(selectedGenus.value) + 1);
@@ -314,7 +297,6 @@ const handleGenusChange = async () => {
 };
 
 const handleSpeciesChange = async () => {
-  console.log("Selected species ID:", selectedSpecies.value);
   currentPage.value = 1;
   await fetchReports();
 };
@@ -650,7 +632,7 @@ onUnmounted(() => {
           <div class="info-item">
             <i class="fas fa-leaf"></i>
             <router-link :to="`/plant/${report.plant_id}`" class="plant-link">
-              {{ report.plant_name }}
+              {{ plantNames[report.plant_id] || 'Đang tải...' }}
             </router-link>
           </div>
         </div>

@@ -90,11 +90,15 @@ const handleDeleteEvaluation = async (evalueId: number) => {
   }
   if (confirm('Bạn có chắc chắn muốn xóa đánh giá này?')) {
     try {
+      loading.value = true;
       await evalueService.deleteEvalue(evalueId);
       evaluations.value = evaluations.value.filter(evalue => evalue.id !== evalueId);
+      alert('Xóa đánh giá thành công');
     } catch (err) {
       console.error('Error deleting evaluation:', err);
-      alert('Có lỗi xảy ra khi xóa đánh giá');
+      alert(err instanceof Error ? err.message : 'Có lỗi xảy ra khi xóa đánh giá');
+    } finally {
+      loading.value = false;
     }
   }
 };
@@ -215,10 +219,9 @@ onMounted(() => {
 
         <div class="evalue-info">
           <div class="info-item">
-            <i class="fas fa-comment"></i>
-            <router-link :to="`/advice/${evalue.advice_id}`">
+            <i class="fas fa-comment"></i>Từ lời khuyên:
               {{ evalue.advice?.title || 'Lời khuyên' }}
-            </router-link>
+          
           </div>
         </div>
 
