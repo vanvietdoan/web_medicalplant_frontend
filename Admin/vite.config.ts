@@ -1,12 +1,29 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import path from "path";  // Thêm dòng này nếu chưa có
+import path from "path";
 
 export default defineConfig({
   plugins: [vue()],
+  base: '/',
   resolve: {
     alias: {
-      "D:/DaiHoc/DATN/Admin/src": path.resolve(__dirname, "src"),  
+      "@": path.resolve(__dirname, "src"),
     },
   },
+  server: {
+    headers: {
+      'Content-Type': 'application/javascript',
+    },
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia'],
+        }
+      }
+    }
+  }
 });
