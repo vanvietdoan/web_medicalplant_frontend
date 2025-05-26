@@ -70,7 +70,8 @@ onMounted(async () => {
       <nav class="nav-menu">
         <router-link to="/" class="nav-item">Trang chủ</router-link>
         <router-link to="/plant" class="nav-item">Cây thuốc</router-link>
-        <router-link to="/disease" class="nav-item">Bệnh thường gặp</router-link>
+        <router-link to="/disease" class="nav-item">Bệnh thường gặp</router-link>    
+        <router-link to="/search" class="nav-item">Tra cứu</router-link>
       </nav>
 
       <div class="auth-buttons">

@@ -11,9 +11,8 @@ export default defineConfig({
     },
   },
   server: {
-    headers: {
-      'Content-Type': 'application/javascript',
-    },
+    port: 3000,
+    open: true
   },
   build: {
     rollupOptions: {

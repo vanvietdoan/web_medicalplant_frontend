@@ -21,6 +21,7 @@ import EditReport from '../views/Report/EditReport.vue'
 import ManageEvalue from '../views/Evalue/ManageEvalue.vue'
 import CreateEvalue from '../views/Evalue/CreateEvalue.vue'
 import EditEvalue from '../views/Evalue/EditEvalue.vue'
+import SearchScreen from '../views/Search/search_screen.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -175,6 +176,12 @@ const router = createRouter({
       component: EditEvalue,
       meta: { title: 'Chỉnh sửa đánh giá' }
     },
+    {
+      path: '/search',
+      name: 'search',
+      component: SearchScreen,
+      meta: { title: 'Tra cứu' }
+    }
   ]
 })  
 
