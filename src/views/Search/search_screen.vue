@@ -5,6 +5,19 @@
     </div>
     
     <div class="chat-messages" ref="messageContainer">
+      <div v-if="messages.length === 0" class="welcome-message">
+        <div class="welcome-content">
+          <h3>Chào mừng bạn đến với hệ thống tra cứu cây thuốc!</h3>
+          <p>Bạn có thể hỏi về:</p>
+          <ul>
+            <li>Công dụng của các loại cây thuốc</li>
+            <li>Cách sử dụng và liều lượng</li>
+            <li>Bài thuốc chữa bệnh</li>
+            <li>Thông tin về các loại bệnh</li>
+          </ul>
+          <p>Ví dụ: "Cây thuốc nào chữa đau dạ dày?"</p>
+        </div>
+      </div>
       <div v-for="(message, index) in messages" :key="index" 
            :class="['message', message.type === 'user' ? 'user-message' : 'bot-message']">
         <div class="message-content">
@@ -29,7 +42,6 @@
         @keyup.enter="sendMessage"
         placeholder="Nhập câu hỏi của bạn..."
         :disabled="loading"
-        
       >
       <button @click="sendMessage" :disabled="!userInput.trim() || loading">
         {{ loading ? 'Đang xử lý...' : 'Gửi' }}
@@ -49,7 +61,7 @@ export default defineComponent({
       messages: [] as { type: string; content: string }[],
       userInput: '',
       loading: false,
-      apiUrl: 'http://157.20.58.220:8000/chat/ask'
+      apiUrl: 'https://chat.apivui.click/chat/ask'
     }
   },
   methods: {
@@ -128,6 +140,57 @@ export default defineComponent({
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
+}
+
+.welcome-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 20px;
+}
+
+.welcome-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  max-width: 600px;
+  width: 100%;
+}
+
+.welcome-content h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.welcome-content p {
+  color: #666;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.welcome-content ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.welcome-content li {
+  color: #666;
+  padding: 8px 0;
+  padding-left: 25px;
+  position: relative;
+}
+
+.welcome-content li:before {
+  content: "•";
+  color: #4CAF50;
+  position: absolute;
+  left: 0;
+  font-size: 1.2em;
 }
 
 .chat-messages {
