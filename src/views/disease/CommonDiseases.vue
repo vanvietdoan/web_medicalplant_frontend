@@ -9,6 +9,8 @@ const selectedSymptom = ref('');
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 const expandedSymptoms = ref<{ [key: number]: boolean }>({});
+const currentPage = ref(1);
+const itemsPerPage = 6;
 
 const symptoms = computed(() => {
   const allSymptoms = diseases.value.flatMap(disease => 
@@ -18,12 +20,53 @@ const symptoms = computed(() => {
 });
 
 const filteredDiseases = computed(() => {
-  return diseases.value.filter(disease => {
+  const filtered = diseases.value.filter(disease => {
     const matchesSearch = disease.name.toLowerCase().includes(searchQuery.value.toLowerCase());
     const matchesSymptom = !selectedSymptom.value || disease.symptoms.toLowerCase().includes(selectedSymptom.value.toLowerCase());
     return matchesSearch && matchesSymptom;
   });
+
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filtered.slice(start, end);
 });
+
+const totalPages = computed(() => {
+  const filtered = diseases.value.filter(disease => {
+    const matchesSearch = disease.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const matchesSymptom = !selectedSymptom.value || disease.symptoms.toLowerCase().includes(selectedSymptom.value.toLowerCase());
+    return matchesSearch && matchesSymptom;
+  });
+  return Math.ceil(filtered.length / itemsPerPage);
+});
+
+const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const delta = 2;
+  
+  let range: (number | string)[] = [];
+  for (let i = 1; i <= total; i++) {
+    if (
+      i === 1 ||
+      i === total ||
+      (i >= current - delta && i <= current + delta)
+    ) {
+      range.push(i);
+    } else if (i === current - delta - 1 || i === current + delta + 1) {
+      range.push('...');
+    }
+  }
+  
+  return range;
+});
+
+const changePage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
 
 const toggleSymptoms = (diseaseId: number) => {
   expandedSymptoms.value[diseaseId] = !expandedSymptoms.value[diseaseId];
@@ -112,7 +155,13 @@ onMounted(() => {
         <p>Không tìm thấy bệnh phù hợp</p>
       </div>
       
-      <div v-else v-for="disease in filteredDiseases" :key="disease.disease_id" class="disease-card">
+      <router-link 
+        v-else 
+        v-for="disease in filteredDiseases" 
+        :key="disease.disease_id" 
+        :to="`/disease/${disease.disease_id}`"
+        class="disease-card"
+      >
         <div class="disease-header">
           <div class="header-content">
             <h3>{{ disease.name }}</h3>
@@ -140,7 +189,7 @@ onMounted(() => {
             </ul>
             <button 
               v-if="disease.symptoms.split(',').length > 4"
-              @click="toggleSymptoms(disease.disease_id)"
+              @click.prevent="toggleSymptoms(disease.disease_id)"
               class="show-more-btn"
             >
               {{ expandedSymptoms[disease.disease_id] ? 'Thu gọn' : 'Xem thêm' }}
@@ -149,11 +198,42 @@ onMounted(() => {
           </div>
         </div>
 
-        <router-link :to="`/disease/${disease.disease_id}`" class="view-details">
+        <div class="view-details">
           <i class="fas fa-arrow-right"></i> Xem chi tiết
-        </router-link>
-      </div>
+        </div>
+      </router-link>
     </section>
+
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button 
+        class="page-btn" 
+        :disabled="currentPage === 1"
+        @click="changePage(currentPage - 1)"
+      >
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      
+      <template v-for="(page, index) in visiblePages" :key="index">
+        <button 
+          v-if="typeof page === 'number'"
+          class="page-btn"
+          :class="{ active: currentPage === page }"
+          @click="changePage(page)"
+        >
+          {{ page }}
+        </button>
+        <span v-else class="page-ellipsis">...</span>
+      </template>
+
+      <button 
+        class="page-btn"
+        :disabled="currentPage === totalPages"
+        @click="changePage(currentPage + 1)"
+      >
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -277,6 +357,9 @@ onMounted(() => {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .disease-card:hover {
@@ -450,19 +533,14 @@ h4 i {
   padding: 1rem;
   background: #008053;
   color: white;
-  text-decoration: none;
   transition: all 0.3s ease;
 }
 
-.view-details:hover {
+.disease-card:hover .view-details {
   background: #006c46;
 }
 
-.view-details i {
-  transition: transform 0.3s ease;
-}
-
-.view-details:hover i {
+.disease-card:hover .view-details i {
   transform: translateX(5px);
 }
 
@@ -533,5 +611,71 @@ h4 i {
   margin-right: 0.5rem;
   font-size: 1rem;
   color: white;
+}
+
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 1rem;
+}
+
+.page-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 0.5rem;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #008053;
+  color: #008053;
+}
+
+.page-btn.active {
+  background: #008053;
+  color: white;
+  border-color: #008053;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn i {
+  font-size: 0.9rem;
+}
+
+.page-ellipsis {
+  color: #666;
+  padding: 0 0.5rem;
+}
+
+/* Responsive Pagination */
+@media (max-width: 768px) {
+  .pagination {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .page-btn {
+    min-width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
+  }
 }
 </style> 

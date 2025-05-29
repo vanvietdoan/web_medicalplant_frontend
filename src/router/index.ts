@@ -22,6 +22,7 @@ import ManageEvalue from '../views/Evalue/ManageEvalue.vue'
 import CreateEvalue from '../views/Evalue/CreateEvalue.vue'
 import EditEvalue from '../views/Evalue/EditEvalue.vue'
 import SearchScreen from '../views/Search/search_screen.vue'
+import App from '../views/app/appdownload.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -181,6 +182,12 @@ const router = createRouter({
       name: 'search',
       component: SearchScreen,
       meta: { title: 'Tra cứu' }
+    },
+    {
+      path: '/app',
+      name: 'app',
+      component: App,
+      meta: { title: 'Tải app' }
     }
   ]
 })  

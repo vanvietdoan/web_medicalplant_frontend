@@ -464,7 +464,12 @@ const changePage = (page: number) => {
     </div>
 
     <div v-else class="plants-grid">
-      <div v-for="plant in filteredPlants" :key="plant.plant_id" class="plant-card">
+      <router-link 
+        v-for="plant in filteredPlants" 
+        :key="plant.plant_id" 
+        :to="`/plant/${plant.plant_id}`"
+        class="plant-card"
+      >
         <div class="plant-image-container">
           <img :src="getPlantImage(plant)" :alt="plant.name" class="plant-image">
         </div>
@@ -477,13 +482,13 @@ const changePage = (page: number) => {
               <i class="fas fa-leaf"></i>
               <span>{{ plant.benefits ? 'Nhiều công dụng' : 'Đang cập nhật' }}</span>
             </div>
-            <router-link :to="`/plant/${plant.plant_id}`" class="view-more">
+            <div class="view-more">
               Xem chi tiết
               <i class="fas fa-arrow-right"></i>
-            </router-link>
+            </div>
           </div>
         </div>
-      </div>
+      </router-link>
     </div>
 
     <!-- Pagination -->
@@ -714,6 +719,9 @@ const changePage = (page: number) => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .plant-card:hover {
@@ -795,7 +803,6 @@ const changePage = (page: number) => {
 
 .view-more {
   color: #008053;
-  text-decoration: none;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -804,7 +811,7 @@ const changePage = (page: number) => {
   font-size: 0.9rem;
 }
 
-.view-more:hover {
+.plant-card:hover .view-more {
   color: #006040;
   transform: translateX(5px);
 }
@@ -814,7 +821,7 @@ const changePage = (page: number) => {
   transition: transform 0.3s ease;
 }
 
-.view-more:hover i {
+.plant-card:hover .view-more i {
   transform: translateX(3px);
 }
 
