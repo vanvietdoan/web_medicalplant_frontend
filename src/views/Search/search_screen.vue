@@ -187,7 +187,7 @@ export default defineComponent({
 
 .welcome-content li:before {
   content: "•";
-  color: #4CAF50;
+  color: #008053;
   position: absolute;
   left: 0;
   font-size: 1.2em;
@@ -222,7 +222,7 @@ export default defineComponent({
 }
 
 .user-message .message-content {
-  background-color: #4CAF50;
+  background-color: #008053;
   color: white;
   border-bottom-right-radius: 5px;
 }
@@ -254,7 +254,7 @@ input {
 }
 
 input:focus {
-  border-color: #4CAF50;
+  border-color: #008053;
 }
 
 input:disabled {
@@ -265,7 +265,7 @@ input:disabled {
 
 button {
   padding: 12px 24px;
-  background-color: #4CAF50;
+  background-color: #008053;
   color: white;
   border: none;
   border-radius: 25px;
@@ -276,7 +276,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background-color: #45a049;
+  background-color: #006c46;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -297,7 +297,7 @@ button:disabled {
 .loading-dots span {
   width: 8px;
   height: 8px;
-  background-color: #4CAF50;
+  background-color: #008053;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -330,11 +330,11 @@ button:disabled {
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #4CAF50;
+  background: #008053;
   border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #45a049;
+  background: #006c46;
 }
 </style>

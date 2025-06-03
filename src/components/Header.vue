@@ -87,7 +87,7 @@ onMounted(async () => {
         <router-link to="/plant" class="nav-item" @click="isMenuOpen = false">Cây thuốc</router-link>
         <router-link to="/disease" class="nav-item" @click="isMenuOpen = false">Bệnh thường gặp</router-link>    
         <router-link to="/search" class="nav-item" @click="isMenuOpen = false">Tra cứu</router-link>
-        <router-link to="/app" class="nav-item" @click="isMenuOpen = false">Tải app</router-link>
+        <router-link to="/app" class="nav-item" @click="isMenuOpen = false">Tải ứng dụng</router-link>
       </nav>
 
       <div class="auth-buttons" :class="{ 'active': isMenuOpen }">
@@ -165,7 +165,7 @@ onMounted(async () => {
 
 .nav-item:hover,
 .nav-item.router-link-active {
-  color: #42b883;
+  color: #008053;
 }
 
 .auth-buttons {
@@ -182,22 +182,22 @@ onMounted(async () => {
 }
 
 .btn-login {
-  color: #42b883;
-  border: 1px solid #42b883;
+  color: #008053;
+  border: 1px solid #008053;
 }
 
 .btn-login:hover {
-  background-color: #42b883;
+  background-color: #008053;
   color: white;
 }
 
 .btn-register {
-  background-color: #42b883;
+  background-color: #008053;
   color: white;
 }
 
 .btn-register:hover {
-  background-color: #3aa876;
+  background-color: #006c46;
 }
 
 .btn-logout {
@@ -224,7 +224,7 @@ onMounted(async () => {
 }
 
 .btn-profile {
-  background-color: #42b883;
+  background-color: #008053;
   color: white;
   display: flex;
   align-items: center;
@@ -233,7 +233,7 @@ onMounted(async () => {
 }
 
 .btn-profile:hover {
-  background-color: #3aa876;
+  background-color: #006c46;
 }
 
 .menu-toggle {

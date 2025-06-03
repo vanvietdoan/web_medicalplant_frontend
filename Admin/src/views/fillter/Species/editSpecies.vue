@@ -11,7 +11,9 @@ const loading = ref(false);
 
 const formData = ref({
   name: '',
-  genus_id: ''
+  genus_id: '',
+  distribution: '',
+  description: ''
 });
 
 const genera = ref<{ genus_id: number; name: string }[]>([]);
@@ -32,7 +34,9 @@ const fetchSpecies = async (id: number) => {
     const speciesData = await speciesService.getSpeciesById(id);
     formData.value = {
       name: speciesData.name,
-      genus_id: speciesData.genus_id.toString()
+      genus_id: speciesData.genus_id.toString(),
+      distribution: speciesData.distribution || '',
+      description: speciesData.description || ''
     };
   } catch (error) {
     console.error('Error fetching species:', error);
@@ -81,6 +85,26 @@ onMounted(() => {
             :disabled="loading"
             placeholder="Nhập tên loài"
           />
+        </div>
+        <div class="form-group">
+          <label for="distribution">Phân bố:</label>
+          <input 
+            type="text" 
+            id="distribution" 
+            v-model="formData.distribution" 
+            :disabled="loading"
+            placeholder="Nhập phân bố"
+          />
+        </div>
+        <div class="form-group">
+          <label for="description">Mô tả:</label>
+          <textarea 
+            id="description" 
+            v-model="formData.description" 
+            :disabled="loading"
+            placeholder="Nhập mô tả về loài (ví dụ: đặc điểm hình thái, sinh thái, công dụng...)"
+            rows="8"
+          ></textarea>
         </div>
         <div class="form-group">
           <label for="genus">Chi:</label>
@@ -147,7 +171,8 @@ onMounted(() => {
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;

@@ -1,15 +1,59 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import {  useRouter } from 'vue-router';
 import type { User } from '../../models/User';
 import { authService } from '../../services/auth.service';
 import { userService } from '../../services/user.service';
+import { notifyService } from '../../services/notify.service';
+import type { Notify } from '../../models/Notify';
 
 
 const router = useRouter();
 const user = ref<User | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const notifications = ref<Notify[]>([]);
+const showNotifications = ref(false);
+const currentPage = ref(1);
+const itemsPerPage = 5;
+const filterStatus = ref<'all' | 'unread' | 'read'>('all');
+let refreshInterval: number | null = null;
+
+const sortedNotifications = computed(() => {
+  return [...notifications.value].sort((a, b) => {
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+});
+
+const filteredNotifications = computed(() => {
+  switch (filterStatus.value) {
+    case 'unread':
+      return sortedNotifications.value.filter(n => !n.is_read);
+    case 'read':
+      return sortedNotifications.value.filter(n => n.is_read);
+    default:
+      return sortedNotifications.value;
+  }
+});
+
+const paginatedNotifications = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredNotifications.value.slice(start, end);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredNotifications.value.length / itemsPerPage);
+});
+
+const changePage = (page: number) => {
+  currentPage.value = page;
+};
+
+const changeFilter = (status: 'all' | 'unread' | 'read') => {
+  filterStatus.value = status;
+  currentPage.value = 1; // Reset về trang 1 khi thay đổi filter
+};
 
 const fetchUserDetails = async () => {
   try {
@@ -37,6 +81,51 @@ const fetchUserDetails = async () => {
   
 };
 
+const fetchNotifications = async () => {
+  try {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      console.error('User not logged in');
+      return;
+    }
+
+    const response = await notifyService.getNotifyByUser(currentUser.id);
+    console.log("Notifications response:", response);
+    if (response) {
+      notifications.value = response;
+    }
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+  }
+};
+
+const markAsRead = async (notification: Notify) => {
+  try {
+    if (!notification.is_read) {
+      const updatedNotification = await notifyService.markAsRead(notification.notify_id);
+      console.log("Updated notification:", updatedNotification);
+      
+      // Cập nhật thông báo trong danh sách
+      const index = notifications.value.findIndex(n => n.notify_id === notification.notify_id);
+      if (index !== -1) {
+        notifications.value[index] = updatedNotification;
+      }
+    }
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+  }
+};
+
+const deleteNotification = async (notification: Notify) => {
+  try {
+    await notifyService.deleteNotification(notification.notify_id);
+    // Cập nhật lại danh sách thông báo
+    await fetchNotifications();
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+  }
+};
+
 const handleLogout = async () => {
   try {
     await authService.logout();
@@ -44,7 +133,10 @@ const handleLogout = async () => {
     router.push('/login');
   }
 };
-onMounted(fetchUserDetails);
+onMounted(() => {
+  fetchUserDetails();
+  fetchNotifications();
+});
 onMounted(async () => {
   const reloaded = localStorage.getItem('hasReloaded');
 
@@ -193,6 +285,107 @@ onMounted(async () => {
               <i class="fas fa-star"></i>
               <span>Quản lý đánh giá</span>
             </router-link>
+          </div>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="notifications-card">
+          <div class="card-header">
+            <h3><i class="fas fa-bell"></i> Thông báo</h3>
+            <div class="notification-stats">
+              <span class="unread-count" v-if="notifications.filter(n => !n.is_read).length > 0">
+                {{ notifications.filter(n => !n.is_read).length }} thông báo chưa đọc
+              </span>
+            </div>
+          </div>
+          
+          <!-- Filter Buttons -->
+          <div class="notification-filters">
+            <button 
+              class="filter-btn" 
+              :class="{ active: filterStatus === 'all' }"
+              @click="changeFilter('all')"
+            >
+              Tất cả
+            </button>
+            <button 
+              class="filter-btn" 
+              :class="{ active: filterStatus === 'unread' }"
+              @click="changeFilter('unread')"
+            >
+              Chưa đọc
+            </button>
+            <button 
+              class="filter-btn" 
+              :class="{ active: filterStatus === 'read' }"
+              @click="changeFilter('read')"
+            >
+              Đã đọc
+            </button>
+          </div>
+          
+          <div class="notifications-list">
+            <div v-if="filteredNotifications.length === 0" class="no-notifications">
+              <i class="fas fa-bell-slash"></i>
+              <p>{{ filterStatus === 'all' ? 'Không có thông báo nào' : 
+                   filterStatus === 'unread' ? 'Không có thông báo chưa đọc' : 
+                   'Không có thông báo đã đọc' }}</p>
+            </div>
+            
+            <div 
+              v-for="notification in paginatedNotifications" 
+              :key="notification.notify_id"
+              class="notification-item"
+              :class="{ 'unread': !notification.is_read }"
+              @click="markAsRead(notification)"
+            >
+              <div class="notification-content">
+                <div class="notification-header">
+                  <h4>
+                    {{ notification.title }}
+                    <span v-if="!notification.is_read" class="unread-badge">
+                      <i class="fas fa-circle"></i> Chưa đọc
+                    </span>
+                  </h4>
+                  <span class="notification-time">
+                    {{ new Date(notification.created_at).toLocaleString() }}
+                  </span>
+                </div>
+                <p>{{ notification.content }}</p>
+              </div>
+              <button class="delete-btn" @click.stop="deleteNotification(notification)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="pagination">
+            <button 
+              class="page-btn" 
+              :disabled="currentPage === 1"
+              @click="changePage(currentPage - 1)"
+            >
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <button 
+              v-for="page in totalPages" 
+              :key="page"
+              class="page-btn"
+              :class="{ active: currentPage === page }"
+              @click="changePage(page)"
+            >
+              {{ page }}
+            </button>
+            
+            <button 
+              class="page-btn" 
+              :disabled="currentPage === totalPages"
+              @click="changePage(currentPage + 1)"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -442,13 +635,26 @@ onMounted(async () => {
 }
 
 .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #eee;
 }
 
-.card-header:not(:first-child) {
-  margin-top: 2rem;
+.notification-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.unread-count {
+  background: #008053;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
 }
 
 .info-item {
@@ -539,6 +745,193 @@ onMounted(async () => {
   background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
 }
 
+.notifications-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.no-notifications {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.no-notifications i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #008053;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border-left: 4px solid transparent;
+}
+
+.notification-item.unread {
+  background: #f0f7f4;
+  border-left: 4px solid #008053;
+}
+
+.notification-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.notification-item.unread:hover {
+  background: #e8f5f0;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.notification-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.notification-time {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.notification-content p {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: 1rem;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #008053;
+  color: #008053;
+}
+
+.page-btn.active {
+  background: #008053;
+  border-color: #008053;
+  color: white;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: #008053;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  font-weight: normal;
+}
+
+.unread-badge i {
+  font-size: 0.5rem;
+}
+
+.notification-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.filter-btn:hover {
+  background: #f8f9fa;
+  border-color: #008053;
+  color: #008053;
+}
+
+.filter-btn.active {
+  background: #008053;
+  border-color: #008053;
+  color: white;
+}
+
 @media (max-width: 1024px) {
   .profile-content {
     grid-template-columns: 1fr;
@@ -570,6 +963,45 @@ onMounted(async () => {
 
   .management-item {
     padding: 1rem;
+  }
+
+  .notifications-card {
+    padding: 1rem;
+  }
+
+  .notification-item {
+    padding: 0.75rem;
+  }
+
+  .notification-header h4 {
+    font-size: 0.95rem;
+  }
+
+  .notification-content p {
+    font-size: 0.9rem;
+  }
+
+  .pagination {
+    gap: 0.25rem;
+  }
+
+  .page-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
+  }
+
+  .notification-filters {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filter-btn {
+    flex: 1;
+    min-width: calc(33.333% - 0.5rem);
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.85rem;
   }
 }
 </style> 

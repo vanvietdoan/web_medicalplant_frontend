@@ -6,6 +6,8 @@ import type { Diseases } from '../../models/Diseases';
 const diseases = ref<Diseases[]>([]);
 const searchQuery = ref('');
 const selectedSymptom = ref('');
+const symptomSearchQuery = ref('');
+const showSymptomDropdown = ref(false);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 const expandedSymptoms = ref<{ [key: number]: boolean }>({});
@@ -17,6 +19,15 @@ const symptoms = computed(() => {
     disease.symptoms.split(',').map(s => s.trim())
   );
   return [...new Set(allSymptoms)];
+});
+
+const filteredSymptoms = computed(() => {
+  if (!symptomSearchQuery.value) {
+    return symptoms.value;
+  }
+  return symptoms.value.filter(symptom => 
+    symptom.toLowerCase().includes(symptomSearchQuery.value.toLowerCase())
+  );
 });
 
 const filteredDiseases = computed(() => {
@@ -78,6 +89,18 @@ const getVisibleSymptoms = (disease: Diseases) => {
   return isExpanded ? symptomsList : symptomsList.slice(0, 4);
 };
 
+const selectSymptom = (symptom: string) => {
+  selectedSymptom.value = symptom;
+  symptomSearchQuery.value = symptom;
+  showSymptomDropdown.value = false;
+};
+
+const clearSymptomFilter = () => {
+  selectedSymptom.value = '';
+  symptomSearchQuery.value = '';
+  showSymptomDropdown.value = false;
+};
+
 const fetchDiseases = async () => {
   try {
     isLoading.value = true;
@@ -123,12 +146,37 @@ onMounted(() => {
       <div class="filters">
         <div class="filter-group">
           <label>Triệu chứng</label>
-          <select v-model="selectedSymptom" class="filter-select">
-            <option value="">Tất cả triệu chứng</option>
-            <option v-for="symptom in symptoms" :key="symptom" :value="symptom">
+          <div class="symptom-search">
+            <div class="symptom-input-wrapper">
+              <input 
+                type="text"
+                v-model="symptomSearchQuery"
+                @focus="showSymptomDropdown = true"
+                placeholder="Tìm kiếm triệu chứng..."
+                class="symptom-input"
+              >
+              <button 
+                v-if="selectedSymptom"
+                @click="clearSymptomFilter"
+                class="clear-symptom-btn"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div 
+              v-if="showSymptomDropdown && filteredSymptoms.length > 0"
+              class="symptom-dropdown"
+            >
+              <div
+                v-for="symptom in filteredSymptoms"
+                :key="symptom"
+                @click="selectSymptom(symptom)"
+                class="symptom-option"
+              >
               {{ symptom }}
-            </option>
-          </select>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -322,21 +370,73 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.filter-select {
+.symptom-search {
+  position: relative;
+  width: 100%;
+}
+
+.symptom-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.symptom-input {
   width: 100%;
   padding: 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
-  background-color: white;
-  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.filter-select:focus {
+.symptom-input:focus {
   border-color: #008053;
   outline: none;
   box-shadow: 0 0 0 3px rgba(0, 128, 83, 0.1);
+}
+
+.clear-symptom-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-symptom-btn:hover {
+  color: #008053;
+}
+
+.symptom-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.symptom-option {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.symptom-option:hover {
+  background: #f8f9fa;
+  color: #008053;
 }
 
 .diseases-grid {

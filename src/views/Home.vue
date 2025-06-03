@@ -36,11 +36,6 @@ const slides = ref([
     title: 'Bảo Tồn Đa Dạng Sinh Học',
     description: 'Góp phần bảo vệ và phát triển nguồn gen cây thuốc quý hiếm',
     image: '/images/slide/5.jpg'
-  },
-  {
-    title: 'Phát Triển Bền Vững',
-    description: 'Kết hợp giữa bảo tồn và phát triển nguồn dược liệu',
-    image: '/images/slide/6.jpg'
   }
 ]);
 

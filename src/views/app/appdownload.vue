@@ -103,7 +103,7 @@ export default {
 }
 
 .android {
-  background: #3ddc84;
+  background: #008053;
   color: white;
 }
 
@@ -127,7 +127,7 @@ export default {
 
 .feature i {
   font-size: 2rem;
-  color: #3ddc84;
+  color: #008053;
   margin-bottom: 1rem;
 }
 

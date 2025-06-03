@@ -276,6 +276,12 @@ const router = createRouter({
           meta: { requiresAuth: true }
         },
         {
+          path: 'reports/pending',
+          name: 'pendingReports',
+          component: ReportList,
+          meta: { requiresAuth: true }
+        },
+        {
           path: 'reports/create',
           name: 'CreateReport',
           component: CreateReport,

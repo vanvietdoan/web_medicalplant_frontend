@@ -10,7 +10,9 @@ const loading = ref(false);
 
 const formData = ref({
   name: '',
-  genus_id: ''
+  genus_id: '',
+  distribution: '',
+  description: ''
 }); 
 
   const genuses  = ref<{ genus_id: number; name: string }[]>([]);
@@ -59,6 +61,26 @@ onMounted(() => {
             :disabled="loading"
             placeholder="Nhập tên loài"
           />
+        </div>
+        <div class="form-group">
+          <label for="distribution">Phân bố:</label>
+          <input 
+            type="text" 
+            id="distribution" 
+            v-model="formData.distribution" 
+            :disabled="loading"
+            placeholder="Nhập phân bố"
+          />
+        </div>
+        <div class="form-group">
+          <label for="description">Mô tả:</label>
+          <textarea 
+            id="description" 
+            v-model="formData.description" 
+            :disabled="loading"
+            placeholder="Nhập mô tả"
+            rows="4"
+          ></textarea>
         </div>
         <div class="form-group">
           <label for="genus">Chi:</label>

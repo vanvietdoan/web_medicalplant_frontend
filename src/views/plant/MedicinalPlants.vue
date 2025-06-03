@@ -16,8 +16,11 @@ const plants = ref<Plant[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
+const showSuggestions = ref(false);
+const searchHistory = ref<string[]>([]);
 const currentPage = ref(1);
 const itemsPerPage = 12;
+const MAX_HISTORY_ITEMS = 5;
 
 // Filter states
 const selectedDivision = ref('');
@@ -284,15 +287,12 @@ const getPlantImage = (plant: Plant) => {
   return '/images/plant/default-plant.jpg'; // Fallback image
 };
 
-// Add watch for search query
-watch(searchQuery, async () => {
-  await fetchFilteredPlants();
-});
-
-// Add new function to handle view all click
-// Update onMounted to handle route parameters
+// Load search history from localStorage
 onMounted(() => {
-  console.log('MedicinalPlants component mounted');
+  const savedHistory = localStorage.getItem('plantSearchHistory');
+  if (savedHistory) {
+    searchHistory.value = JSON.parse(savedHistory);
+  }
   // Check for filter in route path
   const path = route.path;
   if (path.includes('/newest')) {
@@ -306,6 +306,55 @@ onMounted(() => {
   }
   fetchFilterData();
 });
+
+// Save search query to history
+const saveToHistory = (query: string) => {
+  if (!query.trim()) return;
+  
+  // Remove if already exists
+  searchHistory.value = searchHistory.value.filter(item => item !== query);
+  
+  // Add to beginning of array
+  searchHistory.value.unshift(query);
+  
+  // Keep only last 5 items
+  if (searchHistory.value.length > MAX_HISTORY_ITEMS) {
+    searchHistory.value = searchHistory.value.slice(0, MAX_HISTORY_ITEMS);
+  }
+  
+  // Save to localStorage
+  localStorage.setItem('plantSearchHistory', JSON.stringify(searchHistory.value));
+};
+
+// Filter history based on current input
+const filteredHistory = computed(() => {
+  if (!searchQuery.value) return searchHistory.value;
+  return searchHistory.value.filter(item => 
+    item.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+// Handle search
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    saveToHistory(searchQuery.value);
+  }
+  showSuggestions.value = false;
+  fetchFilteredPlants();
+};
+
+// Handle suggestion click
+const handleSuggestionClick = (suggestion: string) => {
+  searchQuery.value = suggestion;
+  showSuggestions.value = false;
+  handleSearch();
+};
+
+// Clear search history
+const clearSearchHistory = () => {
+  searchHistory.value = [];
+  localStorage.removeItem('plantSearchHistory');
+};
 
 // Add watch for route changes
 watch(() => route.path, (newPath) => {
@@ -328,6 +377,31 @@ const changePage = (page: number) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 };
+
+const handleBlur = () => {
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
+};
+
+// Add debounce function
+const debounce = (fn: Function, delay: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
+
+// Add debounced search
+const debouncedSearch = debounce(() => {
+  handleSearch();
+}, 300);
+
+// Add watch for search query
+watch(searchQuery, () => {
+  debouncedSearch();
+});
 </script>
 
 <template>
@@ -343,9 +417,29 @@ const changePage = (page: number) => {
         <input 
           type="text" 
           v-model="searchQuery"
+          @focus="showSuggestions = true"
+          @blur="handleBlur"
+          @keyup.enter="handleSearch"
           placeholder="Tìm kiếm cây thuốc..."
           class="search-input"
         >
+        <div v-if="showSuggestions && filteredHistory.length > 0" class="search-suggestions">
+          <div class="suggestions-header">
+            <span>Lịch sử tìm kiếm</span>
+            <button @click="clearSearchHistory" class="clear-history-btn">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <div 
+            v-for="(suggestion, index) in filteredHistory" 
+            :key="index"
+            class="suggestion-item"
+            @mousedown="handleSuggestionClick(suggestion)"
+          >
+            <i class="fas fa-history"></i>
+            <span>{{ suggestion }}</span>
+          </div>
+        </div>
       </div>
       
       <div class="filter-buttons">
@@ -900,5 +994,65 @@ const changePage = (page: number) => {
     height: 35px;
     font-size: 0.9rem;
   }
+}
+
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.clear-history-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.clear-history-btn:hover {
+  color: #c82333;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.suggestion-item i {
+  color: #008053;
+  font-size: 0.9rem;
+}
+
+.suggestion-item span {
+  color: #333;
+  font-size: 0.95rem;
 }
 </style> 

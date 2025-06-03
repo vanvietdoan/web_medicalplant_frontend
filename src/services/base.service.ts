@@ -49,6 +49,7 @@ class BaseService {
   protected removeToken(): void {
     localStorage.removeItem('token');
   }
+  
 
   protected async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.api.get<T>(url, config);
