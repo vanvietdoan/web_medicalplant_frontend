@@ -204,6 +204,25 @@ onMounted(async () => {
               <span>Báo cáo</span>
             </div>
           </div>
+
+          <div class="management-section">
+            <h4>Quản lý</h4>
+            <div class="management-grid">
+              <router-link to="/profile/advice" class="management-item advice">
+                <i class="fas fa-comment-dots"></i>
+                <span>Quản lý lời khuyên</span>
+              </router-link>
+              <router-link to="/profile/report" class="management-item report">
+                <i class="fas fa-file-alt"></i>
+                <span>Quản lý báo cáo</span>
+              </router-link>
+              <router-link to="/profile/evalue" class="management-item evalue">
+                <i class="fas fa-star"></i>
+                <span>Quản lý đánh giá</span>
+              </router-link>
+            </div>
+          </div>
+
           <div class="action-buttons">
             <button @click="router.push('/profile/edit')" class="action-btn edit-btn">
               <i class="fas fa-edit"></i>
@@ -267,24 +286,6 @@ onMounted(async () => {
                 <p>{{ new Date(user.created_at).toLocaleDateString('vi-VN') }}</p>
               </div>
             </div>
-          </div>
-
-          <div class="card-header">
-            <h3><i class="fas fa-tasks"></i> Quản lý</h3>
-          </div>
-          <div class="management-grid">
-            <router-link to="/profile/advice" class="management-item advice">
-              <i class="fas fa-comment-dots"></i>
-              <span>Quản lý lời khuyên</span>
-            </router-link>
-            <router-link to="/profile/report" class="management-item report">
-              <i class="fas fa-file-alt"></i>
-              <span>Quản lý báo cáo</span>
-            </router-link>
-            <router-link to="/profile/evalue" class="management-item evalue">
-              <i class="fas fa-star"></i>
-              <span>Quản lý đánh giá</span>
-            </router-link>
           </div>
         </div>
 
@@ -398,6 +399,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 6rem 1rem 2rem;
+  background: #f8f9fa;
 }
 
 .loading, .error {
@@ -405,14 +407,14 @@ onMounted(async () => {
   padding: 3rem;
   color: #666;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .loading i, .error i {
   font-size: 2.5rem;
   margin-bottom: 1rem;
-  color: #008053;
+  color: #00a067;
 }
 
 .error {
@@ -422,10 +424,10 @@ onMounted(async () => {
 .retry-btn {
   margin-top: 1rem;
   padding: 0.75rem 1.5rem;
-  background-color: #dc3545;
+  background-color: #00a067;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -435,7 +437,7 @@ onMounted(async () => {
 }
 
 .retry-btn:hover {
-  background-color: #c82333;
+  background-color: #008053;
   transform: translateY(-2px);
 }
 
@@ -451,43 +453,15 @@ onMounted(async () => {
   flex-direction: column;
 }
 
-.profile-card, .info-card {
+.profile-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   padding: 2rem;
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.profile-card {
   text-align: center;
-}
-
-.profile-main {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.info-card {
-  display: flex;
-  flex-direction: column;
-}
-
-.info-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.management-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-top: auto;
 }
 
 .avatar-wrapper {
@@ -501,8 +475,8 @@ onMounted(async () => {
   height: 180px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid #008053;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 4px solid #00a067;
+  box-shadow: 0 4px 15px rgba(0, 160, 103, 0.2);
 }
 
 .avatar img {
@@ -536,20 +510,18 @@ onMounted(async () => {
   color: #28a745;
 }
 
-.status-dot:hover i {
-  transform: scale(1.2);
-}
-
 .user-basic-info h2 {
   margin: 0;
   font-size: 1.8rem;
   color: #2c3e50;
+  font-weight: 600;
 }
 
 .title {
   margin: 0.5rem 0;
   font-size: 1.1rem;
-  color: #008053;
+  color: #00a067;
+  font-weight: 500;
 }
 
 .specialty {
@@ -566,8 +538,9 @@ onMounted(async () => {
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 16px;
 }
 
 .stat-item {
@@ -576,18 +549,74 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   color: #666;
+  padding: 0.5rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .stat-item i {
   font-size: 1.5rem;
-  color: #008053;
+  color: #00a067;
+}
+
+.management-section {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 16px;
+}
+
+.management-section h4 {
+  margin: 0 0 1rem;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.management-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
+}
+
+.management-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 160, 103, 0.2);
+  background: linear-gradient(135deg, #008053 0%, #006040 100%);
+}
+
+.management-item i {
+  font-size: 1.2rem;
+}
+
+.management-item span {
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 .action-buttons {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid #eee;
 }
@@ -600,7 +629,7 @@ onMounted(async () => {
   gap: 0.75rem;
   padding: 1rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
@@ -608,30 +637,37 @@ onMounted(async () => {
 }
 
 .edit-btn {
-  background-color: #00a067;
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
 }
 
 .edit-btn:hover {
-  background-color: #006040;
+  background: linear-gradient(135deg, #008053 0%, #006040 100%);
   transform: translateY(-2px);
 }
 
 .password-btn {
-  background-color: #00a067;
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
 }
 
 .password-btn:hover {
-  background-color: #008053;
+  background: linear-gradient(135deg, #008053 0%, #006040 100%);
   transform: translateY(-2px);
 }
 
 .logout-btn {
-  background-color: #dc3545;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
 }
 
 .logout-btn:hover {
-  background-color: #c82333;
+  background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
   transform: translateY(-2px);
+}
+
+.info-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
 }
 
 .card-header {
@@ -643,18 +679,22 @@ onMounted(async () => {
   border-bottom: 1px solid #eee;
 }
 
-.notification-stats {
+.card-header h3 {
+  color: #2c3e50;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
-.unread-count {
-  background: #008053;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
+.card-header h3 i {
+  color: #00a067;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .info-item {
@@ -663,17 +703,18 @@ onMounted(async () => {
   gap: 1rem;
   padding: 1.5rem;
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 16px;
   transition: all 0.3s ease;
 }
 
 .info-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: white;
 }
 
 .info-item i {
-  color: #008053;
+  color: #00a067;
   font-size: 1.2rem;
   margin-top: 0.2rem;
 }
@@ -687,7 +728,7 @@ onMounted(async () => {
 
 .info-item p {
   margin: 0;
-  color: #333;
+  color: #2c3e50;
   font-size: 1.1rem;
 }
 
@@ -695,62 +736,71 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: #008053;
+  color: #00a067;
   text-decoration: none;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  background-color: rgba(0, 128, 83, 0.1);
+  border-radius: 8px;
+  background-color: rgba(0, 160, 103, 0.1);
   transition: all 0.3s ease;
 }
 
 .pdf-link:hover {
-  background-color: rgba(0, 128, 83, 0.2);
-  color: #006040;
+  background-color: rgba(0, 160, 103, 0.2);
+  color: #008053;
   transform: translateY(-2px);
-}
-
-.management-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-radius: 12px;
-  color: white;
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.management-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.management-item i {
-  font-size: 1.5rem;
-}
-
-.management-item span {
-  font-weight: 500;
-}
-
-.advice {
-  background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
-}
-
-.report {
-  background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
-}
-
-.evalue {
-  background: linear-gradient(135deg, #00a067 0%, #00a067 100%);
 }
 
 .notifications-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   padding: 2rem;
   margin-top: 2rem;
+}
+
+.notification-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.unread-count {
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.notification-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.filter-btn:hover {
+  background: #f8f9fa;
+  border-color: #00a067;
+  color: #00a067;
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
+  border-color: transparent;
+  color: white;
 }
 
 .notifications-list {
@@ -759,24 +809,12 @@ onMounted(async () => {
   gap: 1rem;
 }
 
-.no-notifications {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-}
-
-.no-notifications i {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: #008053;
-}
-
 .notification-item {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #f8f9fa;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -786,16 +824,17 @@ onMounted(async () => {
 
 .notification-item.unread {
   background: #f0f7f4;
-  border-left: 4px solid #008053;
+  border-left: 4px solid #00a067;
 }
 
 .notification-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: white;
 }
 
 .notification-item.unread:hover {
-  background: #e8f5f0;
+  background: #f0f7f4;
 }
 
 .notification-content {
@@ -813,6 +852,7 @@ onMounted(async () => {
   margin: 0;
   font-size: 1rem;
   color: #2c3e50;
+  font-weight: 500;
 }
 
 .notification-time {
@@ -859,8 +899,8 @@ onMounted(async () => {
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid #eee;
+  border-radius: 12px;
   background: white;
   color: #666;
   cursor: pointer;
@@ -869,13 +909,13 @@ onMounted(async () => {
 
 .page-btn:hover:not(:disabled) {
   background: #f8f9fa;
-  border-color: #008053;
-  color: #008053;
+  border-color: #00a067;
+  color: #00a067;
 }
 
 .page-btn.active {
-  background: #008053;
-  border-color: #008053;
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
+  border-color: transparent;
   color: white;
 }
 
@@ -889,47 +929,12 @@ onMounted(async () => {
   align-items: center;
   gap: 0.25rem;
   padding: 0.2rem 0.5rem;
-  background: #008053;
+  background: linear-gradient(135deg, #00a067 0%, #008053 100%);
   color: white;
   border-radius: 12px;
   font-size: 0.75rem;
   margin-left: 0.5rem;
   font-weight: normal;
-}
-
-.unread-badge i {
-  font-size: 0.5rem;
-}
-
-.notification-filters {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
-}
-
-.filter-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.filter-btn:hover {
-  background: #f8f9fa;
-  border-color: #008053;
-  color: #008053;
-}
-
-.filter-btn.active {
-  background: #008053;
-  border-color: #008053;
-  color: white;
 }
 
 @media (max-width: 1024px) {
@@ -945,7 +950,7 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .profile-container {
-    margin: 1rem auto;
+    padding: 4rem 1rem 1rem;
   }
 
   .avatar-wrapper {
@@ -957,12 +962,20 @@ onMounted(async () => {
     height: 150px;
   }
 
-  .info-grid, .management-grid {
+  .info-grid {
     grid-template-columns: 1fr;
   }
 
-  .management-item {
+  .quick-stats {
     padding: 1rem;
+  }
+
+  .management-section {
+    padding: 1rem;
+  }
+
+  .management-item {
+    padding: 0.75rem;
   }
 
   .notifications-card {

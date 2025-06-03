@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Login, User } from '../models/User';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
+import { notifyService } from '../services/notify.service';
+import type { Notify } from '../models/Notify';
 
 const router = useRouter();
 const isLoggedIn = ref(authService.isAuthenticated());
 const currentUser = ref<Login | null>(null);
 const userDetails = ref<User | null>(null);
 const isMenuOpen = ref(false);
+const notifications = ref<Notify[]>([]);
+const unreadCount = ref(0);
+let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 // Hàm để cập nhật thông tin người dùng
 const updateUserInfo = async () => {
@@ -20,6 +25,8 @@ const updateUserInfo = async () => {
         currentUser.value = user;
         if (user.id) {
           userDetails.value = await userService.getUserById(user.id);
+          await fetchNotifications();
+          startAutoRefresh();
         }
       } else {
         handleLogout();
@@ -31,14 +38,45 @@ const updateUserInfo = async () => {
   }
 };
 
+const fetchNotifications = async () => {
+  try {
+    if (currentUser.value?.id) {
+      const response = await notifyService.getNotifyByUser(currentUser.value.id);
+      notifications.value = response;
+      unreadCount.value = response.filter(n => !n.is_read).length;
+    }
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+  }
+};
+
+const startAutoRefresh = () => {
+  // Xóa interval cũ nếu có
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
+  // Tạo interval mới - cập nhật mỗi 2 phút
+  refreshInterval = setInterval(fetchNotifications, 2 * 60 * 1000);
+};
+
+const stopAutoRefresh = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+};
+
 // Đăng xuất
 const handleLogout = async () => {
   try {
+    stopAutoRefresh();
     await authService.logout();
   } finally {
     isLoggedIn.value = false;
     currentUser.value = null;
     userDetails.value = null;
+    notifications.value = [];
+    unreadCount.value = 0;
     router.push('/login');
   }
 };
@@ -56,12 +94,19 @@ const toggleMenu = () => {
 watch(isLoggedIn, async (newValue) => {
   if (newValue) {
     await updateUserInfo();
+  } else {
+    stopAutoRefresh();
   }
 });
 
 // Khi component được mount, kiểm tra nếu đã đăng nhập thì lấy thông tin người dùng
 onMounted(async () => {
   await updateUserInfo();
+});
+
+// Cleanup khi component unmount
+onUnmounted(() => {
+  stopAutoRefresh();
 });
 </script>
 
@@ -98,8 +143,14 @@ onMounted(async () => {
         <template v-else>
           <div class="user-menu">
             <button @click="handleProfile" class="btn btn-profile">
-              <i class="fas fa-user"></i>
-              <span class="user-name-text">{{ userDetails?.full_name || 'Tài khoản' }}</span>
+              <div class="profile-content">
+                <i class="fas fa-user"></i>
+                <span class="user-name-text">{{ userDetails?.full_name || 'Tài khoản' }}</span>
+              </div>
+              <div class="notification-icon">
+                <i class="fas fa-bell"></i>
+                <span v-if="unreadCount > 0" class="notification-badge">{{ unreadCount }}</span>
+              </div>
             </button>
             <button @click="handleLogout" class="btn btn-logout">
               <i class="fas fa-sign-out-alt"></i>
@@ -228,12 +279,44 @@ onMounted(async () => {
   color: white;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
   text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.btn-profile:hover {
-  background-color: #006c46;
+.profile-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-icon {
+  position: relative;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #dc3545;
+  color: white;
+  font-size: 0.75rem;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .menu-toggle {
@@ -329,12 +412,22 @@ onMounted(async () => {
   .user-menu {
     flex-direction: column;
     width: 100%;
+    gap: 0.5rem;
   }
 
-  .btn-profile,
-  .btn-logout {
+  .btn-profile {
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
+  }
+
+  .notification-icon {
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.5rem;
+  }
+
+  .notification-badge {
+    top: -5px;
+    right: -5px;
   }
 
   .user-name-text {

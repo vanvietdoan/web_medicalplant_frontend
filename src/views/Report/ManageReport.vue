@@ -91,6 +91,14 @@ const fetchReports = async () => {
       response = await reportService.getReportsByUser(currentUser.id);
     }
 
+    // Apply plant_id filter if present in query params
+    const plantId = route.query.plant_id;
+    if (plantId && response) {
+      response = response.filter((report: Report) => 
+        report.plant_id === Number(plantId)
+      );
+    }
+
     // Apply status filter if needed
     if (filters.value.status && response) {
       response = response.filter((report: Report) => 

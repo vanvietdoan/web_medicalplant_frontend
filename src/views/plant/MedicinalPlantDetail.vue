@@ -802,12 +802,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f8f9fa;
 }
 
 .main-image img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 

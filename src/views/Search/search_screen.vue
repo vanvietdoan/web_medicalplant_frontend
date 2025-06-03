@@ -2,6 +2,10 @@
   <div class="chat-container">
     <div class="chat-header">
       <h2>Tra cứu cây thuốc</h2>
+      <button v-if="messages.length > 0" @click="clearChatHistory" class="clear-history-btn">
+        <i class="fas fa-trash"></i>
+        Xóa lịch sử
+      </button>
     </div>
     
     <div class="chat-messages" ref="messageContainer">
@@ -20,11 +24,24 @@
       </div>
       <div v-for="(message, index) in messages" :key="index" 
            :class="['message', message.type === 'user' ? 'user-message' : 'bot-message']">
+        <div v-if="message.type === 'bot'" class="bot-avatar">
+          <i class="fas fa-robot"></i>
+        </div>
         <div class="message-content">
           {{ message.content }}
         </div>
+        <div v-if="message.type === 'user'" class="user-avatar">
+          <img 
+            :src="currentUser?.avatar || '/images/avatar.webp'" 
+            :alt="currentUser?.full_name || 'Người dùng'"
+            @error="(e) => (e.target as HTMLImageElement).src = '/images/avatar.webp'"
+          >
+        </div>
       </div>
       <div v-if="loading" class="message bot-message">
+        <div class="bot-avatar">
+          <i class="fas fa-robot"></i>
+        </div>
         <div class="message-content">
           <div class="loading-dots">
             <span></span>
@@ -53,6 +70,9 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import axios from 'axios'
+import { authService } from '../../services/auth.service'
+import { userService } from '../../services/user.service'
+import type { User } from '../../models/User'
 
 export default defineComponent({
   name: 'SearchScreen',
@@ -61,10 +81,71 @@ export default defineComponent({
       messages: [] as { type: string; content: string }[],
       userInput: '',
       loading: false,
-      apiUrl: 'https://chat.apivui.click/chat/ask'
+      apiUrl: 'https://chat.apivui.click/chat/ask',
+      currentUser: null as User | null,
+      maxHistoryLength: 50 // Số lượng tin nhắn tối đa lưu trữ
     }
   },
+  async created() {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser?.id) {
+      try {
+        this.currentUser = await userService.getUserById(currentUser.id);
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+      }
+    }
+    this.loadChatHistory();
+  },
+  mounted() {
+    // Thêm event listener để cập nhật user khi đăng nhập/đăng xuất
+    window.addEventListener('storage', this.handleStorageChange);
+  },
+  beforeUnmount() {
+    // Xóa event listener khi component bị hủy
+    window.removeEventListener('storage', this.handleStorageChange);
+  },
   methods: {
+    async handleStorageChange(event: StorageEvent) {
+      if (event.key === 'user') {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser?.id) {
+          try {
+            this.currentUser = await userService.getUserById(currentUser.id);
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+          }
+        } else {
+          this.currentUser = null;
+        }
+      }
+    },
+    loadChatHistory() {
+      try {
+        const savedHistory = localStorage.getItem('chatHistory');
+        if (savedHistory) {
+          this.messages = JSON.parse(savedHistory);
+          this.$nextTick(() => {
+            this.scrollToBottom();
+          });
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      }
+    },
+    saveChatHistory() {
+      try {
+        // Chỉ lưu số lượng tin nhắn tối đa
+        const messagesToSave = this.messages.slice(-this.maxHistoryLength);
+        localStorage.setItem('chatHistory', JSON.stringify(messagesToSave));
+      } catch (error) {
+        console.error('Error saving chat history:', error);
+      }
+    },
+    clearChatHistory() {
+      this.messages = [];
+      localStorage.removeItem('chatHistory');
+    },
     async sendMessage() {
       if (!this.userInput.trim() || this.loading) return;
 
@@ -76,6 +157,9 @@ export default defineComponent({
         type: 'user',
         content: userMessage
       });
+
+      // Save history after adding user message
+      this.saveChatHistory();
 
       this.loading = true;
       
@@ -89,12 +173,17 @@ export default defineComponent({
           type: 'bot',
           content: response.data.answer || 'Xin lỗi, tôi không thể xử lý câu hỏi này.'
         });
+
+        // Save history after adding bot response
+        this.saveChatHistory();
       } catch (error) {
         console.error('Error sending message:', error);
         this.messages.push({
           type: 'bot',
           content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.'
         });
+        // Save history after adding error message
+        this.saveChatHistory();
       } finally {
         this.loading = false;
         this.$nextTick(() => {
@@ -134,12 +223,41 @@ export default defineComponent({
   position: sticky;
   top: 0;
   z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
 }
 
 .chat-header h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
+}
+
+.clear-history-btn {
+  position: absolute;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.clear-history-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.clear-history-btn i {
+  font-size: 0.9rem;
 }
 
 .welcome-message {
@@ -206,31 +324,48 @@ export default defineComponent({
 .message {
   margin-bottom: 15px;
   display: flex;
-}
-
-.message-content {
-  padding: 12px 16px;
-  border-radius: 15px;
-  max-width: 70%;
-  word-wrap: break-word;
-  font-size: 0.95rem;
-  line-height: 1.4;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .user-message {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
 
 .user-message .message-content {
   background-color: #008053;
   color: white;
-  border-bottom-right-radius: 5px;
+  border-radius: 15px 15px 0 15px;
 }
 
 .bot-message .message-content {
   background-color: #e8f5e9;
   color: #2c3e50;
-  border-bottom-left-radius: 5px;
+  border-radius: 15px 15px 15px 0;
+}
+
+.user-avatar, .bot-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bot-avatar {
+  background: #008053;
+  color: white;
+  font-size: 1.2rem;
 }
 
 .chat-input {
@@ -336,5 +471,21 @@ button:disabled {
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: #006c46;
+}
+
+.message-content {
+  padding: 12px 16px;
+  max-width: 70%;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+  .message-content {
+    max-width: 85%;
+    font-size: 1rem;
+    padding: 10px 14px;
+  }
 }
 </style>
