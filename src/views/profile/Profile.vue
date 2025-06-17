@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import {  useRouter } from 'vue-router';
 import type { User } from '../../models/User';
 import { authService } from '../../services/auth.service';
@@ -13,11 +13,9 @@ const user = ref<User | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const notifications = ref<Notify[]>([]);
-const showNotifications = ref(false);
 const currentPage = ref(1);
-const itemsPerPage = 5;
-const filterStatus = ref<'all' | 'unread' | 'read'>('all');
-let refreshInterval: number | null = null;
+const itemsPerPage = 10;
+const filter = ref('all');
 
 const sortedNotifications = computed(() => {
   return [...notifications.value].sort((a, b) => {
@@ -26,7 +24,7 @@ const sortedNotifications = computed(() => {
 });
 
 const filteredNotifications = computed(() => {
-  switch (filterStatus.value) {
+  switch (filter.value) {
     case 'unread':
       return sortedNotifications.value.filter(n => !n.is_read);
     case 'read':
@@ -51,7 +49,7 @@ const changePage = (page: number) => {
 };
 
 const changeFilter = (status: 'all' | 'unread' | 'read') => {
-  filterStatus.value = status;
+  filter.value = status;
   currentPage.value = 1; // Reset về trang 1 khi thay đổi filter
 };
 
@@ -304,21 +302,21 @@ onMounted(async () => {
           <div class="notification-filters">
             <button 
               class="filter-btn" 
-              :class="{ active: filterStatus === 'all' }"
+              :class="{ active: filter === 'all' }"
               @click="changeFilter('all')"
             >
               Tất cả
             </button>
             <button 
               class="filter-btn" 
-              :class="{ active: filterStatus === 'unread' }"
+              :class="{ active: filter === 'unread' }"
               @click="changeFilter('unread')"
             >
               Chưa đọc
             </button>
             <button 
               class="filter-btn" 
-              :class="{ active: filterStatus === 'read' }"
+              :class="{ active: filter === 'read' }"
               @click="changeFilter('read')"
             >
               Đã đọc
@@ -328,8 +326,8 @@ onMounted(async () => {
           <div class="notifications-list">
             <div v-if="filteredNotifications.length === 0" class="no-notifications">
               <i class="fas fa-bell-slash"></i>
-              <p>{{ filterStatus === 'all' ? 'Không có thông báo nào' : 
-                   filterStatus === 'unread' ? 'Không có thông báo chưa đọc' : 
+              <p>{{ filter === 'all' ? 'Không có thông báo nào' : 
+                   filter === 'unread' ? 'Không có thông báo chưa đọc' : 
                    'Không có thông báo đã đọc' }}</p>
             </div>
             

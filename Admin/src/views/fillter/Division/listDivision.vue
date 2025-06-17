@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElPagination } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { Division } from '../../../models/division'
 
@@ -11,12 +11,23 @@ const divisions = ref<Division[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
+// Pagination
+const currentPage = ref(1)
+const pageSize = 10  // Fixed page size
+
 const filteredDivisions = computed(() => {
   if (!searchQuery.value) return divisions.value
   const query = searchQuery.value.toLowerCase()
   return divisions.value.filter(division =>
     division.name.toLowerCase().includes(query)
   )
+})
+
+// Computed property for paginated divisions
+const paginatedDivisions = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredDivisions.value.slice(start, end)
 })
 
 const formatDate = (date: string) => {
@@ -47,6 +58,10 @@ const handleDelete = async (divisionId: number) => {
 
 const handleCreate = () => {
   router.push({ name: 'createDivision' })
+}
+
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val
 }
 
 const fetchDivisions = async () => {
@@ -89,35 +104,48 @@ onMounted(() => {
 
     <div v-if="loading" class="loading">Đang tải...</div>
 
-    <table v-else class="user-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tên</th>
-          <th>Ngày tạo</th>
-          <th>Ngày cập nhật</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="division in filteredDivisions" :key="division.division_id">
-          <td>{{ division.division_id }}</td>
-          <td>{{ division.name }}</td>
-          <td>{{ formatDate(division.created_at) }}</td>
-          <td>{{ formatDate(division.updated_at) }}</td>
-          <td>
-            <div class="action-buttons">
-              <button @click="handleEdit(division)" class="btn-edit">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button @click="handleDelete(division.division_id)" class="btn-delete">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <template v-else>
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên</th>
+            <th>Ngày tạo</th>
+            <th>Ngày cập nhật</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="division in paginatedDivisions" :key="division.division_id">
+            <td>{{ division.division_id }}</td>
+            <td>{{ division.name }}</td>
+            <td>{{ formatDate(division.created_at) }}</td>
+            <td>{{ formatDate(division.updated_at) }}</td>
+            <td>
+              <div class="action-buttons">
+                <button @click="handleEdit(division)" class="btn-edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button @click="handleDelete(division.division_id)" class="btn-delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="filteredDivisions.length"
+          layout="total, prev, pager, next"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -217,5 +245,87 @@ onMounted(() => {
 
 .btn-create i {
   font-size: 14px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.user-table {
+  min-height: 400px;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-button-color: #409eff;
+  --el-pagination-hover-color: #79bbff;
+  --el-pagination-button-bg-color: #ffffff;
+  --el-pagination-button-disabled-color: #c0c4cc;
+  --el-pagination-button-disabled-bg-color: #ffffff;
+  --el-pagination-hover-bg-color: #f2f6fc;
+}
+
+:deep(.el-pagination .el-pager li) {
+  background-color: var(--el-pagination-button-bg-color);
+  color: var(--el-pagination-button-color);
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+:deep(.el-pagination .el-pager li.active) {
+  background-color: var(--el-pagination-button-color);
+  color: #ffffff;
+}
+
+:deep(.el-pagination .el-pager li:hover) {
+  color: var(--el-pagination-hover-color);
+  background-color: var(--el-pagination-hover-bg-color);
+}
+
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next) {
+  background-color: var(--el-pagination-button-bg-color);
+  color: var(--el-pagination-button-color);
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+:deep(.el-pagination .btn-prev:hover),
+:deep(.el-pagination .btn-next:hover) {
+  color: var(--el-pagination-hover-color);
+  background-color: var(--el-pagination-hover-bg-color);
+}
+
+:deep(.el-pagination .btn-prev:disabled),
+:deep(.el-pagination .btn-next:disabled) {
+  color: var(--el-pagination-button-disabled-color);
+  background-color: var(--el-pagination-button-disabled-bg-color);
+}
+
+:deep(.el-pagination__total) {
+  margin-right: 16px;
+  font-weight: 500;
+  color: #606266;
+}
+
+:deep(.el-pagination.is-first) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination__total) {
+  font-size: 14px;
+  line-height: 32px;
+  color: #606266;
+}
+
+:deep(.el-pagination__total .el-pagination__total-text) {
+  margin-right: 8px;
+}
+
+:deep(.el-pagination__total .el-pagination__total-number) {
+  font-weight: 600;
+  color: #409eff;
 }
 </style> 

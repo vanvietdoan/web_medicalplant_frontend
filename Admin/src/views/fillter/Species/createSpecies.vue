@@ -72,16 +72,7 @@ onMounted(() => {
             placeholder="Nhập phân bố"
           />
         </div>
-        <div class="form-group">
-          <label for="description">Mô tả:</label>
-          <textarea 
-            id="description" 
-            v-model="formData.description" 
-            :disabled="loading"
-            placeholder="Nhập mô tả"
-            rows="4"
-          ></textarea>
-        </div>
+      
         <div class="form-group">
           <label for="genus">Chi:</label>
           <select 

@@ -106,7 +106,10 @@ const fetchStatistics = async () => {
 }
 
 const goToReportList = () => {
-  router.push({ name: 'reports' })
+  router.push({ 
+    name: 'reports',
+    query: { from: 'approve' }
+  })
 }
 
 onMounted(() => {

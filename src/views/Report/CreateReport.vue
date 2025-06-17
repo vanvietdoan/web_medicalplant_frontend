@@ -11,6 +11,7 @@ const router = useRouter()
 const loading = ref(false)
 const selectedPlant = ref<Plant | null>(null)
 const fromPlant = ref(false)
+const success = ref(false)
 
 // State for dropdown options
 const plants = ref<Plant[]>([])
@@ -42,6 +43,10 @@ const handlePlantChange = (plantId: number) => {
     formData.plant_name = plant.name
     formData.plant_english_name = plant.english_name
     formData.plant_species_id = plant.species_id
+    // Luôn cập nhật lại các trường này
+    formData.plant_description = plant.description
+    formData.plant_instructions = plant.instructions
+    formData.plant_benefits = plant.benefits
   }
 }
 
@@ -105,12 +110,13 @@ const handleSubmit = async () => {
     
     if (response) {
       ElMessage.success('Tạo báo cáo thành công')
-      // Navigate back to plant detail if came from there
-      if (fromPlant.value) {
-        router.push(`/plant/${formData.plant_id}`)
-      } else {
-        router.push('/profile/report')
-      }
+      success.value = true
+      // Không chuyển trang ngay, chỉ chuyển khi bấm nút
+      // if (fromPlant.value) {
+      //   router.push(`/plant/${formData.plant_id}`)
+      // } else {
+      //   router.push('/profile/report')
+      // }
     } else {
       throw new Error('Không thể tạo báo cáo')
     }
@@ -172,369 +178,383 @@ const clearField = (field: 'plant_description' | 'plant_instructions' | 'plant_b
 }
 </script>
 <template>
-  <div class="report-create">
-    <div class="header">
-      <h2>Tạo báo cáo mới</h2>
+  <div class="report-create-new">
+    <div class="page-title">
+      Tạo báo cáo về cây thuốc
     </div>
-
-    <div v-if="loading" class="loading">
-      <i class="fas fa-spinner fa-spin"></i>
-      <p>Đang tải dữ liệu...</p>
-    </div>
-
-    <form v-else @submit.prevent="handleSubmit" class="create-form">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Tên cây</label>
-          <div class="input-group">
-            <input
-              type="text"
-              v-model="formData.plant_name"
-              placeholder="Nhập tên cây"
-            />
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="resetPlantName"
-              title="Khôi phục tên gốc"
-            >
-              <i class="fas fa-undo"></i>
-            </button>
+    <template v-if="!success">
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="step" :class="{active: !formData.plant_id || formData.plant_id}">
+          <div class="circle"><i class="fas fa-check" v-if="formData.plant_id"></i></div>
+          <span>Chọn bài viết</span>
+        </div>
+        <div class="line" :class="{inactive: !formData.plant_id}"></div>
+        <div class="step" :class="{active: formData.plant_id}">
+          <div class="circle"><i class="fas fa-check" v-if="formData.plant_id"></i></div>
+          <span>Chỉnh sửa</span>
+        </div>
+        <div class="line inactive"></div>
+        <div class="step">
+          <div class="circle"></div>
+          <span>Gửi yêu cầu</span>
+        </div>
+      </div>
+      <!-- Form -->
+      <div v-if="loading" class="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Đang tải dữ liệu...</p>
+      </div>
+      <form v-else @submit.prevent="handleSubmit" class="edit-compare-form">
+        <div class="columns">
+          <!-- Cột trái: Thông tin gốc -->
+          <div class="column original">
+            <div class="form-group">
+              <label>Tiêu đề</label>
+              <input type="text" :value="selectedPlant?.name || ''" disabled />
+            </div>
+            <div class="form-group">
+              <label>Tên quốc tế</label>
+              <input type="text" :value="selectedPlant?.english_name || ''" disabled />
+            </div>
+            <div class="form-group">
+              <label>Mô tả</label>
+              <textarea :value="selectedPlant?.description || ''" rows="15" disabled></textarea>
+            </div>
+            <div class="form-group">
+              <label>Công dụng</label>
+              <textarea :value="selectedPlant?.benefits || ''" rows="25" disabled></textarea>
+            </div>
+            <div class="form-group">
+              <label>Liều/thức kê sử dụng</label>
+              <textarea :value="selectedPlant?.instructions || ''" rows="25" disabled></textarea>
+            </div>
+          </div>
+          <!-- Cột phải: Form chỉnh sửa -->
+          <div class="column edit">
+            <div class="form-group">
+              <label>Cây thuốc</label>
+              <select v-model="formData.plant_id" @change="handlePlantChange(Number(formData.plant_id))">
+                <option value="">Chọn cây thuốc</option>
+                <option v-for="plant in plants" :key="plant.plant_id" :value="plant.plant_id">{{ plant.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tiêu đề</label>
+              <div class="input-check">
+                <input type="text" v-model="formData.plant_name" :class="{'valid': formData.plant_name.trim()}" />
+                <span v-if="formData.plant_name.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Tên quốc tế</label>
+              <div class="input-check">
+                <input type="text" v-model="formData.plant_english_name" :class="{'valid': formData.plant_english_name.trim()}" />
+                <span v-if="formData.plant_english_name.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Mô tả</label>
+              <div class="input-check">
+                <textarea v-model="formData.plant_description" rows="15" :class="{'valid': formData.plant_description.trim()}" />
+                <span v-if="formData.plant_description.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Công dụng</label>
+              <div class="input-check">
+                <textarea v-model="formData.plant_benefits" rows="25" :class="{'valid': formData.plant_benefits.trim()}" />
+                <span v-if="formData.plant_benefits.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Liều/thức kê sử dụng</label>
+              <div class="input-check">
+                <textarea v-model="formData.plant_instructions" rows="25" :class="{'valid': formData.plant_instructions.trim()}" />
+                <span v-if="formData.plant_instructions.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Tóm tắt</label>
+              <div class="input-check">
+                <textarea v-model="formData.summary" rows="4" :class="{'valid': formData.summary.trim()}" required />
+                <span v-if="formData.summary.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Đề xuất</label>
+              <div class="input-check">
+                <textarea v-model="formData.propose" rows="4" :class="{'valid': formData.propose.trim()}" required />
+                <span v-if="formData.propose.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Bằng chứng</label>
+              <div class="input-check">
+                <textarea v-model="formData.proof" rows="4" :class="{'valid': formData.proof.trim()}" required />
+                <span v-if="formData.proof.trim()" class="icon-check"><i class="fas fa-check-circle"></i></span>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="form-group">
-          <label>Tên tiếng Anh</label>
-          <input
-            type="text"
-            v-model="formData.plant_english_name"
-            placeholder="Nhập tên tiếng Anh"
-          />
+        <!-- Nút điều hướng -->
+        <div class="form-actions">
+          <button type="submit" class="btn-save" :disabled="loading">
+            <i class="fas fa-save"></i>
+            {{ loading ? 'Đang lưu...' : 'Tiếp tục' }}
+          </button>
+          <button type="button" class="btn-cancel" @click="router.push('/profile/report')">
+            <i class="fas fa-times"></i>
+            Hủy
+          </button>
+        </div>
+      </form>
+    </template>
+    <template v-else>
+      <div class="success-step">
+        <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="success-title">Tạo báo cáo thành công!</div>
+        <div class="success-actions">
+          <button class="btn-save" @click="router.push('/profile/report')">
+            <i class="fas fa-list"></i> Về danh sách báo cáo
+          </button>
+          <button class="btn-cancel" @click="router.push(`/plant/${formData.plant_id}`)">
+            <i class="fas fa-leaf"></i> Xem chi tiết cây thuốc
+          </button>
         </div>
       </div>
-
-      <div class="form-group">
-        <label>Cây thuốc</label>
-        <select 
-          v-model="formData.plant_id"
-          @change="handlePlantChange(Number(formData.plant_id))"
-          required
-        >
-          <option value="">Chọn cây thuốc</option>
-          <option 
-            v-for="plant in plants" 
-            :key="plant.plant_id" 
-            :value="plant.plant_id"
-          >
-            {{ plant.name }}
-          </option>
-        </select>
-      </div>
-
-      <div v-if="selectedPlant" class="form-group">
-        <label>Mô tả</label>
-        <div class="input-group">
-          <textarea
-            v-model="formData.plant_description"
-            rows="5"
-            placeholder="Nhập mô tả"
-          ></textarea>
-          <div class="button-group">
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="loadPlantData('plant_description')"
-              title="Lấy từ cây hiện tại"
-            >
-              <i class="fas fa-sync"></i>
-            </button>
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="clearField('plant_description')"
-              title="Xóa nội dung"
-            >
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="selectedPlant" class="form-group">
-        <label>Hướng dẫn sử dụng</label>
-        <div class="input-group">
-          <textarea
-            v-model="formData.plant_instructions"
-            rows="5"
-            placeholder="Nhập hướng dẫn sử dụng"
-          ></textarea>
-          <div class="button-group">
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="loadPlantData('plant_instructions')"
-              title="Lấy từ cây hiện tại"
-            >
-              <i class="fas fa-sync"></i>
-            </button>
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="clearField('plant_instructions')"
-              title="Xóa nội dung"
-            >
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="selectedPlant" class="form-group">
-        <label>Công dụng</label>
-        <div class="input-group">
-          <textarea
-            v-model="formData.plant_benefits"
-            rows="5"
-            placeholder="Nhập công dụng"
-          ></textarea>
-          <div class="button-group">
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="loadPlantData('plant_benefits')"
-              title="Lấy từ cây hiện tại"
-            >
-              <i class="fas fa-sync"></i>
-            </button>
-            <button 
-              type="button" 
-              class="btn-icon" 
-              @click="clearField('plant_benefits')"
-              title="Xóa nội dung"
-            >
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Tóm tắt</label>
-        <textarea
-          v-model="formData.summary"
-          rows="4"
-          placeholder="Nhập tóm tắt"
-          required
-        ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Đề xuất</label>
-        <textarea
-          v-model="formData.propose"
-          rows="4"
-          placeholder="Nhập đề xuất"
-          required
-        ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Bằng chứng</label>
-        <textarea
-          v-model="formData.proof"
-          rows="4"
-          placeholder="Nhập bằng chứng"
-          required
-        ></textarea>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn-save" :disabled="loading">
-          <i class="fas fa-save"></i>
-          {{ loading ? 'Đang lưu...' : 'Tạo báo cáo' }}
-        </button>
-        <button type="button" class="btn-cancel" @click="router.push('/profile/report')">
-          <i class="fas fa-times"></i>
-          Hủy
-        </button>
-      </div>
-    </form>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.report-create {
-  max-width: 800px;
+.report-create-new {
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem;
-  padding-top: 80px;
+  padding: 2rem 1rem 3rem 1rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+  padding-top: 120px;
 }
-
-.header {
-  margin-bottom: 2rem;
-}
-
-.header h2 {
+.page-title {
+  font-size: 2rem;
+  font-weight: bold;
   color: #008053;
-  margin: 0;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
-
-.loading {
-  min-height: 300px;
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+  gap: 0.5rem;
+}
+.step {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  color: #666;
-}
-
-.loading i {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+  font-size: 1rem;
   color: #008053;
-}
-
-.create-form {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
   font-weight: 500;
 }
-
-input, select, textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: #008053;
-  box-shadow: 0 0 0 2px rgba(0,128,83,0.1);
-}
-
-textarea {
-  resize: vertical;
-  min-height: 100px;
-}
-
-.input-group {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.btn-icon {
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.step .circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #008053;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.btn-icon:hover {
-  background: #e9ecef;
+  margin-bottom: 0.3rem;
+  font-size: 1.2rem;
   color: #008053;
 }
-
-.btn-icon i {
-  font-size: 1rem;
+.step:not(.active) .circle {
+  border: 3px solid #ccc;
+  color: #ccc;
+}
+.step:not(.active) span {
+  color: #aaa;
+}
+.line {
+  width: 60px;
+  height: 3px;
+  background: #008053;
+  margin: 0 0.5rem;
+  border-radius: 2px;
+}
+.step:not(.active) ~ .line {
+  background: #ccc;
+}
+.line.inactive {
+  background: #ccc !important;
 }
 
+.edit-compare-form {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 2rem 2rem 1.5rem 2rem;
+}
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.column.original input,
+.column.original textarea {
+  background: #f1f1f1;
+  color: #888;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  resize: none;
+}
+.column.original input:disabled,
+.column.original textarea:disabled {
+  background: #f1f1f1;
+  color: #888;
+}
+.column.edit input,
+.column.edit textarea {
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  transition: border 0.2s;
+}
+.column.edit input.valid,
+.column.edit textarea.valid {
+  border-color: #008053;
+}
+.input-check {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-check input,
+.input-check textarea {
+  flex: 1;
+}
+.icon-check {
+  position: absolute;
+  right: 10px;
+  color: #008053;
+  font-size: 1.2rem;
+}
+.form-group label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+.form-group {
+  margin-bottom: 0;
+}
 .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: 1.2rem;
   justify-content: flex-end;
-  margin-top: 2rem;
+  margin-top: 2.5rem;
 }
-
 .btn-save, .btn-cancel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.8rem 2.2rem;
   border: none;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
-
 .btn-save {
   background: #008053;
-  color: white;
+  color: #fff;
 }
-
 .btn-save:hover:not(:disabled) {
   background: #006040;
-  transform: translateY(-2px);
 }
-
 .btn-cancel {
   background: #f8f9fa;
   color: #666;
   border: 1px solid #ddd;
 }
-
 .btn-cancel:hover {
   background: #e9ecef;
-  transform: translateY(-2px);
 }
-
 .btn-save:disabled {
   background: #ccc;
   cursor: not-allowed;
-  transform: none;
 }
-
-@media (max-width: 768px) {
-  .report-create {
-    padding: 1rem;
-  }
-
-  .form-row {
+@media (max-width: 900px) {
+  .columns {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
-
-  .form-actions {
+}
+.success-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 3rem 2rem;
+  margin-top: 2rem;
+}
+.success-icon {
+  font-size: 5rem;
+  color: #00b86b;
+  margin-bottom: 1.5rem;
+}
+.success-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #008053;
+  margin-bottom: 2rem;
+}
+.success-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+@media (max-width: 900px) {
+  .success-step {
+    padding: 2rem 0.5rem;
+  }
+  .success-actions {
     flex-direction: column;
+    gap: 1rem;
+    width: 100%;
   }
-
-  .btn-save, .btn-cancel {
+  .success-actions .btn-save, .success-actions .btn-cancel {
     width: 100%;
     justify-content: center;
   }
+}
+.column.edit select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: #fff;
+  transition: border 0.2s;
+  margin-bottom: 0.2rem;
+}
+.column.edit select:focus {
+  outline: none;
+  border-color: #008053;
 }
 </style> 

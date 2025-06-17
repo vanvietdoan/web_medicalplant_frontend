@@ -10,7 +10,6 @@ import { authService } from '../services/auth.service'
 const router = useRouter()
 const loading = ref(false)
 const loginForm = ref<FormInstance>()
-
 const formData = reactive({
   email: '',
   password: '',

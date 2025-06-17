@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElPagination } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { Plant } from '../../models/Plant'
 import type { Species } from '../../models/Species'
@@ -17,12 +17,14 @@ import type { OrderResponse } from '../../models/Order'
 import type { FamilyResponse } from '../../models/Family'
 import type { GenusResponse } from '../../models/Genus'
 import type { SpeciesResponse } from '../../models/Species'
+import { API_HOST } from '../../confighost'
 
 const router = useRouter()
 const plants = ref<Plant[]>([])
 const species = ref<Species[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
+const viewMode = ref<'list' | 'grid'>('list')
 
 // Filter states
 const divisions = ref<Division[]>([])
@@ -64,6 +66,16 @@ const availableSpecies = computed(() => {
   if (!selectedGenus.value) return [];
   return speciesList.value.filter(species => species.genus_id === Number(selectedGenus.value));
 });
+
+// Configuration
+const DEFAULT_IMAGE = '/default-plant.jpg'
+
+// Function to get display image URL
+const getDisplayImageUrl = (url: string) => {
+  if (!url) return DEFAULT_IMAGE
+  if (url.startsWith('http')) return url
+  return `${API_HOST}${url}`
+}
 
 // Fetch filter data
 const fetchFilterData = async () => {
@@ -238,6 +250,25 @@ const handleCreate = () => {
   router.push({ name: 'plant-create' })
 }
 
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'list' ? 'grid' : 'list'
+}
+
+// Pagination
+const currentPage = ref(1)
+const pageSize = 12  // Fixed page size
+
+// Computed property for paginated plants
+const paginatedPlants = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredPlants.value.slice(start, end)
+})
+
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val
+}
+
 onMounted(() => {
   fetchPlants()
   getSpecies()
@@ -258,9 +289,15 @@ onMounted(() => {
           class="search-input"
         />
       </div>
-      <button class="btn-create" @click="handleCreate">
-        <i class="fas fa-plus"></i> Thêm cây thuốc
-      </button>
+      <div class="header-actions">
+        <button class="btn-view-toggle" @click="toggleViewMode">
+          <i :class="viewMode === 'list' ? 'fas fa-th-large' : 'fas fa-list'"></i>
+          {{ viewMode === 'list' ? 'Xem dạng lưới' : 'Xem dạng danh sách' }}
+        </button>
+        <button class="btn-create" @click="handleCreate">
+          <i class="fas fa-plus"></i> Thêm cây thuốc
+        </button>
+      </div>
     </div>
 
     <div class="filters">
@@ -339,35 +376,76 @@ onMounted(() => {
 
     <div v-if="loading" class="loading">Đang tải...</div>
 
-    <table v-else class="plant-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tên</th>
-          <th>Tên tiếng Anh</th>
-          <th>Loài</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="plant in filteredPlants" :key="plant.plant_id">
-          <td>{{ plant.plant_id }}</td>
-          <td>{{ plant.name }}</td>
-          <td>{{ plant.english_name }}</td>
-          <td>{{ species.find((species: Species) => species.species_id === plant.species_id)?.name }}</td>
-          <td>
-            <div class="action-buttons">
+    <!-- List View -->
+    <template v-else>
+      <table v-if="viewMode === 'list'" class="plant-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên</th>
+            <th>Tên tiếng Anh</th>
+            <th>Loài</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="plant in paginatedPlants" :key="plant.plant_id">
+            <td>{{ plant.plant_id }}</td>
+            <td>{{ plant.name }}</td>
+            <td>{{ plant.english_name }}</td>
+            <td>{{ species.find((s: Species) => s.species_id === plant.species_id)?.name }}</td>
+            <td>
+              <div class="action-buttons">
+                <button @click="handleEdit(plant)" class="btn-edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button @click="handleDelete(plant.plant_id)" class="btn-delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Grid View -->
+      <div v-else class="plant-grid">
+        <div v-for="plant in paginatedPlants" :key="plant.plant_id" class="plant-card">
+          <div class="plant-image">
+            <img 
+              :src="plant.images && plant.images.length > 0 ? getDisplayImageUrl(plant.images[0].url) : '/default-plant.jpg'" 
+              :alt="plant.name"
+            >
+          </div>
+          <div class="plant-info">
+            <h3>{{ plant.name }}</h3>
+            <p class="english-name">{{ plant.english_name }}</p>
+            <p class="species-name">
+              {{ species.find((s: Species) => s.species_id === plant.species_id)?.name }}
+            </p>
+            <div class="card-actions">
               <button @click="handleEdit(plant)" class="btn-edit">
-                <i class="fas fa-edit"></i>
+                <i class="fas fa-edit"></i> Sửa
               </button>
               <button @click="handleDelete(plant.plant_id)" class="btn-delete">
-                <i class="fas fa-trash"></i>
+                <i class="fas fa-trash"></i> Xóa
               </button>
             </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="filteredPlants.length"
+          layout="total, prev, pager, next"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -508,5 +586,139 @@ onMounted(() => {
   outline: none;
   border-color: #2196F3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-view-toggle:hover {
+  background-color: #e0e0e0;
+}
+
+.plant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px 0;
+}
+
+.plant-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.plant-card:hover {
+  transform: translateY(-4px);
+}
+
+.plant-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.plant-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.plant-card:hover .plant-image img {
+  transform: scale(1.05);
+}
+
+.plant-info {
+  padding: 16px;
+}
+
+.plant-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+  color: #333;
+}
+
+.english-name {
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+}
+
+.species-name {
+  color: #4CAF50;
+  font-size: 0.9em;
+  margin-bottom: 16px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.card-actions .btn-edit {
+  background: #2196F3;
+  color: white;
+}
+
+.card-actions .btn-delete {
+  background: #f44336;
+  color: white;
+}
+
+.card-actions .btn-edit:hover {
+  background: #1976D2;
+}
+
+.card-actions .btn-delete:hover {
+  background: #D32F2F;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.plant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px 0;
+  min-height: 400px;
 }
 </style> 
